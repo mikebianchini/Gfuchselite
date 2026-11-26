@@ -2816,7 +2816,10 @@
               <div class="w-14 h-14 rounded-2xl bg-[#010101] text-[#D5FF5F] font-extrabold text-xl flex items-center justify-center mx-auto">+</div>
               <div class="text-base font-extrabold">No Athletes on Roster Yet</div>
               <p class="text-xs text-[var(--text-muted)] max-w-sm mx-auto">Add your first fastpitch athlete to start scheduling sessions, logging session notes, and sharing clips.</p>
-              <button onclick="openAddAthleteModal(null)" class="mt-2 px-5 py-3 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-md hover:brightness-95 transition">+ Add First Athlete</button>
+              <div class="flex flex-wrap items-center justify-center gap-2 pt-2">
+                <button onclick="openAddAthleteModal(null)" class="px-5 py-3 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-md hover:brightness-95 transition">+ Add First Athlete</button>
+                <button onclick="openAppleNotesImporterModal()" class="px-5 py-3 rounded-full card-white text-xs font-extrabold cursor-pointer hover:border-[#010101] transition inline-flex items-center gap-1.5">${uiIcon('note')} Import Apple Notes</button>
+              </div>
             </div>
           `;
         }
@@ -2925,6 +2928,367 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    // =========================================================================
+    // APPLE NOTES BULK IMPORTER (Folder Upload / JSON Export / Quick Paste)
+    // =========================================================================
+    let _importPreviewData = []; // [{ athleteName, ageGroup, notes: [{ date, warmup, focus, tee, ft, machine, homework, tags, clips }] }]
+    let _importTab = 'folder'; // 'folder' | 'json' | 'paste'
+
+    function stripHtmlToText(str) {
+      if (!/<[a-z][\s\S]*>/i.test(str)) return str;
+      const div = document.createElement('div');
+      div.innerHTML = str.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li|h[1-6])>/gi, '\n');
+      return (div.textContent || div.innerText || '').replace(/\r\n/g, '\n');
+    }
+
+    function parseGinaAppleNote(rawText, fallbackTitle = '') {
+      const text = stripHtmlToText(rawText || '').replace(/\uFFFC/g, '').trim();
+      const lines = text.split('\n').map(l => l.trim());
+
+      // Detect leading date like 11/23 or 11/9/26
+      let date = fallbackTitle.replace(/\.(md|txt|html?)$/i, '').trim() || new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' });
+      const dateMatch = lines[0]?.match(/^(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)$/);
+      if (dateMatch) {
+        date = dateMatch[1];
+        lines.shift();
+      }
+
+      const sections = { warmup: [], focus: [], tee: [], ft: [], machine: [], homework: [], other: [] };
+      let cur = 'other';
+
+      for (const raw of lines) {
+        if (!raw) continue;
+        const low = raw.toLowerCase();
+        if (/^[•\-*]?\s*hitter[’']?s?\s*warm\s*up/i.test(raw)) { cur = 'warmup'; continue; }
+        if (/^what[’']?s\s*new\s*\/?\s*focus/i.test(raw)) {
+          cur = 'focus';
+          const after = raw.replace(/^what[’']?s\s*new\s*\/?\s*focus[^:]*:?\s*/i, '').trim();
+          if (after) sections.focus.push(after);
+          continue;
+        }
+        if (/^what\s+we\s+did\s+today/i.test(raw)) { cur = 'other'; continue; }
+        if (/^tee\s*:/i.test(raw)) {
+          cur = 'tee';
+          const after = raw.replace(/^tee\s*:\s*/i, '').trim();
+          if (after) sections.tee.push(after);
+          continue;
+        }
+        if (/^(ft|front\s*toss)\s*:/i.test(raw)) {
+          cur = 'ft';
+          const after = raw.replace(/^(ft|front\s*toss)\s*:\s*/i, '').trim();
+          if (after) sections.ft.push(after);
+          continue;
+        }
+        if (/^machine\s*:?/i.test(raw) && low.length < 24) {
+          cur = 'machine';
+          const after = raw.replace(/^machine\s*:?\s*/i, '').trim();
+          if (after) sections.machine.push(after);
+          continue;
+        }
+        if (/^homework\s*[-:–]?/i.test(raw)) {
+          cur = 'homework';
+          const after = raw.replace(/^homework\s*[-:–]?\s*/i, '').trim();
+          if (after) sections.homework.push(after);
+          continue;
+        }
+        sections[cur].push(raw);
+      }
+
+      const cleanBullets = (arr) => arr.map(x => x.replace(/^[•\-*]\s*/, '').trim()).filter(Boolean).join('\n');
+      const focus = sections.focus.join('\n').trim() || sections.other.join('\n').trim() || 'Session notes imported from Apple Notes';
+      const tee = cleanBullets(sections.tee);
+      const ft = cleanBullets(sections.ft);
+      const machine = cleanBullets(sections.machine);
+      const warmup = sections.warmup.join('\n').trim();
+      const homework = sections.homework.length ? sections.homework.join('\n').trim() : GINA_HOMEWORK_DEFAULT;
+
+      // Auto-tag based on content
+      const fullLow = text.toLowerCase();
+      const tags = [];
+      if (fullLow.includes('variability')) tags.push('Variability');
+      if (fullLow.includes('barrel')) tags.push('Barrel Control');
+      if (fullLow.includes('3/3/3') || fullLow.includes('extension')) tags.push('Extensions');
+      if (fullLow.includes('at bat') || fullLow.includes('hunting')) tags.push('Approach');
+      if (fullLow.includes('slap')) tags.push('Slapping');
+      if (fullLow.includes('catch') || fullLow.includes('pop time')) tags.push('Catching');
+      if (fullLow.includes('infield') || fullLow.includes('short hop')) tags.push('Defense');
+      if (!tags.length) tags.push('Hitting');
+
+      return { date, warmup, focus, tee, ft, machine, homework, tags: tags.slice(0, 3), clips: [] };
+    }
+
+    function splitMultipleDatedNotes(rawText) {
+      const text = stripHtmlToText(rawText || '').trim();
+      if (!text) return [];
+      const chunks = text.split(/(?=^\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\s*$)/m).map(c => c.trim()).filter(Boolean);
+      return chunks.length ? chunks.map(c => parseGinaAppleNote(c)) : [parseGinaAppleNote(text)];
+    }
+
+    async function handleAppleNotesFolderUpload(input) {
+      const files = Array.from(input.files || []);
+      if (!files.length) return;
+      const byAthlete = {};
+      for (const file of files) {
+        const rel = file.webkitRelativePath || file.name;
+        const parts = rel.split('/').filter(Boolean);
+        // Folder structure: RootExport / AthleteName / note.md (or AthleteName / note.md)
+        const athleteName = parts.length >= 3 ? parts[parts.length - 2] : parts.length === 2 ? parts[0] : 'Imported Athlete';
+        if (athleteName.startsWith('.') || file.name.startsWith('.')) continue;
+        if (!byAthlete[athleteName]) byAthlete[athleteName] = { athleteName, ageGroup: '14U', notes: [], media: [] };
+
+        if (/\.(md|txt|html?)$/i.test(file.name)) {
+          const content = await file.text();
+          const parsed = parseGinaAppleNote(content, file.name);
+          byAthlete[athleteName].notes.push(parsed);
+        } else if (/\.(mp4|mov|m4v|webm|jpe?g|png)$/i.test(file.name)) {
+          byAthlete[athleteName].media.push({ title: file.name, url: URL.createObjectURL(file), img: 'assets/images/fastpitch-hitter.jpg' });
+        }
+      }
+      // Attach folder media to latest note for that athlete
+      _importPreviewData = Object.values(byAthlete).filter(a => a.notes.length > 0).map(a => {
+        if (a.media.length && a.notes.length) a.notes[0].clips = a.media;
+        return a;
+      });
+      renderAppleNotesPreviewBox();
+    }
+
+    async function handleAppleNotesJsonUpload(input) {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const data = JSON.parse(await file.text());
+        const arr = Array.isArray(data) ? data : (data.athletes || data.folders || []);
+        const map = {};
+        arr.forEach(item => {
+          const name = (item.athlete || item.folder || item.name || 'Imported Athlete').trim();
+          if (!map[name]) map[name] = { athleteName: name, ageGroup: item.ageGroup || '14U', notes: [] };
+          if (Array.isArray(item.notes)) {
+            item.notes.forEach(n => map[name].notes.push(parseGinaAppleNote(n.body || n.text || n.content || '', n.title || n.date || '')));
+          } else if (item.body || item.text || item.content) {
+            map[name].notes.push(parseGinaAppleNote(item.body || item.text || item.content, item.title || item.date || ''));
+          }
+        });
+        _importPreviewData = Object.values(map).filter(a => a.notes.length > 0);
+        renderAppleNotesPreviewBox();
+      } catch (err) {
+        showToast('Could not read JSON file — check format and try again.');
+      }
+    }
+
+    function handleAppleNotesPastePreview() {
+      const name = (document.getElementById('import-paste-athlete')?.value || '').trim();
+      const raw = (document.getElementById('import-paste-text')?.value || '').trim();
+      if (!raw) {
+        _importPreviewData = [];
+        renderAppleNotesPreviewBox();
+        return;
+      }
+      const notes = splitMultipleDatedNotes(raw);
+      _importPreviewData = [{ athleteName: name || 'New Athlete', ageGroup: document.getElementById('import-paste-age')?.value || '14U', notes }];
+      renderAppleNotesPreviewBox();
+    }
+
+    function renderAppleNotesPreviewBox() {
+      const box = document.getElementById('apple-notes-preview');
+      const btn = document.getElementById('apple-notes-confirm-btn');
+      if (!box) return;
+      const totalNotes = _importPreviewData.reduce((s, a) => s + a.notes.length, 0);
+      if (!_importPreviewData.length || totalNotes === 0) {
+        box.innerHTML = `<div class="text-xs text-[var(--text-muted)] text-center py-3">Select a folder, upload a JSON export, or paste notes above to preview.</div>`;
+        if (btn) { btn.disabled = true; btn.classList.add('opacity-40'); btn.textContent = 'Import All →'; }
+        return;
+      }
+      box.innerHTML = `
+        <div class="flex items-center justify-between text-xs pb-2 border-b border-[var(--border-subtle)]">
+          <span class="font-extrabold text-[#010101] dark:text-[#D5FF5F]">✓ Ready to Import</span>
+          <span class="font-bold text-[var(--text-muted)]">${_importPreviewData.length} ${_importPreviewData.length === 1 ? 'Athlete' : 'Athletes'} • ${totalNotes} ${totalNotes === 1 ? 'Lesson' : 'Lessons'}</span>
+        </div>
+        <div class="max-h-36 overflow-y-auto space-y-1.5 pt-2">
+          ${_importPreviewData.map(a => `
+            <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl card-white text-xs">
+              <span class="font-extrabold truncate">${a.athleteName}</span>
+              <span class="px-2 py-0.5 rounded-full surface-soft text-[10px] font-extrabold shrink-0">${a.notes.length} ${a.notes.length === 1 ? 'note' : 'notes'}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove('opacity-40');
+        btn.textContent = `Import ${_importPreviewData.length} ${_importPreviewData.length === 1 ? 'Athlete' : 'Athletes'} & ${totalNotes} ${totalNotes === 1 ? 'Note' : 'Notes'} →`;
+      }
+    }
+
+    function copyMacExportScript() {
+      const script = `osascript -l JavaScript -e '
+const app = Application("Notes");
+const out = [];
+for (const folder of app.folders()) {
+  const fname = folder.name();
+  if (["Notes","Recently Deleted"].includes(fname)) continue;
+  const notes = [];
+  for (const n of folder.notes()) {
+    notes.push({ title: n.name(), body: n.plaintext() });
+  }
+  if (notes.length) out.push({ athlete: fname, notes });
+}
+const str = JSON.stringify(out, null, 2);
+const path = $.NSString.alloc.initWithUTF8String("~/Desktop/gina_notes_export.json").stringByExpandingTildeInPath;
+$.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path, true, $.NSUTF8StringEncoding, null);
+"Exported " + out.length + " athlete folders to Desktop/gina_notes_export.json";
+'`;
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(script).then(() => showToast('Mac Terminal export command copied!')).catch(() => showToast('Script ready!'));
+      } else {
+        showToast('Mac export command copied!');
+      }
+    }
+
+    function confirmAppleNotesImport() {
+      if (!_importPreviewData.length) return;
+      let addedAthletes = 0;
+      let addedNotes = 0;
+
+      _importPreviewData.forEach((entry, idx) => {
+        const cleanName = entry.athleteName.trim();
+        let ath = state.athletes.find(a => a.name.toLowerCase() === cleanName.toLowerCase());
+        if (!ath) {
+          const parts = cleanName.split(/\s+/).filter(Boolean);
+          const initials = ((parts[0]?.[0] || 'A') + (parts[1]?.[0] || parts[0]?.[1] || 'F')).toUpperCase();
+          ath = {
+            id: `ath-imp-${Date.now()}-${idx}`,
+            initials,
+            name: cleanName,
+            familyId: `fam-imp-${Date.now()}-${idx}`,
+            parentName: `${parts[1] || cleanName} Family`,
+            parentPhone: '(412) 555-0100',
+            ageGroup: entry.ageGroup || '14U',
+            gradYear: 2029,
+            position: 'Hitter / Utility',
+            batsThrows: 'R / R',
+            team: 'Gina Fuchs Elite Fastpitch',
+            height: '5\'5"',
+            streakDays: 1,
+            weeklyReps: 0,
+            weeklyDuration: '0:00 hours',
+            waiverSigned: true,
+            waiverDate: 'Imported',
+            emergencyContact: 'Update in profile',
+            medicalNotes: 'None reported',
+            pitches: [],
+            notes: [],
+            drills: [{ id: `d-imp-${Date.now()}-${idx}`, title: 'Hitter’s Warmup: PVC Swings & 4lb Med Ball', reps: '5 each', focus: 'Pre-session routine', done: false, img: 'assets/images/fastpitch-hitter.jpg' }]
+          };
+          state.athletes.push(ath);
+          addedAthletes++;
+        }
+
+        const vidImg = getAthleteCoverImg(ath);
+        entry.notes.forEach((n, nIdx) => {
+          state.sessionRecaps.unshift({
+            id: `rec-imp-${Date.now()}-${idx}-${nIdx}`,
+            isDraft: false,
+            athleteId: ath.id,
+            date: n.date,
+            sessionTitle: '1-on-1 Hitting Private (45m)',
+            tags: n.tags,
+            warmup: n.warmup,
+            focus: n.focus,
+            tee: n.tee,
+            ft: n.ft,
+            machine: n.machine,
+            homework: n.homework,
+            note: n.focus,
+            videoTitle: n.clips?.[0]?.title || `${n.date} Session Clip`,
+            videoImg: vidImg,
+            videoUrl: n.clips?.[0]?.url || null,
+            clips: n.clips || [],
+            sentTo: 'Imported from Apple Notes',
+            sentAt: n.date
+          });
+          ath.notes.unshift({ date: n.date, text: n.focus });
+          addedNotes++;
+        });
+      });
+
+      if (!state.selectedAthleteId && state.athletes.length) state.selectedAthleteId = state.athletes[0].id;
+      if (!state.activeSiblingId && state.athletes.length) state.activeSiblingId = state.athletes[0].id;
+      state.rosterView = 'list';
+      _importPreviewData = [];
+      closeModal();
+      render();
+      showToast(`Imported ${addedAthletes} new athletes & ${addedNotes} session notes from Apple Notes!`);
+    }
+
+    function openAppleNotesImporterModal(tab = 'folder') {
+      _importTab = tab;
+      _importPreviewData = [];
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Bulk Migration Tool</div>
+            <h3 class="font-extrabold text-base mt-0.5">Import from Apple Notes</h3>
+          </div>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+
+        <!-- 3-Tab Import Mode Switcher -->
+        <div class="p-1 rounded-2xl surface-soft flex items-center gap-1 text-xs font-extrabold">
+          <button type="button" onclick="openAppleNotesImporterModal('folder')" class="flex-1 py-2 rounded-xl cursor-pointer transition ${tab === 'folder' ? 'bg-[#010101] text-[#D5FF5F]' : 'text-[var(--text-muted)]'}">Folder Upload</button>
+          <button type="button" onclick="openAppleNotesImporterModal('json')" class="flex-1 py-2 rounded-xl cursor-pointer transition ${tab === 'json' ? 'bg-[#010101] text-[#D5FF5F]' : 'text-[var(--text-muted)]'}">Mac JSON</button>
+          <button type="button" onclick="openAppleNotesImporterModal('paste')" class="flex-1 py-2 rounded-xl cursor-pointer transition ${tab === 'paste' ? 'bg-[#010101] text-[#D5FF5F]' : 'text-[var(--text-muted)]'}">Quick Paste</button>
+        </div>
+
+        ${tab === 'folder' ? `
+          <div class="space-y-2.5 text-xs">
+            <p class="text-[var(--text-muted)] leading-relaxed">Select the exported Apple Notes parent folder (e.g. from the free Mac <strong>Exporter</strong> app). Each subfolder becomes an athlete &amp; each note file becomes a dated session recap.</p>
+            <label class="block w-full py-5 px-4 rounded-2xl border-2 border-dashed border-[var(--border-subtle)] surface-soft text-center cursor-pointer hover:border-[#010101] transition">
+              <div class="font-extrabold text-sm">Select Exported Apple Notes Folder</div>
+              <div class="text-[11px] text-[var(--text-muted)] mt-1">Supports .md, .txt, .html + embedded videos/photos</div>
+              <input type="file" webkitdirectory directory multiple onchange="handleAppleNotesFolderUpload(this)" class="hidden" />
+            </label>
+          </div>
+        ` : tab === 'json' ? `
+          <div class="space-y-2.5 text-xs">
+            <p class="text-[var(--text-muted)] leading-relaxed">On Gina’s Mac, run our 1-line Apple Notes export command in Terminal to create <code>Desktop/gina_notes_export.json</code>, then upload it here:</p>
+            <button type="button" onclick="copyMacExportScript()" class="w-full py-2.5 rounded-2xl surface-soft font-extrabold cursor-pointer hover:border-[#010101] inline-flex items-center justify-center gap-1.5">${uiIcon('copy')} Copy 1-Line Mac Export Command</button>
+            <label class="block w-full py-4 px-4 rounded-2xl border-2 border-dashed border-[var(--border-subtle)] surface-soft text-center cursor-pointer hover:border-[#010101] transition">
+              <div class="font-extrabold text-sm">Upload gina_notes_export.json</div>
+              <input type="file" accept=".json,application/json" onchange="handleAppleNotesJsonUpload(this)" class="hidden" />
+            </label>
+          </div>
+        ` : `
+          <div class="space-y-2.5 text-xs">
+            <div class="grid grid-cols-3 gap-2">
+              <div class="col-span-2">
+                <label class="block font-bold text-[var(--text-muted)] mb-1">Athlete Name *</label>
+                <input id="import-paste-athlete" oninput="handleAppleNotesPastePreview()" class="w-full px-3 py-2 rounded-xl surface-soft text-sm font-semibold" placeholder="e.g., Chloe Miller" />
+              </div>
+              <div>
+                <label class="block font-bold text-[var(--text-muted)] mb-1">Age</label>
+                <select id="import-paste-age" onchange="handleAppleNotesPastePreview()" class="w-full px-2.5 py-2 rounded-xl surface-soft text-sm font-bold">
+                  <option>10U</option><option>12U</option><option selected>14U</option><option>16U</option><option>18U</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Paste Apple Notes Text (1 or multiple dated lessons)</label>
+              <textarea id="import-paste-text" oninput="handleAppleNotesPastePreview()" rows="5" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm leading-snug resize-none" placeholder="Paste raw notes here (e.g. 11/23, Hitter's Warm up routine, Tee:, FT:, Homework-)…"></textarea>
+            </div>
+          </div>
+        `}
+
+        <!-- Live Parsed Preview -->
+        <div id="apple-notes-preview" class="surface-soft rounded-2xl p-3">
+          <div class="text-xs text-[var(--text-muted)] text-center py-2">Select a folder, upload JSON, or paste notes to preview.</div>
+        </div>
+
+        <button id="apple-notes-confirm-btn" type="button" disabled onclick="confirmAppleNotesImport()" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg opacity-40 transition">
+          Import All →
+        </button>
+      `);
+    }
+
     function renderCoachAthletes() {
       const sel = state.athletes.find(a => a.id === state.selectedAthleteId) || state.athletes[0];
 
@@ -2953,9 +3317,14 @@
                 <h1 class="text-2xl font-extrabold tracking-tight">Athlete Roster</h1>
                 <p class="text-xs text-[var(--text-muted)]"><span id="roster-match-count">${filteredCount} of ${state.athletes.length}</span> active players • Tap any row for full profile &amp; notes</p>
               </div>
-              <button onclick="openAddAthleteModal(null)" class="px-4 py-2.5 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition">
-                + Add Athlete
-              </button>
+              <div class="flex items-center gap-2">
+                <button onclick="openAppleNotesImporterModal('folder')" class="px-3.5 py-2.5 rounded-full card-white text-xs font-extrabold cursor-pointer hover:border-[#010101] transition inline-flex items-center gap-1.5">
+                  ${uiIcon('note')} Import Notes
+                </button>
+                <button onclick="openAddAthleteModal(null)" class="px-4 py-2.5 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition">
+                  + Add Athlete
+                </button>
+              </div>
             </div>
 
             <!-- Instant Search + Filter Pills -->
