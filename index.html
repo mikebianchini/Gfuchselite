@@ -684,21 +684,21 @@
         {
           id: 'rec-1',
           athleteId: 'ath-1',
-          date: 'Nov 19, 2026',
+          date: '11/23',
           sessionTitle: '1-on-1 Hitting Private (45m)',
-          tags: ['Barrel Path', 'Hip Separation', 'Exit Velo'],
-          warmup: 'Walking PVC swings, recoils, PVC rotations\nMed ball - staggered, scoop, step back 5 each (4lbs)',
-          focus: 'Explosive hip-to-hand separation & keeping barrel slightly up through the zone on inside pitches (hit 66.5 mph exit velo!).',
-          tee: 'Walk-through swing timing (15)\nInside-out high tee drill — stay compact through the zone (15)',
-          ft: 'Inside-corner front toss — driving gap-to-gap without pulling off',
-          machine: '48–52 mph fastballs middle-in — timing load early & staying tall',
-          homework: 'At least 1 bucket of each drill 2-3x a week!',
-          note: 'Explosive hip-to-hand separation today—hit 66.5 mph exit velo! Keep hands inside the ball on tight pitches and stay through the middle of the field.',
-          videoTitle: 'Front Toss Side Angle — 66.5 mph (0:14)',
+          tags: ['Barrel Control', 'Variability', 'Exit Velo'],
+          warmup: 'walking pvc swings, recoils, pvc rotations\nMed ball - staggered, scoop, step back 5 each (4lbs)',
+          focus: 'Barrel control w diff bats. Variability training.\nNew ghost unlimited.',
+          tee: 'Warm-up tee barrel checks (video attached)',
+          ft: 'Shorty baseballs\nBaseball bat baseballs\nRegular bat softballs',
+          machine: '',
+          homework: 'At least 1 bucket of each drill 2-3x a week!\n• Work on drills we’ve been doing off the tee.\n• Extensions, step back, outside pitch extension',
+          note: 'Barrel control w diff bats. Variability training. New ghost unlimited.',
+          videoTitle: '11/23 Tee & FT Variability Clip — Ghost Unlimited (0:14)',
           videoImg: 'assets/images/fastpitch-hitter.jpg',
           videoUrl: null,
           sentTo: 'Sarah Miller (SMS + App)',
-          sentAt: 'Nov 19 • 5:02 PM'
+          sentAt: '11/23 • 5:02 PM'
         },
         {
           id: 'rec-2',
@@ -2744,8 +2744,9 @@
 
     function formatRecapPlainText(r) {
       const lines = [];
+      if (r.date) lines.push(r.date);
       if (r.warmup) {
-        lines.push(`• Hitter’s Warm up routine`);
+        lines.push(`* Hitter’s Warm up routine`);
         lines.push(r.warmup);
         lines.push('');
       }
@@ -2754,14 +2755,22 @@
       lines.push('');
       lines.push(`What we did today:`);
       lines.push('');
-      lines.push(`Tee:`);
-      (r.tee || '').split('\n').map(x => x.trim()).filter(Boolean).forEach(x => lines.push(`  • ${x.replace(/^[•\-*]\s*/, '')}`));
-      lines.push(`FT:`);
-      (r.ft || '').split('\n').map(x => x.trim()).filter(Boolean).forEach(x => lines.push(`  • ${x.replace(/^[•\-*]\s*/, '')}`));
-      lines.push(`Machine:`);
-      (r.machine || '').split('\n').map(x => x.trim()).filter(Boolean).forEach(x => lines.push(`  • ${x.replace(/^[•\-*]\s*/, '')}`));
+      if (r.tee) {
+        lines.push(`Tee:`);
+        r.tee.split('\n').map(x => x.trim()).filter(Boolean).forEach(x => lines.push(`* ${x.replace(/^[•\-*]\s*/, '')}`));
+      }
+      if (r.ft) {
+        lines.push(`FT:`);
+        r.ft.split('\n').map(x => x.trim()).filter(Boolean).forEach(x => lines.push(`* ${x.replace(/^[•\-*]\s*/, '')}`));
+      }
+      if (r.machine) {
+        lines.push(`Machine:`);
+        r.machine.split('\n').map(x => x.trim()).filter(Boolean).forEach(x => lines.push(`* ${x.replace(/^[•\-*]\s*/, '')}`));
+      }
       lines.push('');
-      lines.push(`Homework - ${r.homework || GINA_HOMEWORK_DEFAULT}`);
+      const hwLines = (r.homework || GINA_HOMEWORK_DEFAULT).split('\n').map(x => x.trim()).filter(Boolean);
+      lines.push(`Homework - ${hwLines[0] || GINA_HOMEWORK_DEFAULT}`);
+      hwLines.slice(1).forEach(x => lines.push(`* ${x.replace(/^[•\-*]\s*/, '')}`));
       return lines.join('\n');
     }
 
@@ -2776,11 +2785,22 @@
       }
     }
 
+    function appendQuickDrill(inputId, text) {
+      const el = document.getElementById(inputId);
+      if (!el) return;
+      const cur = el.value.trim();
+      el.value = cur ? `${cur}\n• ${text}` : `• ${text}`;
+      el.focus();
+    }
+
     function renderRecapTemplateBody(r, compact = false) {
       if (!r.focus && !r.tee && !r.ft && !r.machine && !r.warmup) {
         return `<p class="text-xs leading-relaxed">${r.note}</p>`;
       }
       const boxCls = compact ? 'card-white' : 'surface-soft';
+      const hwLines = (r.homework || '').split('\n').map(l => l.trim()).filter(Boolean);
+      const hwHead = hwLines[0] || '';
+      const hwBullets = hwLines.slice(1);
       return `
         <div class="space-y-2.5 text-xs">
           ${r.warmup ? `
@@ -2793,7 +2813,7 @@
           ${r.focus ? `
             <div class="space-y-0.5">
               <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">What’s New / Focus for Lesson</div>
-              <p class="text-xs font-semibold leading-relaxed">${r.focus}</p>
+              <p class="text-xs font-semibold leading-relaxed whitespace-pre-line">${r.focus}</p>
             </div>
           ` : ''}
 
@@ -2823,10 +2843,13 @@
             </div>
           ` : ''}
 
-          ${r.homework ? `
-            <div class="rounded-2xl px-3 py-2 bg-[#D5FF5F]/25 dark:bg-[#D5FF5F]/15 border border-[#D5FF5F]/60 flex items-start gap-2">
-              <span class="text-xs">🥎</span>
-              <div class="text-[11px] leading-snug"><span class="font-extrabold">Homework:</span> ${r.homework}</div>
+          ${hwHead ? `
+            <div class="rounded-2xl px-3 py-2.5 bg-[#D5FF5F]/25 dark:bg-[#D5FF5F]/15 border border-[#D5FF5F]/60 space-y-1">
+              <div class="flex items-start gap-2 text-[11px] leading-snug">
+                <span class="text-xs">🥎</span>
+                <div><span class="font-extrabold">Homework:</span> ${hwHead}</div>
+              </div>
+              ${hwBullets.length ? `<ul class="pl-5 space-y-0.5 text-[11px] leading-snug">${formatBulletLines(hwBullets.join('\n'))}</ul>` : ''}
             </div>
           ` : ''}
         </div>
@@ -2836,7 +2859,7 @@
     function openSessionRecapModal(athId, sessionId) {
       const ath = state.athletes.find(a => a.id === athId) || state.athletes[0];
       const ses = sessionId ? state.sessions.find(s => s.id === sessionId) : null;
-      _recapDraftTags = ['Barrel Path', 'Timing'];
+      _recapDraftTags = ['Barrel Control', 'Variability'];
       _recapDraftVideoUrl = null;
       _recapDraftVideoName = null;
       renderRecapComposerModal(ath, ses);
@@ -2881,7 +2904,9 @@
         machine: '',
         homework: GINA_HOMEWORK_DEFAULT
       };
-      const allTags = ['Barrel Path', 'Exit Velo', 'Timing', 'Slapping', 'Footwork', 'Glove Transfer', 'Pop Time', 'Arm Care'];
+      const allTags = ['Barrel Control', 'Variability', 'Exit Velo', 'Timing', 'Slapping', 'Footwork', 'Pop Time', 'Arm Care'];
+      const ftQuick = ['Shorty baseballs', 'Baseball bat baseballs', 'Regular bat softballs'];
+      const hwQuick = ['Extensions', 'Step back', 'Outside pitch extension'];
       openModal(`
         <div class="flex items-start justify-between gap-2">
           <div>
@@ -2915,7 +2940,7 @@
           <!-- 2. What's new / focus for lesson -->
           <div>
             <label class="block font-extrabold mb-1">What’s new / focus for lesson: *</label>
-            <textarea id="recap-focus-input" name="focus" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft leading-relaxed" placeholder="e.g., Staying compact on inside pitch & explosive lower-half load..." required>${d.focus}</textarea>
+            <textarea id="recap-focus-input" name="focus" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft leading-relaxed" placeholder="e.g., Barrel control w diff bats. Variability training. New ghost unlimited." required>${d.focus}</textarea>
           </div>
 
           <!-- 3. What we did today: Tee / FT / Machine -->
@@ -2923,33 +2948,43 @@
             <div class="font-extrabold text-[11px] uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">What we did today</div>
             <div>
               <label class="block font-bold mb-1">Tee:</label>
-              <textarea id="recap-tee-input" name="tee" rows="2" class="w-full px-3 py-2 rounded-xl card-white leading-snug" placeholder="• High tee inside-out&#10;• Walk-through swing timing">${d.tee}</textarea>
+              <textarea id="recap-tee-input" name="tee" rows="2" class="w-full px-3 py-2 rounded-xl card-white leading-snug" placeholder="• Extensions, step back, outside pitch extension">${d.tee}</textarea>
             </div>
             <div>
-              <label class="block font-bold mb-1">FT (Front Toss):</label>
-              <textarea id="recap-ft-input" name="ft" rows="2" class="w-full px-3 py-2 rounded-xl card-white leading-snug" placeholder="• Opposite-field front toss&#10;• Inside corner quick hands">${d.ft}</textarea>
+              <div class="flex flex-wrap items-center justify-between gap-1 mb-1">
+                <label class="font-bold">FT (Front Toss):</label>
+                <div class="flex flex-wrap gap-1">
+                  ${ftQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-ft-input','${q}')" class="px-2 py-0.5 rounded-full card-white text-[10px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+                </div>
+              </div>
+              <textarea id="recap-ft-input" name="ft" rows="3" class="w-full px-3 py-2 rounded-xl card-white leading-snug" placeholder="• Shorty baseballs&#10;• Baseball bat baseballs&#10;• Regular bat softballs">${d.ft}</textarea>
             </div>
             <div>
               <label class="block font-bold mb-1">Machine:</label>
-              <textarea id="recap-machine-input" name="machine" rows="2" class="w-full px-3 py-2 rounded-xl card-white leading-snug" placeholder="• Fastball timing reps (middle-in)">${d.machine}</textarea>
+              <textarea id="recap-machine-input" name="machine" rows="2" class="w-full px-3 py-2 rounded-xl card-white leading-snug" placeholder="• Fastball timing reps (optional)">${d.machine}</textarea>
             </div>
           </div>
 
-          <!-- 4. Homework (Pre-filled from Gina's template) -->
-          <div>
-            <label class="block font-extrabold mb-1">Homework:</label>
-            <input id="recap-homework-input" name="homework" value="${d.homework.replace(/"/g, '&quot;')}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" />
+          <!-- 4. Homework (Multi-line with bullet points, pre-filled from Gina's template) -->
+          <div class="space-y-1.5">
+            <div class="flex flex-wrap items-center justify-between gap-1">
+              <label class="font-extrabold">Homework:</label>
+              <div class="flex flex-wrap gap-1">
+                ${hwQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-homework-input','${q}')" class="px-2 py-0.5 rounded-full surface-soft text-[10px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+              </div>
+            </div>
+            <textarea id="recap-homework-input" name="homework" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft leading-snug font-semibold" placeholder="At least 1 bucket of each drill 2-3x a week!&#10;• Work on drills we’ve been doing off the tee.&#10;• Extensions, step back, outside pitch extension">${d.homework}</textarea>
           </div>
 
-          <!-- Attach Session Video from Camera Roll -->
+          <!-- Attach Session Video / Photo from Camera Roll -->
           <div class="surface-soft rounded-2xl p-3 space-y-2">
             <div class="flex items-center justify-between">
-              <span class="font-extrabold">🎥 Attach Session Video</span>
+              <span class="font-extrabold">🎥 Attach Session Video / Clip</span>
               <span id="recap-video-status" class="text-[11px] font-bold text-[#4E6075] dark:text-[#9AC0D6]">${_recapDraftVideoName ? `✓ ${_recapDraftVideoName}` : 'Demo clip ready'}</span>
             </div>
             <label class="block w-full py-2 px-3 rounded-xl card-white text-center font-bold cursor-pointer hover:border-[#010101]">
-              Choose Video from Phone / Computer
-              <input type="file" accept="video/*" onchange="handleRecapVideoFile(this)" class="hidden" />
+              Choose Video or Photo from Phone / Computer
+              <input type="file" accept="video/*,image/*" onchange="handleRecapVideoFile(this)" class="hidden" />
             </label>
           </div>
 
