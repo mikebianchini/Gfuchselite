@@ -11,7 +11,7 @@
   <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
-  <meta name="theme-color" content="#010101" />
+  <meta id="meta-theme-color" name="theme-color" content="#DDE6EA" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Elite Fastpitch" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -33,20 +33,20 @@
 
       /* Apple Liquid Glass — Light Mode */
       --bg-page: #DDE6EA;
-      --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.42) 100%);
-      --glass-mist: linear-gradient(135deg, rgba(214, 223, 226, 0.76) 0%, rgba(154, 192, 214, 0.34) 100%);
-      --glass-soft: rgba(255, 255, 255, 0.48);
-      --glass-dock: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.56) 100%);
-      --glass-border: rgba(255, 255, 255, 0.78);
+      --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.48) 100%);
+      --glass-mist: linear-gradient(135deg, rgba(226, 234, 238, 0.84) 0%, rgba(182, 208, 224, 0.42) 100%);
+      --glass-soft: rgba(255, 255, 255, 0.54);
+      --glass-dock: linear-gradient(180deg, rgba(255, 255, 255, 0.84) 0%, rgba(255, 255, 255, 0.64) 100%);
+      --glass-border: rgba(255, 255, 255, 0.82);
       --glass-border-outer: rgba(78, 96, 117, 0.14);
-      --glass-specular: inset 0 1.5px 1px rgba(255, 255, 255, 0.92), inset 0 -1px 1px rgba(78, 96, 117, 0.08);
+      --glass-specular: inset 0 1.5px 1px rgba(255, 255, 255, 0.94), inset 0 -1px 1px rgba(78, 96, 117, 0.08);
       --glass-shadow: 0 14px 36px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
       --border-subtle: rgba(78, 96, 117, 0.16);
       --text-main: #010101;
       --text-muted: #595959;
       --text-soft: #7A8694;
-      --bg-card: rgba(255, 255, 255, 0.72);
-      --bg-elevated: rgba(255, 255, 255, 0.52);
+      --bg-card: rgba(255, 255, 255, 0.78);
+      --bg-elevated: rgba(255, 255, 255, 0.56);
     }
 
     html.dark {
@@ -55,7 +55,7 @@
       --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.04) 100%);
       --glass-mist: linear-gradient(135deg, rgba(78, 96, 117, 0.34) 0%, rgba(154, 192, 214, 0.12) 100%);
       --glass-soft: rgba(255, 255, 255, 0.07);
-      --glass-dock: linear-gradient(180deg, rgba(28, 34, 42, 0.76) 0%, rgba(16, 20, 25, 0.64) 100%);
+      --glass-dock: linear-gradient(180deg, rgba(28, 34, 42, 0.80) 0%, rgba(16, 20, 25, 0.68) 100%);
       --glass-border: rgba(255, 255, 255, 0.18);
       --glass-border-outer: rgba(255, 255, 255, 0.10);
       --glass-specular: inset 0 1px 1px rgba(255, 255, 255, 0.28), inset 0 -1px 1px rgba(0, 0, 0, 0.35);
@@ -75,6 +75,27 @@
       overflow-x: hidden;
     }
 
+    /* iOS Safe-Area-Aware Mobile Header & Bottom Dock */
+    .mobile-header-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
+      padding-left: 12px;
+      padding-right: 12px;
+      padding-bottom: 6px;
+      background: linear-gradient(180deg, var(--bg-page) 0%, rgba(221, 230, 234, 0.86) 66%, rgba(221, 230, 234, 0) 100%);
+    }
+    html.dark .mobile-header-wrap {
+      background: linear-gradient(180deg, var(--bg-page) 0%, rgba(7, 9, 12, 0.88) 66%, rgba(7, 9, 12, 0) 100%);
+    }
+    .mobile-dock-safe {
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    }
+    .mobile-main-safe {
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 108px);
+    }
+
     /* Ambient Luminous Mesh Behind Liquid Glass */
     .liquid-ambient {
       position: fixed;
@@ -86,10 +107,10 @@
     .liquid-orb {
       position: absolute;
       border-radius: 9999px;
-      filter: blur(80px);
-      opacity: 0.62;
+      filter: blur(90px);
+      opacity: 0.36;
     }
-    html.dark .liquid-orb { opacity: 0.32; }
+    html.dark .liquid-orb { opacity: 0.28; }
 
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -105,8 +126,8 @@
 
     .card-mist {
       background: var(--glass-mist);
-      backdrop-filter: blur(32px) saturate(210%);
-      -webkit-backdrop-filter: blur(32px) saturate(210%);
+      backdrop-filter: blur(32px) saturate(200%);
+      -webkit-backdrop-filter: blur(32px) saturate(200%);
       border: 1px solid var(--glass-border);
       box-shadow: var(--glass-specular), var(--glass-shadow);
     }
@@ -131,10 +152,10 @@
     }
 
     .glass-pill-hero {
-      background: rgba(255, 255, 255, 0.72);
+      background: rgba(255, 255, 255, 0.78);
       backdrop-filter: blur(20px) saturate(200%);
       -webkit-backdrop-filter: blur(20px) saturate(200%);
-      border: 1px solid rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.92);
       box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.95), 0 8px 24px rgba(0, 0, 0, 0.18);
     }
 
@@ -155,6 +176,7 @@
       animation: ptrSpin 0.75s linear infinite;
     }
     #ptr-indicator {
+      top: env(safe-area-inset-top, 0px);
       transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
     }
     #ptr-indicator.dragging {
@@ -246,21 +268,21 @@
       </div>
     </aside>
 
-    <!-- Floating Mobile Liquid Glass Header Capsule -->
-    <div class="lg:hidden sticky top-3 z-30 px-3 pt-3">
-      <header class="glass-dock rounded-[26px] px-4 py-2.5 flex items-center justify-between gap-2">
+    <!-- Floating Mobile Liquid Glass Header Capsule (iOS Safe-Area Aware) -->
+    <div class="lg:hidden mobile-header-wrap">
+      <header class="glass-dock rounded-[26px] px-3.5 py-2.5 flex items-center justify-between gap-2">
         <div class="flex items-center gap-2.5 min-w-0">
           <svg class="h-8 w-8 shrink-0 text-[var(--text-main)]" viewBox="15 42 165 168" fill="none">
             <polygon fill="#4E6075" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
             <polygon fill="currentColor" points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
           </svg>
           <div class="leading-tight truncate">
-            <div class="font-extrabold text-sm tracking-tight">ELITE FASTPITCH</div>
+            <div class="font-extrabold text-[13px] tracking-tight">ELITE FASTPITCH</div>
             <div class="text-[11px] text-[var(--text-muted)] font-medium">Gina Fuchs Training</div>
           </div>
         </div>
 
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-1.5 shrink-0">
           <div class="flex p-0.5 rounded-full surface-soft text-[11px] font-bold">
             <button id="mob-role-parent" onclick="switchRole('parent')" class="px-2.5 py-1 rounded-full transition cursor-pointer">Athlete</button>
             <button id="mob-role-coach" onclick="switchRole('coach')" class="px-2.5 py-1 rounded-full transition cursor-pointer">Coach</button>
@@ -273,19 +295,19 @@
     </div>
 
     <!-- Main Workspace -->
-    <main class="flex-1 lg:pl-80 pb-28 lg:pb-10">
-      <div id="app-root" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7 space-y-6"></div>
+    <main class="flex-1 lg:pl-80 mobile-main-safe lg:pb-10">
+      <div id="app-root" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-4 sm:py-7 space-y-5"></div>
     </main>
 
     <!-- Floating Detached Mobile Liquid Glass Dock (iOS 26 Signature!) -->
-    <nav id="mobile-bottom-nav" class="lg:hidden fixed bottom-4 left-3 right-3 z-30 glass-dock rounded-[30px] px-2 py-2 flex items-center justify-around"></nav>
+    <nav id="mobile-bottom-nav" class="lg:hidden fixed mobile-dock-safe left-3 right-3 z-30 glass-dock rounded-[30px] px-2 py-2 flex items-center justify-around"></nav>
   </div>
 
   <!-- Modal Root (Repetition Ruler / Session / Celebration) -->
   <div id="modal-root" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop"></div>
 
   <!-- Toast -->
-  <div id="toast" class="fixed bottom-20 lg:bottom-6 right-4 z-50 hidden max-w-sm px-4 py-3 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-bold shadow-2xl"></div>
+  <div id="toast" class="fixed bottom-24 lg:bottom-6 right-4 z-50 hidden max-w-sm px-4 py-3 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-bold shadow-2xl"></div>
 
   <script>
     function toggleTheme() {
@@ -294,6 +316,7 @@
       const label = isDark ? 'Dark' : 'Light';
       ['desk-theme-icon', 'mob-theme-icon'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = icon; });
       const dl = document.getElementById('desk-theme-label'); if (dl) dl.textContent = label;
+      const meta = document.getElementById('meta-theme-color'); if (meta) meta.setAttribute('content', isDark ? '#07090C' : '#DDE6EA');
     }
 
     // =========================================================================
@@ -810,26 +833,36 @@
     };
 
     // Smooth FitStreak-style Volt Area Chart SVG
-    function performanceAreaChart() {
+    function performanceAreaChart(ath = null) {
+      const val = parseFloat(ath?.primaryMetricValue) || 60;
+      const isTime = (ath?.primaryMetricUnit || '').toUpperCase() === 'SEC';
+      const topLbl = isTime ? (val - 0.05).toFixed(2) : Math.ceil(val + 1);
+      const midLbl = isTime ? (val + 0.05).toFixed(2) : Math.round(val - 3);
+      const botLbl = isTime ? (val + 0.15).toFixed(2) : Math.round(val - 7);
       return `
-        <svg viewBox="0 0 340 115" class="w-full h-28 overflow-visible" aria-label="Training Performance Chart">
+        <svg viewBox="0 0 340 116" class="w-full h-28 overflow-visible" aria-label="Training Performance Chart">
           <defs>
             <linearGradient id="voltGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#D5FF5F" stop-opacity="0.95"/>
-              <stop offset="100%" stop-color="#D5FF5F" stop-opacity="0.06"/>
+              <stop offset="0%" stop-color="#D5FF5F" stop-opacity="0.92"/>
+              <stop offset="100%" stop-color="#D5FF5F" stop-opacity="0.05"/>
             </linearGradient>
           </defs>
-          <g fill="var(--text-muted)" font-size="10" font-weight="600">
-            <text x="0" y="14">60</text>
-            <text x="0" y="48">55</text>
-            <text x="0" y="82">50</text>
+          <g stroke="currentColor" stroke-opacity="0.08" stroke-dasharray="3 4" stroke-width="1">
+            <line x1="30" y1="12" x2="336" y2="12"/>
+            <line x1="30" y1="46" x2="336" y2="46"/>
+            <line x1="30" y1="80" x2="336" y2="80"/>
           </g>
-          <path d="M26 68 C 52 38, 72 40, 95 62 C 122 86, 148 44, 185 38 C 222 32, 248 64, 276 52 C 300 42, 316 20, 336 28 L 336 96 L 26 96 Z" fill="url(#voltGrad)"/>
-          <path d="M26 68 C 52 38, 72 40, 95 62 C 122 86, 148 44, 185 38 C 222 32, 248 64, 276 52 C 300 42, 316 20, 336 28" fill="none" stroke="#B6E633" stroke-width="2.5" stroke-linecap="round"/>
-          <circle cx="316" cy="24" r="4.5" fill="#010101" stroke="#D5FF5F" stroke-width="2.5"/>
+          <g fill="var(--text-muted)" font-size="10" font-weight="700">
+            <text x="0" y="15">${topLbl}</text>
+            <text x="0" y="49">${midLbl}</text>
+            <text x="0" y="83">${botLbl}</text>
+          </g>
+          <path d="M30 68 C 56 38, 76 40, 98 62 C 124 84, 150 44, 186 38 C 222 32, 248 62, 276 50 C 300 40, 316 20, 336 26 L 336 96 L 30 96 Z" fill="url(#voltGrad)"/>
+          <path d="M30 68 C 56 38, 76 40, 98 62 C 124 84, 150 44, 186 38 C 222 32, 248 62, 276 50 C 300 40, 316 20, 336 26" fill="none" stroke="#9ED11E" stroke-width="2.75" stroke-linecap="round"/>
+          <circle cx="316" cy="23" r="5" fill="#010101" stroke="#D5FF5F" stroke-width="2.5"/>
           <g fill="var(--text-muted)" font-size="10" font-weight="600">
-            <text x="26" y="112">Sep</text>
-            <text x="120" y="112">Oct</text>
+            <text x="30" y="112">Sep</text>
+            <text x="122" y="112">Oct</text>
             <text x="218" y="112">Nov 1</text>
             <text x="304" y="112">Today</text>
           </g>
@@ -963,13 +996,13 @@
       const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
       const isProfile = state.parentTab === 'profile';
       return `
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <button onclick="openProfileFromName('${ath.id}')" title="Tap to view ${ath.name}'s profile" class="flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-extrabold transition cursor-pointer bg-[#010101] text-[#D5FF5F] shadow-md">
-            <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-[#D5FF5F] text-[#010101]">${ath.initials}</span>
-            <span>${ath.name} (${ath.ageGroup})</span>
-            ${!isProfile ? `<span class="ml-0.5 px-1.5 py-0.5 rounded-full bg-white/15 text-[10px] font-bold text-white">Profile ›</span>` : ''}
+        <div class="flex items-center justify-between gap-2">
+          <button onclick="openProfileFromName('${ath.id}')" title="Tap to view ${ath.name}'s profile" class="flex items-center gap-2 px-3 py-2 rounded-full text-xs font-extrabold transition cursor-pointer bg-[#010101] text-[#D5FF5F] shadow-md min-w-0">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-[#D5FF5F] text-[#010101] shrink-0">${ath.initials}</span>
+            <span class="truncate">${ath.name.split(' ')[0]} (${ath.ageGroup})</span>
+            ${!isProfile ? `<span class="ml-0.5 px-1.5 py-0.5 rounded-full bg-white/15 text-[10px] font-bold text-white shrink-0">Profile ›</span>` : ''}
           </button>
-          <button onclick="setTab('book'); if(state.cal.cart.length){ state.cal.step='details'; render(); }" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer">
+          <button onclick="setTab('book'); if(state.cal.cart.length){ state.cal.step='details'; render(); }" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer shrink-0 whitespace-nowrap">
             ${state.cal.cart.length > 0 ? `🛒 Cart (<span class="text-[#010101] bg-[#D5FF5F] px-1.5 py-0.5 rounded-md">${state.cal.cart.length}</span>)` : '+ Book Session'}
           </button>
         </div>
@@ -990,25 +1023,29 @@
           <!-- Left: Mist-Gray Performance Card (Exact FitStreak Card 1!) -->
           <div class="lg:col-span-5 card-mist rounded-[28px] p-5 sm:p-6 flex flex-col justify-between gap-4">
             <div>
-              <div class="flex items-center justify-between">
+              <div class="flex items-center justify-between gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight">Training</h1>
-                <span class="px-3 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-xs font-extrabold">${ath.primaryMetricValue} ${ath.primaryMetricUnit} PR</span>
+                <span class="px-3 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-xs font-extrabold tabular-nums shrink-0">${ath.primaryMetricValue} ${ath.primaryMetricUnit} PR</span>
               </div>
-              <p class="text-xs font-semibold text-[var(--text-muted)] mt-1">Your performance • ${ath.primaryMetricDelta}</p>
-              <div class="mt-4">${performanceAreaChart()}</div>
+              <p class="text-xs font-semibold text-[var(--text-muted)] mt-1">${ath.primaryMetricLabel} • ${ath.primaryMetricDelta}</p>
+              <div class="mt-4">${performanceAreaChart(ath)}</div>
             </div>
-            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-[#010101]/10">
+            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-[#010101]/10 dark:border-white/10">
               <div class="flex items-center gap-2.5">
-                <div class="w-9 h-9 rounded-2xl bg-white/70 dark:bg-white/10 flex items-center justify-center text-sm">🥎</div>
-                <div>
-                  <div class="text-[11px] text-[var(--text-muted)] font-semibold">Total Reps Logged</div>
+                <div class="w-9 h-9 rounded-2xl bg-white/80 dark:bg-white/10 flex items-center justify-center shrink-0 text-[#010101] dark:text-[#D5FF5F]">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M8.5 5.5c2 2.5 2 10.5 0 13M15.5 5.5c-2 2.5-2 10.5 0 13"/></svg>
+                </div>
+                <div class="min-w-0">
+                  <div class="text-[11px] text-[var(--text-muted)] font-semibold truncate">Total Reps</div>
                   <div class="text-sm font-extrabold tabular-nums">${ath.weeklyReps} reps</div>
                 </div>
               </div>
               <div class="flex items-center gap-2.5">
-                <div class="w-9 h-9 rounded-2xl bg-white/70 dark:bg-white/10 flex items-center justify-center text-sm">⏱️</div>
-                <div>
-                  <div class="text-[11px] text-[var(--text-muted)] font-semibold">Total Duration</div>
+                <div class="w-9 h-9 rounded-2xl bg-white/80 dark:bg-white/10 flex items-center justify-center shrink-0 text-[#010101] dark:text-[#D5FF5F]">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path stroke-linecap="round" d="M12 9v4l2.5 1.5M9.5 3h5"/></svg>
+                </div>
+                <div class="min-w-0">
+                  <div class="text-[11px] text-[var(--text-muted)] font-semibold truncate">Duration</div>
                   <div class="text-sm font-extrabold tabular-nums">${ath.weeklyDuration}</div>
                 </div>
               </div>
@@ -1016,20 +1053,20 @@
           </div>
 
           <!-- Right: Full-Bleed Editorial Hero Session Card ("Day 6" + White GO -> Pill!) -->
-          <div onclick="openRepPicker('${hero.title}', '${hero.subtitle}', '${hero.img}', ${hero.defaultReps})" class="lg:col-span-7 relative rounded-[28px] overflow-hidden min-h-[270px] sm:min-h-[300px] cursor-pointer group shadow-lg">
+          <div onclick="openRepPicker('${hero.title}', '${hero.subtitle}', '${hero.img}', ${hero.defaultReps})" class="lg:col-span-7 relative rounded-[28px] overflow-hidden min-h-[285px] sm:min-h-[305px] cursor-pointer group shadow-lg">
             <img src="${hero.img}" alt="${hero.title}" class="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition duration-500" />
-            <div class="absolute inset-0 bg-gradient-to-b from-[#010101]/70 via-[#010101]/20 to-[#010101]/75"></div>
-            <div class="relative h-full p-6 flex flex-col justify-between text-white">
+            <div class="absolute inset-0 bg-gradient-to-b from-[#010101]/65 via-[#010101]/15 to-[#010101]/90"></div>
+            <div class="relative h-full p-5 sm:p-6 flex flex-col justify-between text-white">
               <div class="flex items-start justify-between gap-3">
                 <div>
                   <div class="text-2xl sm:text-3xl font-extrabold tracking-tight">Day ${ath.streakDays}</div>
-                  <div class="text-xs sm:text-sm text-[#D6DFE2] font-medium mt-0.5">Start your ${ath.name.split(' ')[0]}’s daily drill workout</div>
+                  <div class="text-xs sm:text-sm text-[#D6DFE2] font-medium mt-0.5">${ath.name.split(' ')[0]}’s daily drill workout</div>
                 </div>
                 ${icons.arrowBtn}
               </div>
-              <div class="space-y-1">
+              <div class="space-y-1.5 pt-16">
                 <span class="inline-block px-2.5 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold tracking-wider">${hero.duration} • ${hero.category}</span>
-                <div class="text-xl font-extrabold">${hero.title}</div>
+                <div class="text-xl font-extrabold leading-tight">${hero.title}</div>
                 <div class="text-xs text-[#D6DFE2]">Coach Gina Fuchs • Tap to set reps &amp; start</div>
               </div>
             </div>
