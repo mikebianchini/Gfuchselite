@@ -2076,9 +2076,16 @@
                   <p class="text-xs sm:text-sm text-[#D6DFE2] font-medium">${ath.position} • B/T: ${ath.batsThrows} • ${ath.height} • ${ath.team}</p>
                 </div>
               </div>
-              <button onclick="openEditBioModal('${ath.id}')" class="glass-pill-hero px-4 py-2 rounded-full text-[#010101] text-xs font-extrabold cursor-pointer">
-                Edit Profile
-              </button>
+              <div class="flex items-center gap-2">
+                <button onclick="openEditBioModal('${ath.id}')" class="glass-pill-hero px-4 py-2 rounded-full text-[#010101] text-xs font-extrabold cursor-pointer">
+                  Edit Profile
+                </button>
+                ${state.athletes.filter(a => a.familyId === 'fam-1').length > 1 ? `
+                  <button onclick="openRemoveAthleteModal('${ath.id}')" class="px-3.5 py-2 rounded-full bg-[#010101]/55 hover:bg-red-600/90 backdrop-blur border border-white/20 text-white text-xs font-extrabold cursor-pointer transition">
+                    Remove
+                  </button>
+                ` : ''}
+              </div>
             </div>
 
             <!-- Hero Quick Stats Bar -->
@@ -2786,6 +2793,54 @@
       showToast(`${name} added to ${familyId === 'fam-1' ? 'your family hub' : 'Coach Gina’s roster'}!`);
     }
 
+    function openRemoveAthleteModal(athId) {
+      const ath = state.athletes.find(a => a.id === athId);
+      if (!ath) return;
+      if (state.athletes.length <= 1) {
+        showToast('Keep at least one athlete on the roster.');
+        return;
+      }
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="text-[11px] font-extrabold uppercase tracking-wider text-red-600 dark:text-red-400">Remove Athlete</div>
+            <h3 class="font-extrabold text-base mt-0.5">Remove ${ath.name}?</h3>
+          </div>
+          <button onclick="closeModal()" class="w-8 h-8 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+        <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+          This removes <strong>${ath.name} (${ath.ageGroup} • ${ath.position})</strong> from the roster and clears any pending cart items for them.
+        </p>
+        <div class="grid grid-cols-2 gap-2.5 pt-1">
+          <button type="button" onclick="closeModal()" class="py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Cancel</button>
+          <button type="button" onclick="confirmRemoveAthlete('${ath.id}')" class="py-3 rounded-2xl bg-red-600 text-white text-xs font-extrabold cursor-pointer hover:bg-red-700 transition">Yes, Remove</button>
+        </div>
+      `);
+    }
+
+    function confirmRemoveAthlete(athId) {
+      if (state.athletes.length <= 1) {
+        closeModal();
+        showToast('Keep at least one athlete on the roster.');
+        return;
+      }
+      const ath = state.athletes.find(a => a.id === athId);
+      if (!ath) return;
+      state.athletes = state.athletes.filter(a => a.id !== athId);
+      state.cal.cart = state.cal.cart.filter(item => item.athleteId !== athId);
+
+      if (state.selectedAthleteId === athId) {
+        state.selectedAthleteId = state.athletes[0].id;
+      }
+      if (state.activeSiblingId === athId) {
+        const nextFam = state.athletes.find(a => a.familyId === 'fam-1') || state.athletes[0];
+        state.activeSiblingId = nextFam.id;
+      }
+      closeModal();
+      render();
+      showToast(`Removed ${ath.name} from roster.`);
+    }
+
     function renderCoachAthletes() {
       const sel = state.athletes.find(a => a.id === state.selectedAthleteId) || state.athletes[0];
       const recaps = state.sessionRecaps.filter(r => r.athleteId === sel.id);
@@ -2828,6 +2883,13 @@
                 <div><span class="text-[var(--text-muted)]">Emergency:</span> <strong>${sel.emergencyContact}</strong></div>
                 <div><span class="text-[var(--text-muted)]">Medical:</span> <strong>${sel.medicalNotes}</strong></div>
               </div>
+              ${state.athletes.length > 1 ? `
+                <div class="pt-2 border-t border-[#010101]/10 flex justify-end">
+                  <button onclick="openRemoveAthleteModal('${sel.id}')" class="px-3 py-1.5 rounded-xl text-[11px] font-extrabold text-red-600 dark:text-red-400 hover:bg-red-500/10 cursor-pointer transition">
+                    Remove Athlete
+                  </button>
+                </div>
+              ` : ''}
             </div>
 
             <!-- Assigned Homework Drills -->
