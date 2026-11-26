@@ -322,7 +322,7 @@
         selectedDate: '2026-11-27',
         selectedTime: null,
         timeFormat: '12h',
-        timezone: 'America/Los_Angeles',
+        timezone: 'America/New_York',
         payMode: 'credit',
         cart: [],
         checkoutMethod: 'clover', // 'clover' | 'cash'
@@ -1668,10 +1668,10 @@
             <div>
               <label class="block text-[11px] font-bold text-[var(--text-muted)] mb-1">Timezone</label>
               <select onchange="state.cal.timezone=this.value; render();" class="w-full px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">
-                <option value="America/Los_Angeles" ${state.cal.timezone === 'America/Los_Angeles' ? 'selected' : ''}>🌎 America/Los Angeles (PST)</option>
-                <option value="America/Denver" ${state.cal.timezone === 'America/Denver' ? 'selected' : ''}>🌎 America/Denver (MST)</option>
-                <option value="America/Chicago" ${state.cal.timezone === 'America/Chicago' ? 'selected' : ''}>🌎 America/Chicago (CST)</option>
-                <option value="America/New_York" ${state.cal.timezone === 'America/New_York' ? 'selected' : ''}>🌎 America/New York (EST)</option>
+                <option value="America/New_York" ${state.cal.timezone === 'America/New_York' ? 'selected' : ''}>🌎 Pittsburgh / Eastern (EST)</option>
+                <option value="America/Chicago" ${state.cal.timezone === 'America/Chicago' ? 'selected' : ''}>🌎 Central Time (CST)</option>
+                <option value="America/Denver" ${state.cal.timezone === 'America/Denver' ? 'selected' : ''}>🌎 Mountain Time (MST)</option>
+                <option value="America/Los_Angeles" ${state.cal.timezone === 'America/Los_Angeles' ? 'selected' : ''}>🌎 Pacific Time (PST)</option>
               </select>
             </div>
           </div>
@@ -1873,7 +1873,7 @@
     }
 
     function ensureAthleteProfileExtras(ath) {
-      if (!ath.team) ath.team = ath.id === 'ath-1' ? 'SoCal Storm 14U Premier' : ath.id === 'ath-2' ? 'SoCal Storm 12U Gold' : 'Elite Travel Fastpitch';
+      if (!ath.team) ath.team = ath.id === 'ath-1' ? 'Pittsburgh Passion 14U Premier' : ath.id === 'ath-2' ? 'Pittsburgh Passion 12U Gold' : 'Elite Travel Fastpitch';
       if (!ath.jersey) ath.jersey = ath.id === 'ath-1' ? '#14' : ath.id === 'ath-2' ? '#7' : '#22';
       if (!ath.height) ath.height = ath.id === 'ath-1' ? '5\'6"' : ath.id === 'ath-2' ? '5\'1"' : '5\'7"';
       if (!ath.measurables) {
