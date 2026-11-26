@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Gina Fuchs Elite Fastpitch — Training App</title>
-  <meta name="description" content="Personal fastpitch training app for Gina Fuchs Elite Fastpitch: sessions, velocity & skill tracking, video mechanics, drill workouts, packages & waivers." />
+  <meta name="description" content="Personal fastpitch training app for Gina Fuchs Elite Fastpitch: Peloton-inspired drill workouts, live booking, velocity tracking, video mechanics, packages & waivers." />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='15 42 165 168'%3E%3Crect width='200' height='220' rx='36' fill='%23010101'/%3E%3Cpolygon fill='%23D5FF5F' points='97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78'/%3E%3Cpolygon fill='%23FFFFFF' points='49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,7 +12,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
-      /* Exact Brand Palette */
+      /* Exact Brand System */
       --volt: #D5FF5F;
       --obsidian: #010101;
       --mist: #D6DFE2;
@@ -22,28 +22,26 @@
       --charcoal: #595959;
       --mid-gray: #9F9F9F;
 
-      /* Light Theme Tokens */
+      /* Light-First Peloton / FitStreak Theme */
       --bg-page: #EEF2F4;
       --bg-card: #FFFFFF;
-      --bg-elevated: #F6F8F9;
-      --border-subtle: #D6DFE2;
+      --bg-mist: #D6DFE2;
+      --bg-elevated: #F5F7F8;
+      --border-subtle: #DCE3E6;
       --text-main: #010101;
       --text-muted: #595959;
       --text-soft: #9F9F9F;
-      --accent-bg: #010101;
-      --accent-fg: #D5FF5F;
     }
 
     html.dark {
-      --bg-page: #010101;
-      --bg-card: #121417;
-      --bg-elevated: #1A1E23;
-      --border-subtle: #252B33;
+      --bg-page: #0B0D10;
+      --bg-card: #15191E;
+      --bg-mist: #1E252D;
+      --bg-elevated: #1D232A;
+      --border-subtle: #2A333D;
       --text-main: #FFFFFF;
       --text-muted: #9F9F9F;
       --text-soft: #595959;
-      --accent-bg: #D5FF5F;
-      --accent-fg: #010101;
     }
 
     body {
@@ -55,30 +53,32 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-    .volt-glow {
-      box-shadow: 0 0 28px rgba(213, 255, 95, 0.16);
-    }
-
-    .card-surface {
+    .card-white {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
+      box-shadow: 0 8px 24px rgba(1, 1, 1, 0.04);
     }
 
-    .elevated-surface {
+    .card-mist {
+      background: var(--bg-mist);
+      border: 1px solid color-mix(in srgb, var(--slate-blue) 14%, transparent);
+    }
+
+    .surface-soft {
       background: var(--bg-elevated);
       border: 1px solid var(--border-subtle);
     }
 
     .modal-backdrop {
-      background: rgba(1, 1, 1, 0.72);
+      background: rgba(1, 1, 1, 0.65);
       backdrop-filter: blur(8px);
     }
   </style>
 </head>
 <body class="min-h-screen antialiased selection:bg-[#D5FF5F] selection:text-[#010101]">
   <div class="min-h-screen flex flex-col lg:flex-row">
-    <!-- Desktop Sidebar Rail -->
-    <aside class="hidden lg:flex lg:flex-col lg:w-72 lg:fixed lg:inset-y-0 card-surface border-r border-[var(--border-subtle)] p-5 justify-between z-30">
+    <!-- Desktop Left Rail -->
+    <aside class="hidden lg:flex lg:flex-col lg:w-72 lg:fixed lg:inset-y-0 card-white border-r border-[var(--border-subtle)] p-5 justify-between z-30">
       <div class="space-y-6">
         <!-- Official Gina Fuchs Elite Fastpitch SVG Logo -->
         <div class="px-1 pt-1">
@@ -108,46 +108,44 @@
               <path d="M346.07,203.16c-0.94,0-1.62-0.16-2.03-0.49c-0.41-0.32-0.62-0.83-0.62-1.53c0-0.31,0.06-0.75,0.17-1.31l3.9-18.4h4.7l-1.01,4.74h4.1l-0.77,3.69h-4.1l-1.85,8.7c-0.05,0.22-0.07,0.37-0.07,0.44c0,0.31,0.25,0.47,0.74,0.47h3.09l-0.77,3.69H346.07z"/>
               <path d="M357.48,203.16c-0.94,0-1.62-0.16-2.03-0.49c-0.41-0.32-0.62-0.83-0.62-1.53c0-0.31,0.06-0.75,0.17-1.31l2.18-10.34c0.25-1.14,0.65-1.98,1.23-2.52c0.57-0.54,1.46-0.81,2.67-0.81h11.99l-0.87,4.13h-9.57c-0.38,0-0.64,0.06-0.77,0.17c-0.13,0.11-0.25,0.36-0.34,0.74l-1.44,6.78c-0.02,0.09-0.04,0.17-0.05,0.24c-0.01,0.07-0.02,0.13-0.02,0.2c0,0.34,0.26,0.5,0.77,0.5h9.57l-0.87,4.23H357.48z"/>
               <path d="M386.26,203.16l2.52-11.99c0.04-0.22,0.07-0.36,0.07-0.4c0-0.36-0.28-0.54-0.84-0.54h-7.02c-0.34,0-0.58,0.06-0.74,0.18c-0.16,0.12-0.28,0.38-0.37,0.76l-2.52,11.99h-4.7l5.1-24.11h4.7l-1.91,8.97c0.45-0.65,0.93-1.12,1.46-1.41c0.53-0.29,1.15-0.44,1.86-0.44h7.46c0.92,0,1.58,0.16,2,0.47c0.41,0.31,0.62,0.84,0.62,1.58c0,0.43-0.05,0.85-0.13,1.28l-2.89,13.67H386.26z"/>
-              <polygon fill="#D5FF5F" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
+              <polygon fill="#4E6075" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
               <polygon points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
             </g>
           </svg>
         </div>
 
         <!-- Portal Switcher -->
-        <div class="p-1.5 rounded-2xl elevated-surface grid grid-cols-2 gap-1 text-xs font-semibold">
+        <div class="p-1.5 rounded-2xl surface-soft grid grid-cols-2 gap-1 text-xs font-bold">
+          <button id="desk-role-parent" onclick="switchRole('parent')" class="py-2 rounded-xl transition cursor-pointer">Athlete</button>
           <button id="desk-role-coach" onclick="switchRole('coach')" class="py-2 rounded-xl transition cursor-pointer">Coach Gina</button>
-          <button id="desk-role-parent" onclick="switchRole('parent')" class="py-2 rounded-xl transition cursor-pointer">Athlete / Parent</button>
         </div>
 
-        <!-- Desktop Nav Links -->
         <nav id="desktop-nav" class="space-y-1"></nav>
       </div>
 
-      <!-- Bottom Sidebar Utility -->
       <div class="space-y-3 pt-4 border-t border-[var(--border-subtle)]">
         <div class="flex items-center justify-between px-2">
-          <span class="text-xs font-medium text-[var(--text-muted)]">Appearance</span>
-          <button onclick="toggleTheme()" class="px-3 py-1.5 rounded-full elevated-surface text-xs font-semibold flex items-center gap-1.5 cursor-pointer hover:border-[#D5FF5F]">
-            <span id="desk-theme-label">Dark</span>
-            <span id="desk-theme-icon">🌙</span>
+          <span class="text-xs font-semibold text-[var(--text-muted)]">Theme</span>
+          <button onclick="toggleTheme()" class="px-3 py-1.5 rounded-full surface-soft text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+            <span id="desk-theme-label">Light</span>
+            <span id="desk-theme-icon">☀️</span>
           </button>
         </div>
-        <div class="p-3 rounded-2xl bg-[#4E6075]/20 border border-[#9AC0D6]/25 flex items-center gap-3">
-          <div class="w-9 h-9 rounded-full bg-[#D5FF5F] text-[#010101] font-extrabold text-xs flex items-center justify-center shrink-0">GF</div>
+        <div class="p-3 rounded-2xl card-mist flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-[#010101] text-[#D5FF5F] font-extrabold text-xs flex items-center justify-center shrink-0" id="sidebar-avatar">CM</div>
           <div class="min-w-0">
-            <div class="text-xs font-bold truncate" id="sidebar-user-name">Gina Fuchs</div>
-            <div class="text-[11px] text-[#9AC0D6] truncate" id="sidebar-user-sub">Head Pitching &amp; Hitting Coach</div>
+            <div class="text-xs font-extrabold truncate" id="sidebar-user-name">Chloe Miller</div>
+            <div class="text-[11px] text-[var(--text-muted)] truncate" id="sidebar-user-sub">14U Pitcher • Day 6 Streak</div>
           </div>
         </div>
       </div>
     </aside>
 
     <!-- Mobile Top Header -->
-    <header class="lg:hidden sticky top-0 z-30 card-surface border-b border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between gap-2">
+    <header class="lg:hidden sticky top-0 z-30 card-white border-b border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between gap-2">
       <div class="flex items-center gap-2.5 min-w-0">
-        <svg class="h-8 w-8 shrink-0" viewBox="15 42 165 168" fill="none">
-          <polygon fill="#D5FF5F" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
+        <svg class="h-8 w-8 shrink-0 text-[var(--text-main)]" viewBox="15 42 165 168" fill="none">
+          <polygon fill="#4E6075" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
           <polygon fill="currentColor" points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
         </svg>
         <div class="leading-tight truncate">
@@ -157,62 +155,55 @@
       </div>
 
       <div class="flex items-center gap-1.5">
-        <div class="flex p-0.5 rounded-full elevated-surface text-[11px] font-bold">
+        <div class="flex p-0.5 rounded-full surface-soft text-[11px] font-bold">
+          <button id="mob-role-parent" onclick="switchRole('parent')" class="px-2.5 py-1 rounded-full transition cursor-pointer">Athlete</button>
           <button id="mob-role-coach" onclick="switchRole('coach')" class="px-2.5 py-1 rounded-full transition cursor-pointer">Coach</button>
-          <button id="mob-role-parent" onclick="switchRole('parent')" class="px-2.5 py-1 rounded-full transition cursor-pointer">Parent</button>
         </div>
-        <button onclick="toggleTheme()" class="w-8 h-8 rounded-full elevated-surface flex items-center justify-center text-xs cursor-pointer" aria-label="Toggle theme">
-          <span id="mob-theme-icon">🌙</span>
+        <button onclick="toggleTheme()" class="w-8 h-8 rounded-full surface-soft flex items-center justify-center text-xs cursor-pointer" aria-label="Toggle theme">
+          <span id="mob-theme-icon">☀️</span>
         </button>
       </div>
     </header>
 
-    <!-- Main Content Area -->
+    <!-- Main Workspace -->
     <main class="flex-1 lg:pl-72 pb-24 lg:pb-10">
       <div id="app-root" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7 space-y-6"></div>
     </main>
 
-    <!-- Mobile Bottom Tab Bar (Personal Training App Style) -->
-    <nav id="mobile-bottom-nav" class="lg:hidden fixed bottom-0 inset-x-0 z-30 card-surface border-t border-[var(--border-subtle)] px-2 py-2 flex items-center justify-around"></nav>
+    <!-- Mobile Bottom Tab Bar -->
+    <nav id="mobile-bottom-nav" class="lg:hidden fixed bottom-0 inset-x-0 z-30 card-white border-t border-[var(--border-subtle)] px-2 py-2 flex items-center justify-around"></nav>
   </div>
 
-  <!-- Modal Root -->
+  <!-- Modal Root (Repetition Ruler / Session / Celebration) -->
   <div id="modal-root" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop"></div>
 
   <!-- Toast -->
-  <div id="toast" class="fixed bottom-20 lg:bottom-6 right-4 z-50 hidden max-w-sm px-4 py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-bold shadow-2xl"></div>
+  <div id="toast" class="fixed bottom-20 lg:bottom-6 right-4 z-50 hidden max-w-sm px-4 py-3 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-bold shadow-2xl"></div>
 
   <script>
-    // =========================================================================
-    // THEME TOGGLE (Dark-first athletic aesthetic matching #010101 & #D5FF5F)
-    // =========================================================================
     function toggleTheme() {
       const isDark = document.documentElement.classList.toggle('dark');
       const icon = isDark ? '🌙' : '☀️';
       const label = isDark ? 'Dark' : 'Light';
-      const dIcon = document.getElementById('desk-theme-icon');
-      const dLabel = document.getElementById('desk-theme-label');
-      const mIcon = document.getElementById('mob-theme-icon');
-      if (dIcon) dIcon.textContent = icon;
-      if (dLabel) dLabel.textContent = label;
-      if (mIcon) mIcon.textContent = icon;
+      ['desk-theme-icon', 'mob-theme-icon'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = icon; });
+      const dl = document.getElementById('desk-theme-label'); if (dl) dl.textContent = label;
     }
 
     // =========================================================================
-    // SHARED LIVE STATE
+    // SHARED LIVE STATE (Defaults to Athlete/Parent Training Hub so Gina immediately sees the Peloton/FitStreak feel!)
     // =========================================================================
     const state = {
-      role: 'coach',
-      coachTab: 'today',
+      role: 'parent',
       parentTab: 'home',
+      coachTab: 'today',
       selectedDay: 'Thu 26',
       selectedAthleteId: 'ath-1',
       activeSiblingId: 'ath-1',
       selectedVideoId: 'vid-1',
       videoSpeed: '0.25x',
       bookingFilter: 'all',
-      athleteSearch: '',
       activeThreadId: 'msg-1',
+      repPickerVal: 20,
 
       weekDays: [
         { key: 'Thu 26', dow: 'THU', num: '26', dot: true },
@@ -222,6 +213,39 @@
         { key: 'Mon 30', dow: 'MON', num: '30', dot: true },
         { key: 'Tue 1', dow: 'TUE', num: '1', dot: true },
         { key: 'Wed 2', dow: 'WED', num: '2', dot: false }
+      ],
+
+      featuredWorkouts: [
+        {
+          id: 'wk-1',
+          dayLabel: 'Day 6',
+          title: 'Windmill Velocity & Brush',
+          subtitle: 'Pitching mechanics with Coach Gina',
+          duration: '45 MIN',
+          category: 'PITCHING',
+          defaultReps: 25,
+          img: 'assets/images/fastpitch-pitcher.jpg'
+        },
+        {
+          id: 'wk-2',
+          dayLabel: 'Power Lab',
+          title: 'Opposite-Field Barrel Path',
+          subtitle: 'High tee & front-toss swing sequence',
+          duration: '30 MIN',
+          category: 'HITTING',
+          defaultReps: 20,
+          img: 'assets/images/fastpitch-hitter.jpg'
+        },
+        {
+          id: 'wk-3',
+          dayLabel: 'Recovery',
+          title: 'Arm Care & Cool Down',
+          subtitle: '5 min band mobility & shoulder recovery',
+          duration: '10 MIN',
+          category: 'ARM CARE',
+          defaultReps: 15,
+          img: 'assets/images/fastpitch-recovery.jpg'
+        }
       ],
 
       athletes: [
@@ -239,6 +263,8 @@
           credits: 3,
           packTotal: 5,
           streakDays: 6,
+          weeklyReps: 185,
+          weeklyDuration: '2:15 hours',
           waiverSigned: true,
           waiverDate: 'Nov 02, 2026',
           emergencyContact: 'David Miller (Dad) — (555) 234-8911',
@@ -247,26 +273,14 @@
           primaryMetricValue: '58.5',
           primaryMetricUnit: 'MPH',
           primaryMetricDelta: '+3.5 mph this fall',
-          veloHistory: [
-            { label: 'Sep', val: 55 },
-            { label: 'Oct', val: 57 },
-            { label: 'Nov', val: 58.5 }
-          ],
-          metrics: [
-            { date: 'Sep 18', label: 'Fastball Velo', value: '55.0 mph' },
-            { date: 'Oct 22', label: 'Fastball Velo', value: '57.0 mph' },
-            { date: 'Nov 19', label: 'Fastball Velo', value: '58.5 mph' },
-            { date: 'Nov 19', label: 'Changeup Velo', value: '43.0 mph' }
-          ],
           pitches: ['Fastball 58.5', 'Changeup 43', 'Drop Ball', 'Curve (New)'],
           notes: [
-            { date: 'Nov 19', text: 'Explosive drive off the rubber today! Keep glove-side arm pulling straight down the power line instead of swimming out.' },
-            { date: 'Nov 12', text: 'Introduced curveball spin axis on Spin Right spinner. Great whip finish.' }
+            { date: 'Nov 19', text: 'Explosive drive off the rubber today! Keep glove-side arm pulling straight down the power line.' }
           ],
           drills: [
-            { id: 'd1', title: 'Walk-Through Pitching Reps', reps: '25 reps', focus: 'Drive leg timing', done: true },
-            { id: 'd2', title: '9 o’clock Brush Whip Drill', reps: '30 reps', focus: 'Internal rotation & brush contact', done: false },
-            { id: 'd3', title: 'Flip-Grip Changeup Towel Drill', reps: '20 reps', focus: 'Full arm speed deception', done: false }
+            { id: 'd1', title: 'Walk-Through Pitching Reps', reps: '25 reps', focus: 'Drive leg timing', done: true, img: 'assets/images/fastpitch-pitcher.jpg' },
+            { id: 'd2', title: '9 o’clock Brush Whip Drill', reps: '30 reps', focus: 'Internal rotation & brush contact', done: false, img: 'assets/images/fastpitch-pitcher.jpg' },
+            { id: 'd3', title: 'Band Shoulder Mobility', reps: '15 reps', focus: 'Post-bullpen arm care', done: false, img: 'assets/images/fastpitch-recovery.jpg' }
           ]
         },
         {
@@ -283,6 +297,8 @@
           credits: 3,
           packTotal: 5,
           streakDays: 4,
+          weeklyReps: 140,
+          weeklyDuration: '1:26 hours',
           waiverSigned: true,
           waiverDate: 'Nov 02, 2026',
           emergencyContact: 'David Miller (Dad) — (555) 234-8911',
@@ -291,22 +307,13 @@
           primaryMetricValue: '59.0',
           primaryMetricUnit: 'MPH',
           primaryMetricDelta: '+3.0 mph since Oct',
-          veloHistory: [
-            { label: 'Sep', val: 54 },
-            { label: 'Oct', val: 56 },
-            { label: 'Nov', val: 59 }
-          ],
-          metrics: [
-            { date: 'Oct 10', label: 'Exit Velo (Tee)', value: '56.0 mph' },
-            { date: 'Nov 18', label: 'Exit Velo (Tee)', value: '59.0 mph' }
-          ],
           pitches: [],
           notes: [
-            { date: 'Nov 18', text: 'Staying through the middle of the field much better! Keep front shoulder closed on outside pitches.' }
+            { date: 'Nov 18', text: 'Staying through the middle of the field much better! Watch front shoulder on outside pitches.' }
           ],
           drills: [
-            { id: 'd4', title: 'Opposite-Field High Tee', reps: '3 × 15 swings', focus: 'Inside-out bat path', done: true },
-            { id: 'd5', title: 'Stride & Freeze Balance Drill', reps: '20 reps', focus: 'Weight shift control', done: false }
+            { id: 'd4', title: 'Opposite-Field High Tee', reps: '3 × 15 swings', focus: 'Inside-out bat path', done: true, img: 'assets/images/fastpitch-hitter.jpg' },
+            { id: 'd5', title: 'Stride & Freeze Balance Drill', reps: '20 reps', focus: 'Weight shift control', done: false, img: 'assets/images/fastpitch-hitter.jpg' }
           ]
         },
         {
@@ -323,6 +330,8 @@
           credits: 1,
           packTotal: 10,
           streakDays: 11,
+          weeklyReps: 260,
+          weeklyDuration: '3:10 hours',
           waiverSigned: true,
           waiverDate: 'Aug 15, 2026',
           emergencyContact: 'Mark Vance — (555) 619-4421',
@@ -331,23 +340,9 @@
           primaryMetricValue: '1.88',
           primaryMetricUnit: 'SEC',
           primaryMetricDelta: '-0.08s faster to 2B',
-          veloHistory: [
-            { label: 'Sep', val: 64 },
-            { label: 'Oct', val: 66 },
-            { label: 'Nov', val: 68 }
-          ],
-          metrics: [
-            { date: 'Sep 05', label: 'Pop Time (2B)', value: '1.96 s' },
-            { date: 'Nov 15', label: 'Pop Time (2B)', value: '1.88 s' },
-            { date: 'Nov 15', label: 'Exit Velo', value: '68.0 mph' }
-          ],
           pitches: [],
-          notes: [
-            { date: 'Nov 15', text: 'Footwork transfer is electric—dropped 0.08s off pop time! Ready for college showcase clips.' }
-          ],
-          drills: [
-            { id: 'd6', title: 'Rapid Exchange Wall Drill', reps: '40 reps', focus: 'Quick transfer to ear', done: true }
-          ]
+          notes: [{ date: 'Nov 15', text: 'Footwork transfer is electric—dropped 0.08s off pop time!' }],
+          drills: [{ id: 'd6', title: 'Rapid Exchange Wall Drill', reps: '40 reps', focus: 'Quick transfer to ear', done: true, img: 'assets/images/fastpitch-recovery.jpg' }]
         },
         {
           id: 'ath-4',
@@ -363,6 +358,8 @@
           credits: 5,
           packTotal: 5,
           streakDays: 2,
+          weeklyReps: 95,
+          weeklyDuration: '1:05 hours',
           waiverSigned: false,
           waiverDate: null,
           emergencyContact: 'Elena Reyes — (555) 892-1105',
@@ -371,19 +368,9 @@
           primaryMetricValue: '2.92',
           primaryMetricUnit: 'SEC',
           primaryMetricDelta: 'Baseline eval',
-          veloHistory: [
-            { label: 'Nov', val: 58 }
-          ],
-          metrics: [
-            { date: 'Nov 20', label: 'Home-to-1st', value: '2.92 s' }
-          ],
           pitches: [],
-          notes: [
-            { date: 'Nov 20', text: 'First evaluation complete. Explosive speed—focus on soft slap barrel control and crossover timing.' }
-          ],
-          drills: [
-            { id: 'd7', title: '3-Step Crossover Footwork', reps: '25 reps', focus: 'Staying inside the box', done: false }
-          ]
+          notes: [{ date: 'Nov 20', text: 'First evaluation complete. Explosive speed—focus on soft slap barrel control.' }],
+          drills: [{ id: 'd7', title: '3-Step Crossover Footwork', reps: '25 reps', focus: 'Staying inside the box', done: false, img: 'assets/images/fastpitch-hitter.jpg' }]
         }
       ],
 
@@ -391,9 +378,9 @@
         {
           id: 'ses-1',
           dayKey: 'Thu 26',
-          day: 'Today (Thu 26)',
+          day: 'Today • Thu 26',
           time: '4:00 PM',
-          duration: '45 min',
+          duration: '45 MIN',
           type: '1-on-1 Private',
           focus: 'Pitching Velocity & Changeup',
           athletes: ['Chloe Miller'],
@@ -401,14 +388,15 @@
           spotsMax: 1,
           status: 'Up Next',
           payment: '1 Credit',
-          price: 75
+          price: 75,
+          img: 'assets/images/fastpitch-pitcher.jpg'
         },
         {
           id: 'ses-2',
           dayKey: 'Thu 26',
-          day: 'Today (Thu 26)',
+          day: 'Today • Thu 26',
           time: '5:00 PM',
-          duration: '60 min',
+          duration: '60 MIN',
           type: 'Small Group',
           focus: '14U/16U Power Hitting Lab',
           athletes: ['Brooklyn Vance', 'Ava Reyes', 'Kylie M.', 'Jenna S.'],
@@ -416,14 +404,15 @@
           spotsMax: 5,
           status: 'Confirmed',
           payment: '$45 / player',
-          price: 180
+          price: 180,
+          img: 'assets/images/fastpitch-hitter.jpg'
         },
         {
           id: 'ses-3',
           dayKey: 'Fri 27',
           day: 'Fri 27',
           time: '4:30 PM',
-          duration: '45 min',
+          duration: '45 MIN',
           type: '1-on-1 Private',
           focus: 'Hitting & Opposite-Field Path',
           athletes: ['Maya Miller'],
@@ -431,14 +420,15 @@
           spotsMax: 1,
           status: 'Confirmed',
           payment: '1 Credit',
-          price: 75
+          price: 75,
+          img: 'assets/images/fastpitch-hitter.jpg'
         },
         {
           id: 'ses-4',
           dayKey: 'Sat 28',
           day: 'Sat 28',
           time: '9:00 AM',
-          duration: '3 hrs',
+          duration: '3 HRS',
           type: 'Camp / Clinic',
           focus: 'Winter Velocity & Spin Clinic',
           athletes: ['14 Registered Players'],
@@ -446,16 +436,16 @@
           spotsMax: 16,
           status: '2 Spots Left',
           payment: '$95 Flat Fee',
-          price: 1330
+          price: 1330,
+          img: 'assets/images/fastpitch-pitcher.jpg'
         }
       ],
 
       openSlots: [
-        { id: 'slot-1', dayKey: 'Fri 27', day: 'Fri, Nov 27', time: '5:30 PM', duration: '45 min', type: '1-on-1 Private', focus: 'Pitching or Hitting Private', price: 75, spotsLeft: 1, spotsMax: 1 },
-        { id: 'slot-2', dayKey: 'Sat 28', day: 'Sat, Nov 28', time: '1:00 PM', duration: '60 min', type: 'Small Group', focus: '12U–14U Pitching & Spin Lab', price: 45, spotsLeft: 2, spotsMax: 4 },
-        { id: 'slot-3', dayKey: 'Sat 28', day: 'Sat, Nov 28', time: '9:00 AM', duration: '3 hrs', type: 'Camp / Clinic', focus: 'Winter Velocity & Spin Clinic', price: 95, spotsLeft: 2, spotsMax: 16 },
-        { id: 'slot-4', dayKey: 'Mon 30', day: 'Mon, Nov 30', time: '4:00 PM', duration: '45 min', type: '1-on-1 Private', focus: 'Catching / Hitting / Pitching', price: 75, spotsLeft: 1, spotsMax: 1 },
-        { id: 'slot-5', dayKey: 'Tue 1', day: 'Tue, Dec 1', time: '5:00 PM', duration: '60 min', type: 'Small Group', focus: 'Slapping & Short Game Group', price: 45, spotsLeft: 3, spotsMax: 5 }
+        { id: 'slot-1', dayKey: 'Fri 27', day: 'Fri, Nov 27', time: '5:30 PM', duration: '45 MIN', type: '1-on-1 Private', focus: 'Pitching Mechanics Private', price: 75, spotsLeft: 1, spotsMax: 1, img: 'assets/images/fastpitch-pitcher.jpg' },
+        { id: 'slot-2', dayKey: 'Sat 28', day: 'Sat, Nov 28', time: '1:00 PM', duration: '60 MIN', type: 'Small Group', focus: '12U–14U Power Hitting Lab', price: 45, spotsLeft: 2, spotsMax: 4, img: 'assets/images/fastpitch-hitter.jpg' },
+        { id: 'slot-3', dayKey: 'Sat 28', day: 'Sat, Nov 28', time: '9:00 AM', duration: '3 HRS', type: 'Camp / Clinic', focus: 'Winter Velocity & Spin Clinic', price: 95, spotsLeft: 2, spotsMax: 16, img: 'assets/images/fastpitch-pitcher.jpg' },
+        { id: 'slot-4', dayKey: 'Mon 30', day: 'Mon, Nov 30', time: '4:00 PM', duration: '45 MIN', type: '1-on-1 Private', focus: 'Arm Care & Spin Progression', price: 75, spotsLeft: 1, spotsMax: 1, img: 'assets/images/fastpitch-recovery.jpg' }
       ],
 
       waitlist: [
@@ -465,12 +455,7 @@
 
       videos: [
         {
-          id: 'vid-1',
-          athleteId: 'ath-1',
-          athleteName: 'Chloe Miller',
-          title: 'Fastball Side Angle — Bullpen Clip',
-          uploadedAt: 'Yesterday • 0:14',
-          status: 'Reviewed',
+          id: 'vid-1', athleteId: 'ath-1', athleteName: 'Chloe Miller', title: 'Fastball Side Angle — Bullpen Clip', uploadedAt: 'Yesterday • 0:14', status: 'Reviewed', img: 'assets/images/fastpitch-pitcher.jpg',
           cues: [
             { time: '0:03', pct: 22, note: 'Strong push off the rubber—stay stacked over front hip.' },
             { time: '0:06', pct: 48, note: 'Awesome brush contact on hip! Keep forearm relaxed into release.' },
@@ -478,26 +463,8 @@
           ]
         },
         {
-          id: 'vid-2',
-          athleteId: 'ath-2',
-          athleteName: 'Maya Miller',
-          title: 'Front Toss — Outside Pitch Swing',
-          uploadedAt: '2 days ago • 0:11',
-          status: 'Needs Review',
-          cues: [
-            { time: '0:04', pct: 36, note: 'Good load timing—let the ball travel 3 inches deeper.' }
-          ]
-        },
-        {
-          id: 'vid-3',
-          athleteId: 'ath-3',
-          athleteName: 'Brooklyn Vance',
-          title: 'Throwdown to 2nd Base (1.88s)',
-          uploadedAt: 'Nov 15 • 0:09',
-          status: 'Reviewed',
-          cues: [
-            { time: '0:02', pct: 25, note: 'Lightning-fast transfer right by the ear. Keep hips low through the throw!' }
-          ]
+          id: 'vid-2', athleteId: 'ath-2', athleteName: 'Maya Miller', title: 'Front Toss — Outside Pitch Swing', uploadedAt: '2 days ago • 0:11', status: 'Needs Review', img: 'assets/images/fastpitch-hitter.jpg',
+          cues: [{ time: '0:04', pct: 36, note: 'Good load timing—let the ball travel 3 inches deeper.' }]
         }
       ],
 
@@ -510,43 +477,16 @@
 
       threads: [
         {
-          id: 'msg-1',
-          parent: 'Sarah Miller',
-          athletes: 'Chloe & Maya',
-          unread: 1,
+          id: 'msg-1', parent: 'Sarah Miller', athletes: 'Chloe & Maya', unread: 1,
           messages: [
             { from: 'parent', time: '10:15 AM', text: 'Hi Gina! Chloe nailed her brush drill all week. Can we work on her changeup grip today at 4?' },
             { from: 'coach', time: '10:28 AM', text: 'Love hearing that! Yes—we’ll spend the last 15 minutes locking in her flip changeup.' }
           ]
         },
-        {
-          id: 'msg-2',
-          parent: 'Tricia Vance',
-          athletes: 'Brooklyn',
-          unread: 0,
-          messages: [
-            { from: 'parent', time: 'Yesterday', text: 'Saw Brooklyn is down to 1 credit left—grabbing another 10-pack before next week!' }
-          ]
-        },
-        {
-          id: 'msg-3',
-          parent: 'Carlos Reyes',
-          athletes: 'Ava',
-          unread: 1,
-          messages: [
-            { from: 'parent', time: 'Yesterday', text: 'Confirming Ava is in the 5pm small group today! Where do I sign the waiver?' }
-          ]
-        }
-      ],
-
-      broadcasts: [
-        { date: 'Nov 23 • 8:00 AM', audience: 'Winter Clinic Roster (14)', channel: 'SMS + Email', text: 'Bring turf shoes & water bottle for Saturday’s 9 AM Velocity & Spin Clinic!' }
+        { id: 'msg-2', parent: 'Tricia Vance', athletes: 'Brooklyn', unread: 0, messages: [{ from: 'parent', time: 'Yesterday', text: 'Grabbing another 10-pack before next week!' }] }
       ]
     };
 
-    // =========================================================================
-    // SVG ICONS & CIRCULAR PROGRESS RING HELPER
-    // =========================================================================
     const icons = {
       calendar: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
       athletes: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
@@ -555,21 +495,35 @@
       chat: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
       home: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
       plus: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>`,
-      shield: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>`
+      shield: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>`,
+      arrowBtn: `<span class="inline-flex items-center gap-2 pl-3.5 pr-1.5 py-1.5 rounded-full bg-white text-[#010101] text-xs font-extrabold shadow-md">GO <span class="w-6 h-6 rounded-full bg-[#010101] text-white inline-flex items-center justify-center text-xs">→</span></span>`
     };
 
-    function progressRing(pct, size = 64, label = '') {
-      const r = (size - 10) / 2;
-      const c = 2 * Math.PI * r;
-      const offset = c - (pct / 100) * c;
+    // Smooth FitStreak-style Volt Area Chart SVG
+    function performanceAreaChart() {
       return `
-        <div class="relative inline-flex items-center justify-center shrink-0" style="width:${size}px;height:${size}px">
-          <svg width="${size}" height="${size}" class="-rotate-90">
-            <circle cx="${size/2}" cy="${size/2}" r="${r}" stroke="var(--border-subtle)" stroke-width="6" fill="none"/>
-            <circle cx="${size/2}" cy="${size/2}" r="${r}" stroke="#D5FF5F" stroke-width="6" stroke-linecap="round" fill="none" stroke-dasharray="${c}" stroke-dashoffset="${offset}" style="transition:stroke-dashoffset 0.4s ease"/>
-          </svg>
-          <span class="absolute text-xs font-extrabold tabular-nums">${label || pct + '%'}</span>
-        </div>
+        <svg viewBox="0 0 340 115" class="w-full h-28 overflow-visible" aria-label="Training Performance Chart">
+          <defs>
+            <linearGradient id="voltGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#D5FF5F" stop-opacity="0.95"/>
+              <stop offset="100%" stop-color="#D5FF5F" stop-opacity="0.06"/>
+            </linearGradient>
+          </defs>
+          <g fill="var(--text-muted)" font-size="10" font-weight="600">
+            <text x="0" y="14">60</text>
+            <text x="0" y="48">55</text>
+            <text x="0" y="82">50</text>
+          </g>
+          <path d="M26 68 C 52 38, 72 40, 95 62 C 122 86, 148 44, 185 38 C 222 32, 248 64, 276 52 C 300 42, 316 20, 336 28 L 336 96 L 26 96 Z" fill="url(#voltGrad)"/>
+          <path d="M26 68 C 52 38, 72 40, 95 62 C 122 86, 148 44, 185 38 C 222 32, 248 64, 276 52 C 300 42, 316 20, 336 28" fill="none" stroke="#B6E633" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="316" cy="24" r="4.5" fill="#010101" stroke="#D5FF5F" stroke-width="2.5"/>
+          <g fill="var(--text-muted)" font-size="10" font-weight="600">
+            <text x="26" y="112">Sep</text>
+            <text x="120" y="112">Oct</text>
+            <text x="218" y="112">Nov 1</text>
+            <text x="304" y="112">Today</text>
+          </g>
+        </svg>
       `;
     }
 
@@ -588,9 +542,9 @@
       m.innerHTML = '';
     }
 
-    function openModal(html) {
+    function openModal(html, noPad = false) {
       const m = document.getElementById('modal-root');
-      m.innerHTML = `<div class="card-surface rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">${html}</div>`;
+      m.innerHTML = `<div class="card-white rounded-[30px] max-w-md w-full ${noPad ? 'overflow-hidden' : 'p-6 space-y-4'} shadow-2xl max-h-[92vh] overflow-y-auto">${html}</div>`;
       m.classList.remove('hidden');
       m.classList.add('flex');
       m.onclick = (e) => { if (e.target === m) closeModal(); };
@@ -599,7 +553,7 @@
     function switchRole(role) {
       state.role = role;
       render();
-      showToast(role === 'coach' ? 'Coach Gina Dashboard active' : 'Athlete & Parent Hub (Sarah Miller)');
+      showToast(role === 'coach' ? 'Switched to Coach Gina Dashboard' : 'Switched to Athlete Training Hub');
     }
 
     function setTab(tab) {
@@ -614,7 +568,7 @@
     // =========================================================================
     function renderChrome() {
       const isCoach = state.role === 'coach';
-      const activeRoleCls = 'bg-[#D5FF5F] text-[#010101] font-bold';
+      const activeRoleCls = 'bg-[#010101] text-[#D5FF5F] font-extrabold';
       const idleRoleCls = 'text-[var(--text-muted)] hover:text-[var(--text-main)]';
 
       ['desk-role-coach', 'mob-role-coach'].forEach(id => {
@@ -626,27 +580,29 @@
         if (el) el.className = `${id.startsWith('desk') ? 'py-2 rounded-xl' : 'px-2.5 py-1 rounded-full'} transition cursor-pointer ${!isCoach ? activeRoleCls : idleRoleCls}`;
       });
 
+      const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
       const uName = document.getElementById('sidebar-user-name');
       const uSub = document.getElementById('sidebar-user-sub');
-      if (uName) uName.textContent = isCoach ? 'Gina Fuchs' : 'Sarah Miller';
-      if (uSub) uSub.textContent = isCoach ? 'Head Pitching & Hitting Coach' : 'Family Account • Chloe & Maya';
+      const uAv = document.getElementById('sidebar-avatar');
+      if (uName) uName.textContent = isCoach ? 'Gina Fuchs' : ath.name;
+      if (uSub) uSub.textContent = isCoach ? 'Head Coach • Elite Fastpitch' : `${ath.ageGroup} • Day ${ath.streakDays} Streak`;
+      if (uAv) uAv.textContent = isCoach ? 'GF' : ath.initials;
 
       const unread = state.threads.reduce((s, t) => s + t.unread, 0);
       const pendingVids = state.videos.filter(v => v.status === 'Needs Review').length;
-      const pendingWaivers = state.athletes.filter(a => !a.waiverSigned).length;
 
       const navItems = isCoach
         ? [
             { id: 'today', label: 'Today', fullLabel: 'Today & Schedule', icon: icons.calendar },
-            { id: 'athletes', label: 'Athletes', fullLabel: 'Athletes & Metrics', icon: icons.athletes },
-            { id: 'video', label: 'Video', fullLabel: 'Video & Drills', icon: icons.video, badge: pendingVids },
+            { id: 'athletes', label: 'Athletes', fullLabel: 'Athletes & PRs', icon: icons.athletes },
+            { id: 'video', label: 'Video', fullLabel: 'Video Lab', icon: icons.video, badge: pendingVids },
             { id: 'payments', label: 'Packs', fullLabel: 'Packages & Pay', icon: icons.wallet },
-            { id: 'messaging', label: 'Inbox', fullLabel: 'Messages & Waivers', icon: icons.chat, badge: unread + pendingWaivers }
+            { id: 'messaging', label: 'Inbox', fullLabel: 'Messages & Waivers', icon: icons.chat, badge: unread }
           ]
         : [
             { id: 'home', label: 'Train', fullLabel: 'Training Hub', icon: icons.home },
-            { id: 'book', label: 'Book', fullLabel: 'Book Session', icon: icons.plus },
-            { id: 'video', label: 'Video', fullLabel: 'Video & PRs', icon: icons.video },
+            { id: 'book', label: 'Classes', fullLabel: 'Book & Clinics', icon: icons.plus },
+            { id: 'video', label: 'Video', fullLabel: 'Mechanics Video', icon: icons.video },
             { id: 'packages', label: 'Packs', fullLabel: 'Credits & Packs', icon: icons.wallet },
             { id: 'waiver', label: 'Profile', fullLabel: 'Waiver & Profile', icon: icons.shield }
           ];
@@ -656,9 +612,9 @@
       document.getElementById('desktop-nav').innerHTML = navItems.map(item => {
         const active = item.id === activeTab;
         return `
-          <button onclick="setTab('${item.id}')" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-sm font-semibold transition cursor-pointer ${active ? 'bg-[#D5FF5F] text-[#010101]' : 'text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-main)]'}">
+          <button onclick="setTab('${item.id}')" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-sm font-bold transition cursor-pointer ${active ? 'bg-[#D5FF5F] text-[#010101]' : 'text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-main)]'}">
             <span class="flex items-center gap-3">${item.icon}<span>${item.fullLabel}</span></span>
-            ${item.badge ? `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${active ? 'bg-[#010101] text-[#D5FF5F]' : 'bg-[#4E6075] text-white'}">${item.badge}</span>` : ''}
+            ${item.badge ? `<span class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-[#010101] text-[#D5FF5F]">${item.badge}</span>` : ''}
           </button>
         `;
       }).join('');
@@ -666,501 +622,34 @@
       document.getElementById('mobile-bottom-nav').innerHTML = navItems.map(item => {
         const active = item.id === activeTab;
         return `
-          <button onclick="setTab('${item.id}')" class="relative flex flex-col items-center gap-0.5 px-3 py-1 rounded-2xl transition cursor-pointer ${active ? 'text-[#D5FF5F]' : 'text-[var(--text-muted)]'}">
+          <button onclick="setTab('${item.id}')" class="relative flex flex-col items-center gap-0.5 px-3 py-1 rounded-2xl transition cursor-pointer ${active ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}">
             <span class="p-1.5 rounded-xl ${active ? 'bg-[#D5FF5F] text-[#010101]' : ''}">${item.icon}</span>
-            <span class="text-[10px] font-bold ${active ? 'text-[var(--text-main)]' : ''}">${item.label}</span>
-            ${item.badge ? `<span class="absolute top-0.5 right-1.5 w-4 h-4 rounded-full bg-[#9AC0D6] text-[#010101] text-[10px] font-extrabold flex items-center justify-center">${item.badge}</span>` : ''}
+            <span class="text-[10px] font-bold">${item.label}</span>
           </button>
         `;
       }).join('');
     }
 
     // =========================================================================
-    // COACH VIEWS
-    // =========================================================================
-    function renderCoachToday() {
-      const totalRev = state.payments.reduce((s, p) => s + p.amount, 0);
-      const nextSession = state.sessions.find(s => s.status !== 'Completed' && s.status !== 'Canceled') || state.sessions[0];
-      const daySessions = state.sessions.filter(s => s.dayKey === state.selectedDay);
-      const displaySessions = daySessions.length ? daySessions : state.sessions;
-
-      return `
-        <!-- Hero Training Day Header -->
-        <div class="rounded-3xl bg-[#010101] text-white border border-[#252B33] p-5 sm:p-6 relative overflow-hidden">
-          <div class="absolute -right-12 -top-12 w-52 h-52 rounded-full bg-[#D5FF5F]/15 blur-3xl pointer-events-none"></div>
-          <div class="absolute right-10 -bottom-16 w-44 h-44 rounded-full bg-[#9AC0D6]/15 blur-3xl pointer-events-none"></div>
-          <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="space-y-1.5">
-              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[11px] font-semibold text-[#D6DFE2]">
-                <span class="w-2 h-2 rounded-full bg-[#D5FF5F]"></span>
-                Single Facility • 24h Credit Protection Active
-              </div>
-              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Ready to coach, Gina.</h1>
-              <p class="text-xs sm:text-sm text-[#9F9F9F]">
-                Up next: <span class="text-white font-semibold">${nextSession ? `${nextSession.time} — ${nextSession.focus} (${nextSession.athletes[0]})` : 'Open day'}</span>
-              </p>
-            </div>
-            <div class="flex flex-wrap items-center gap-2">
-              <button onclick="openWeatherModal()" class="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-xs font-bold text-white cursor-pointer transition">
-                Broadcast Alert
-              </button>
-              <button onclick="openAddSessionModal()" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer volt-glow hover:brightness-95 transition">
-                + New Session
-              </button>
-            </div>
-          </div>
-
-          <!-- Quick Athletic Metrics Strip -->
-          <div class="relative grid grid-cols-3 gap-2.5 mt-5 pt-5 border-t border-white/10">
-            <div class="p-3 rounded-2xl bg-white/5">
-              <div class="text-[11px] text-[#9F9F9F] font-medium">Booked Sessions</div>
-              <div class="text-xl sm:text-2xl font-extrabold mt-0.5 tabular-nums">${state.sessions.length}</div>
-            </div>
-            <div class="p-3 rounded-2xl bg-white/5">
-              <div class="text-[11px] text-[#9F9F9F] font-medium">Recent Revenue</div>
-              <div class="text-xl sm:text-2xl font-extrabold mt-0.5 text-[#D5FF5F] tabular-nums">$${totalRev.toLocaleString()}</div>
-            </div>
-            <div class="p-3 rounded-2xl bg-white/5">
-              <div class="text-[11px] text-[#9F9F9F] font-medium">Waitlist Queue</div>
-              <div class="text-xl sm:text-2xl font-extrabold mt-0.5 text-[#9AC0D6] tabular-nums">${state.waitlist.length}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Horizontal 7-Day Training Strip -->
-        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-          ${state.weekDays.map(d => {
-            const active = d.key === state.selectedDay;
-            return `
-              <button onclick="state.selectedDay='${d.key}'; render();" class="flex flex-col items-center justify-center min-w-[64px] py-3 rounded-2xl border transition cursor-pointer ${active ? 'bg-[#D5FF5F] text-[#010101] border-[#D5FF5F] font-extrabold' : 'card-surface text-[var(--text-muted)] hover:border-[#9AC0D6]'}">
-                <span class="text-[10px] font-bold tracking-wider">${d.dow}</span>
-                <span class="text-lg font-extrabold leading-tight mt-0.5">${d.num}</span>
-                <span class="w-1.5 h-1.5 rounded-full mt-1 ${d.dot ? (active ? 'bg-[#010101]' : 'bg-[#D5FF5F]') : 'bg-transparent'}"></span>
-              </button>
-            `;
-          }).join('')}
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <!-- Session Cards -->
-          <div class="lg:col-span-2 space-y-3">
-            <div class="flex items-center justify-between">
-              <h2 class="text-sm font-extrabold tracking-tight">${daySessions.length ? `Schedule for ${state.selectedDay}` : 'All Upcoming Sessions'}</h2>
-              <span class="text-xs text-[var(--text-muted)]">Auto SMS reminders 24h prior</span>
-            </div>
-            ${displaySessions.map(s => `
-              <div class="card-surface rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-[#4E6075] transition">
-                <div class="flex items-start gap-3.5 min-w-0">
-                  <div class="px-3 py-2 rounded-2xl bg-[#4E6075]/20 border border-[#9AC0D6]/25 text-center shrink-0 min-w-[76px]">
-                    <div class="text-xs font-extrabold tabular-nums">${s.time}</div>
-                    <div class="text-[10px] font-semibold text-[#9AC0D6] mt-0.5">${s.duration}</div>
-                  </div>
-                  <div class="min-w-0 space-y-1">
-                    <div class="flex flex-wrap items-center gap-1.5">
-                      <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#D5FF5F]/20 text-[#D5FF5F] border border-[#D5FF5F]/30 dark:text-[#D5FF5F] light-pill">${s.type}</span>
-                      <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold ${s.status === 'Completed' ? 'bg-[#D5FF5F] text-[#010101]' : s.status === 'Canceled' ? 'bg-red-500/15 text-red-400' : 'elevated-surface text-[var(--text-muted)]'}">${s.status}</span>
-                    </div>
-                    <div class="font-bold text-sm sm:text-base truncate">${s.focus}</div>
-                    <div class="text-xs text-[var(--text-muted)]">${s.athletes.join(', ')} • <span class="font-semibold text-[var(--text-main)]">${s.payment}</span></div>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2 shrink-0">
-                  ${s.status !== 'Completed' && s.status !== 'Canceled' ? `
-                    <button onclick="completeSession('${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Check In</button>
-                    <button onclick="cancelSessionCoach('${s.id}')" class="px-3 py-2 rounded-xl elevated-surface text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer">Cancel</button>
-                  ` : ''}
-                  ${s.athleteId ? `<button onclick="jumpToAthlete('${s.athleteId}')" class="px-3 py-2 rounded-xl elevated-surface text-xs font-semibold cursor-pointer">Profile</button>` : ''}
-                </div>
-              </div>
-            `).join('')}
-          </div>
-
-          <!-- Waitlist & Quick Fill -->
-          <div class="space-y-4">
-            <div class="card-surface rounded-3xl p-5 space-y-3">
-              <div class="flex items-center justify-between">
-                <h2 class="text-sm font-extrabold">Waitlist Fill</h2>
-                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#9AC0D6]/20 text-[#9AC0D6]">1-Tap SMS</span>
-              </div>
-              <p class="text-xs text-[var(--text-muted)]">Open slot? Text waitlisted players first so you never lose cage revenue.</p>
-              <div class="space-y-2.5">
-                ${state.waitlist.map(w => `
-                  <div class="elevated-surface rounded-2xl p-3.5 space-y-2.5">
-                    <div class="flex items-center justify-between">
-                      <span class="font-bold text-xs">${w.athlete}</span>
-                      <span class="text-[11px] font-bold ${w.status === 'Notified' ? 'text-[#D5FF5F]' : 'text-[#9AC0D6]'}">${w.status}</span>
-                    </div>
-                    <div class="text-[11px] text-[var(--text-muted)]">${w.parent} • ${w.requested}</div>
-                    <button onclick="notifyWaitlist('${w.id}')" class="w-full py-2 rounded-xl bg-[#4E6075] hover:bg-[#5c718a] text-white text-xs font-bold cursor-pointer transition">
-                      ${w.status === 'Notified' ? 'Send Follow-Up Text' : 'Text Open Slot Offer'}
-                    </button>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    function renderCoachAthletes() {
-      const q = state.athleteSearch.toLowerCase();
-      const filtered = state.athletes.filter(a =>
-        a.name.toLowerCase().includes(q) || a.position.toLowerCase().includes(q) || a.ageGroup.toLowerCase().includes(q)
-      );
-      const sel = state.athletes.find(a => a.id === state.selectedAthleteId) || state.athletes[0];
-      const doneDrills = sel.drills.filter(d => d.done).length;
-      const drillPct = sel.drills.length ? Math.round((doneDrills / sel.drills.length) * 100) : 0;
-
-      return `
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 class="text-2xl font-extrabold tracking-tight">Athletes &amp; Performance</h1>
-            <p class="text-xs text-[var(--text-muted)]">Velocity PRs, pitch arsenal, session notes &amp; synced homework drills</p>
-          </div>
-          <input type="text" value="${state.athleteSearch}" oninput="state.athleteSearch=this.value; render();" placeholder="Search athlete, age, position..." class="px-4 py-2.5 rounded-2xl card-surface text-xs w-full sm:w-64 focus:outline-none focus:border-[#D5FF5F]" />
-        </div>
-
-        <!-- Horizontal Athlete Selector Pills (Mobile-Friendly) -->
-        <div class="flex items-center gap-2.5 overflow-x-auto no-scrollbar pb-1">
-          ${filtered.map(a => {
-            const active = a.id === sel.id;
-            return `
-              <button onclick="state.selectedAthleteId='${a.id}'; render();" class="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl border shrink-0 transition cursor-pointer ${active ? 'bg-[#D5FF5F] text-[#010101] border-[#D5FF5F]' : 'card-surface hover:border-[#9AC0D6]'}">
-                <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-extrabold ${active ? 'bg-[#010101] text-[#D5FF5F]' : 'bg-[#4E6075] text-white'}">${a.initials}</div>
-                <div class="text-left">
-                  <div class="text-xs font-extrabold">${a.name}</div>
-                  <div class="text-[11px] ${active ? 'text-[#010101]/75 font-semibold' : 'text-[var(--text-muted)]'}">${a.ageGroup} • ${a.credits} cr</div>
-                </div>
-              </button>
-            `;
-          }).join('')}
-        </div>
-
-        <!-- Athlete Performance Card -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <!-- PR Spotlight + Drill Ring -->
-          <div class="space-y-4">
-            <div class="rounded-3xl bg-[#010101] text-white border border-[#252B33] p-5 space-y-4">
-              <div class="flex items-center justify-between">
-                <span class="px-2.5 py-1 rounded-full bg-[#4E6075]/40 text-[#9AC0D6] text-[11px] font-bold">${sel.ageGroup} • Class of ${sel.gradYear}</span>
-                <span class="text-[11px] font-bold ${sel.waiverSigned ? 'text-[#D5FF5F]' : 'text-red-400'}">${sel.waiverSigned ? 'Waiver ✓' : 'Waiver Pending'}</span>
-              </div>
-              <div>
-                <div class="text-xl font-extrabold">${sel.name}</div>
-                <div class="text-xs text-[#9F9F9F]">${sel.position} • B/T: ${sel.batsThrows}</div>
-              </div>
-              <div class="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-end justify-between">
-                <div>
-                  <div class="text-[11px] text-[#9F9F9F] uppercase tracking-wider font-bold">${sel.primaryMetricLabel}</div>
-                  <div class="text-3xl font-extrabold text-[#D5FF5F] tabular-nums leading-none mt-1">${sel.primaryMetricValue} <span class="text-xs text-white">${sel.primaryMetricUnit}</span></div>
-                  <div class="text-[11px] text-[#9AC0D6] mt-1 font-semibold">${sel.primaryMetricDelta}</div>
-                </div>
-                <button onclick="openAddMetricModal('${sel.id}')" class="px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Log</button>
-              </div>
-              ${sel.pitches.length ? `
-                <div class="space-y-1.5">
-                  <div class="text-[11px] text-[#9F9F9F] font-bold uppercase tracking-wider">Pitch Arsenal</div>
-                  <div class="flex flex-wrap gap-1.5">
-                    ${sel.pitches.map(p => `<span class="px-2.5 py-1 rounded-full bg-white/10 text-xs font-semibold">${p}</span>`).join('')}
-                  </div>
-                </div>
-              ` : ''}
-            </div>
-
-            <div class="card-surface rounded-3xl p-5 flex items-center justify-between gap-4">
-              <div>
-                <div class="text-xs font-bold text-[var(--text-muted)]">Weekly Homework</div>
-                <div class="text-lg font-extrabold mt-0.5">${doneDrills} of ${sel.drills.length} drills</div>
-                <div class="text-xs text-[#9AC0D6] font-semibold mt-0.5">${sel.streakDays}-day training streak</div>
-              </div>
-              ${progressRing(drillPct, 68)}
-            </div>
-          </div>
-
-          <!-- Drills & Coach Notes -->
-          <div class="lg:col-span-2 space-y-4">
-            <div class="card-surface rounded-3xl p-5 space-y-3">
-              <div class="flex items-center justify-between">
-                <h2 class="text-sm font-extrabold">Assigned Training Drills</h2>
-                <button onclick="openAddDrillModal('${sel.id}')" class="px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Assign Drill</button>
-              </div>
-              <div class="space-y-2">
-                ${sel.drills.map(d => `
-                  <label class="elevated-surface rounded-2xl p-3.5 flex items-center justify-between gap-3 cursor-pointer hover:border-[#D5FF5F] transition">
-                    <div class="flex items-center gap-3">
-                      <input type="checkbox" ${d.done ? 'checked' : ''} onchange="toggleDrill('${sel.id}','${d.id}')" class="w-4 h-4 accent-[#D5FF5F]" />
-                      <div>
-                        <div class="text-xs sm:text-sm font-bold ${d.done ? 'line-through text-[var(--text-muted)]' : ''}">${d.title}</div>
-                        <div class="text-[11px] text-[var(--text-muted)]">${d.focus}</div>
-                      </div>
-                    </div>
-                    <span class="px-2.5 py-1 rounded-full bg-[#4E6075]/20 text-[#9AC0D6] text-[11px] font-bold shrink-0">${d.reps}</span>
-                  </label>
-                `).join('')}
-              </div>
-            </div>
-
-            <div class="card-surface rounded-3xl p-5 space-y-3">
-              <div class="flex items-center justify-between">
-                <h2 class="text-sm font-extrabold">Coach Session Notes &amp; Safety</h2>
-                <button onclick="openAddNoteModal('${sel.id}')" class="px-3 py-1.5 rounded-xl elevated-surface text-xs font-bold cursor-pointer hover:border-[#D5FF5F]">+ Add Note</button>
-              </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                <div class="elevated-surface rounded-2xl p-3">
-                  <div class="text-[11px] text-[var(--text-muted)]">Emergency Contact</div>
-                  <div class="font-semibold mt-0.5">${sel.emergencyContact}</div>
-                </div>
-                <div class="elevated-surface rounded-2xl p-3">
-                  <div class="text-[11px] text-[var(--text-muted)]">Medical / Allergies</div>
-                  <div class="font-semibold mt-0.5">${sel.medicalNotes}</div>
-                </div>
-              </div>
-              <div class="space-y-2 pt-1">
-                ${sel.notes.map(n => `
-                  <div class="elevated-surface rounded-2xl p-3.5 text-xs space-y-1">
-                    <div class="font-bold text-[#9AC0D6]">${n.date}</div>
-                    <div class="leading-relaxed">${n.text}</div>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    function renderCoachVideo() {
-      const vid = state.videos.find(v => v.id === state.selectedVideoId) || state.videos[0];
-      return `
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 class="text-2xl font-extrabold tracking-tight">Mechanics Video Lab</h1>
-            <p class="text-xs text-[var(--text-muted)]">Slow-motion clip breakdown with timestamped coaching cues</p>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <!-- Clip Queue -->
-          <div class="space-y-2.5">
-            ${state.videos.map(v => {
-              const active = v.id === vid.id;
-              return `
-                <button onclick="state.selectedVideoId='${v.id}'; render();" class="w-full text-left p-4 rounded-3xl border transition cursor-pointer ${active ? 'bg-[#010101] text-white border-[#D5FF5F]' : 'card-surface hover:border-[#9AC0D6]'}">
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="font-extrabold text-xs">${v.athleteName}</span>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${v.status === 'Reviewed' ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#9AC0D6]/20 text-[#9AC0D6]'}">${v.status}</span>
-                  </div>
-                  <div class="text-xs font-semibold mt-1">${v.title}</div>
-                  <div class="text-[11px] text-[#9F9F9F] mt-1">${v.uploadedAt} • ${v.cues.length} cues</div>
-                </button>
-              `;
-            }).join('')}
-          </div>
-
-          <!-- Pro Cinema Breakdown Stage -->
-          <div class="lg:col-span-2 card-surface rounded-3xl p-5 space-y-4">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h2 class="font-extrabold text-base">${vid.title}</h2>
-                <p class="text-xs text-[var(--text-muted)]">${vid.athleteName} • ${vid.uploadedAt}</p>
-              </div>
-              <button onclick="markVideoReviewed('${vid.id}')" class="px-4 py-2 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">
-                ${vid.status === 'Reviewed' ? 'Reviewed ✓' : 'Mark Reviewed & Notify'}
-              </button>
-            </div>
-
-            <div class="rounded-3xl bg-[#010101] text-white border border-[#252B33] p-5 space-y-4">
-              <div class="flex items-center justify-between text-xs">
-                <span class="text-[#9AC0D6] font-bold">Power Line Overlay Active</span>
-                <div class="flex items-center gap-1">
-                  ${['0.25x', '0.5x', '1x'].map(sp => `
-                    <button onclick="state.videoSpeed='${sp}'; render();" class="px-2.5 py-1 rounded-full text-[11px] font-bold cursor-pointer ${state.videoSpeed === sp ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-white/10 text-[#9F9F9F]'}">${sp}</button>
-                  `).join('')}
-                </div>
-              </div>
-              <div class="py-10 rounded-2xl bg-gradient-to-br from-[#4E6075]/30 to-[#010101] border border-white/10 flex flex-col items-center justify-center gap-2 text-center px-4">
-                <div class="w-14 h-14 rounded-full bg-[#D5FF5F] text-[#010101] flex items-center justify-center shadow-lg">
-                  <svg class="w-6 h-6 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                </div>
-                <div class="text-xs font-bold mt-1">Slow-Mo Frame Scrubber (${state.videoSpeed})</div>
-              </div>
-              <!-- Timeline Bar with Cue Dots -->
-              <div class="space-y-1.5">
-                <div class="relative h-2 rounded-full bg-white/15">
-                  <div class="h-full w-1/2 rounded-full bg-[#D5FF5F]"></div>
-                  ${vid.cues.map(c => `<span title="${c.time}" class="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-[#9AC0D6] border-2 border-[#010101]" style="left:${c.pct || 50}%"></span>`).join('')}
-                </div>
-                <div class="flex justify-between text-[10px] font-mono text-[#9F9F9F]"><span>0:00</span><span>0:07</span><span>0:14</span></div>
-              </div>
-            </div>
-
-            <div class="space-y-2">
-              <div class="text-xs font-extrabold">Timestamped Coaching Cues</div>
-              ${vid.cues.map(c => `
-                <div class="elevated-surface rounded-2xl p-3 flex items-start gap-3 text-xs">
-                  <span class="px-2 py-0.5 rounded-lg bg-[#D5FF5F] text-[#010101] font-mono font-extrabold shrink-0">${c.time}</span>
-                  <span class="leading-relaxed">${c.note}</span>
-                </div>
-              `).join('')}
-              <form onsubmit="addVideoCue(event, '${vid.id}')" class="flex flex-col sm:flex-row gap-2 pt-2">
-                <input name="time" value="0:08" class="w-full sm:w-20 px-3 py-2.5 rounded-2xl elevated-surface text-xs font-mono font-bold" required />
-                <input name="note" class="flex-1 px-3.5 py-2.5 rounded-2xl elevated-surface text-xs" placeholder="Drop a mechanics cue at this timestamp..." required />
-                <button type="submit" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Add Cue</button>
-              </form>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    function renderCoachPayments() {
-      const total = state.payments.reduce((s, p) => s + p.amount, 0);
-      return `
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 class="text-2xl font-extrabold tracking-tight">Packages &amp; Payments</h1>
-            <p class="text-xs text-[var(--text-muted)]">Stripe Card / Apple Pay + manual Venmo, Zelle &amp; cash tracking</p>
-          </div>
-          <button onclick="openLogPaymentModal()" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer volt-glow">
-            + Log Venmo / Zelle / Cash
-          </button>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <!-- Active Credit Passes -->
-          <div class="space-y-3">
-            <h2 class="text-sm font-extrabold">Active Credit Passes</h2>
-            ${state.athletes.filter((a, i, arr) => arr.findIndex(x => x.familyId === a.familyId) === i).map(a => {
-              const pct = Math.min(100, Math.round((a.credits / a.packTotal) * 100));
-              return `
-                <div class="card-surface rounded-3xl p-4 flex items-center justify-between gap-3">
-                  <div class="space-y-1 min-w-0">
-                    <div class="font-extrabold text-sm truncate">${a.parentName}</div>
-                    <div class="text-xs text-[var(--text-muted)]">${a.familyId === 'fam-1' ? 'Chloe & Maya (Shared)' : a.name}</div>
-                    ${a.credits <= 1
-                      ? `<button onclick="showToast('Renewal link texted to ${a.parentName}!')" class="text-xs font-bold text-[#9AC0D6] hover:underline cursor-pointer">Low credits — Send renewal →</button>`
-                      : `<span class="text-[11px] font-bold text-[#D5FF5F]">Active Pass</span>`
-                    }
-                  </div>
-                  ${progressRing(pct, 58, `${a.credits}/${a.packTotal}`)}
-                </div>
-              `;
-            }).join('')}
-          </div>
-
-          <!-- Transactions -->
-          <div class="lg:col-span-2 card-surface rounded-3xl p-5 space-y-4">
-            <div class="flex items-center justify-between">
-              <h2 class="text-sm font-extrabold">Recent Payments</h2>
-              <span class="px-3 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold tabular-nums">Total $${total.toLocaleString()}</span>
-            </div>
-            <div class="space-y-2.5">
-              ${state.payments.map(p => `
-                <div class="elevated-surface rounded-2xl p-3.5 flex items-center justify-between gap-3">
-                  <div>
-                    <div class="font-bold text-xs sm:text-sm">${p.family} — ${p.item}</div>
-                    <div class="text-[11px] text-[var(--text-muted)] mt-0.5">${p.date} • ${p.method}</div>
-                  </div>
-                  <div class="text-sm font-extrabold tabular-nums text-[#D5FF5F]">+$${p.amount}</div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    function renderCoachMessaging() {
-      const thread = state.threads.find(t => t.id === state.activeThreadId) || state.threads[0];
-      return `
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 class="text-2xl font-extrabold tracking-tight">Messages, Broadcasts &amp; Waivers</h1>
-            <p class="text-xs text-[var(--text-muted)]">Parent messaging, 1-tap weather alerts &amp; liability waiver status</p>
-          </div>
-          <button onclick="openWeatherModal()" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">
-            + Send SMS Broadcast
-          </button>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div class="space-y-3">
-            ${state.threads.map(t => `
-              <button onclick="openThread('${t.id}')" class="w-full text-left p-4 rounded-3xl border transition cursor-pointer ${t.id === thread.id ? 'bg-[#010101] text-white border-[#D5FF5F]' : 'card-surface'}">
-                <div class="flex items-center justify-between">
-                  <span class="font-extrabold text-xs">${t.parent}</span>
-                  ${t.unread ? `<span class="px-2 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">${t.unread} new</span>` : ''}
-                </div>
-                <div class="text-[11px] text-[#9AC0D6] mt-0.5">${t.athletes}</div>
-                <div class="text-xs text-[#9F9F9F] truncate mt-1">${t.messages[t.messages.length - 1].text}</div>
-              </button>
-            `).join('')}
-
-            <!-- Waiver Status Mini-Card -->
-            <div class="card-surface rounded-3xl p-4 space-y-2.5">
-              <div class="text-xs font-extrabold">Digital Waivers</div>
-              ${state.athletes.map(a => `
-                <div class="flex items-center justify-between text-xs">
-                  <span class="font-medium">${a.name}</span>
-                  ${a.waiverSigned
-                    ? `<span class="text-[#D5FF5F] font-bold">Signed ✓</span>`
-                    : `<button onclick="showToast('Waiver SMS sent to ${a.parentName}!')" class="px-2.5 py-1 rounded-full bg-[#4E6075] text-white text-[11px] font-bold cursor-pointer">Remind</button>`
-                  }
-                </div>
-              `).join('')}
-            </div>
-          </div>
-
-          <div class="lg:col-span-2 card-surface rounded-3xl p-5 flex flex-col justify-between gap-4">
-            <div class="space-y-3">
-              <div class="pb-3 border-b border-[var(--border-subtle)] flex items-center justify-between">
-                <div>
-                  <div class="font-extrabold text-sm">${thread.parent}</div>
-                  <div class="text-xs text-[#9AC0D6]">Athletes: ${thread.athletes}</div>
-                </div>
-                <span class="text-[11px] font-semibold text-[var(--text-muted)]">SMS Relay Active</span>
-              </div>
-              <div class="space-y-2.5">
-                ${thread.messages.map(m => `
-                  <div class="flex ${m.from === 'coach' ? 'justify-end' : 'justify-start'}">
-                    <div class="max-w-md px-4 py-3 rounded-2xl text-xs space-y-1 ${m.from === 'coach' ? 'bg-[#D5FF5F] text-[#010101] font-semibold' : 'elevated-surface'}">
-                      <div>${m.text}</div>
-                      <div class="opacity-65 text-[10px] text-right">${m.time}</div>
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-            <form onsubmit="sendCoachReply(event, '${thread.id}')" class="flex gap-2 pt-3 border-t border-[var(--border-subtle)]">
-              <input name="text" class="flex-1 px-4 py-2.5 rounded-2xl elevated-surface text-xs" placeholder="Reply to ${thread.parent}..." required />
-              <button type="submit" class="px-5 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Send</button>
-            </form>
-          </div>
-        </div>
-      `;
-    }
-
-    // =========================================================================
-    // PARENT / ATHLETE PORTAL (PERSONAL TRAINING APP EXPERIENCE)
+    // ATHLETE / PARENT PORTAL (PELOTON + FITSTREAK EXPERIENCE)
     // =========================================================================
     function renderSiblingBar() {
       const siblings = state.athletes.filter(a => a.familyId === 'fam-1');
       return `
-        <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center gap-2">
             ${siblings.map(s => {
               const active = s.id === state.activeSiblingId;
               return `
-                <button onclick="state.activeSiblingId='${s.id}'; render();" class="flex items-center gap-2 px-3.5 py-2 rounded-full border text-xs font-extrabold transition cursor-pointer ${active ? 'bg-[#D5FF5F] text-[#010101] border-[#D5FF5F]' : 'card-surface text-[var(--text-muted)]'}">
-                  <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${active ? 'bg-[#010101] text-[#D5FF5F]' : 'bg-[#4E6075] text-white'}">${s.initials}</span>
+                <button onclick="state.activeSiblingId='${s.id}'; render();" class="flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-extrabold transition cursor-pointer ${active ? 'bg-[#010101] text-[#D5FF5F]' : 'card-white text-[var(--text-muted)]'}">
+                  <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${active ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#D6DFE2] text-[#010101]'}">${s.initials}</span>
                   ${s.name.split(' ')[0]} (${s.ageGroup})
                 </button>
               `;
             }).join('')}
           </div>
-          <button onclick="setTab('packages')" class="px-3.5 py-2 rounded-full elevated-surface text-xs font-bold cursor-pointer hover:border-[#D5FF5F]">
-            <span class="text-[#D5FF5F] font-extrabold">${siblings[0].credits}</span> shared credits left
+          <button onclick="setTab('packages')" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer">
+            <span class="px-1.5 py-0.5 rounded-md bg-[#D5FF5F] text-[#010101] mr-1">${siblings[0].credits}</span> shared credits
           </button>
         </div>
       `;
@@ -1168,104 +657,224 @@
 
     function renderParentHome() {
       const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
+      const hero = state.featuredWorkouts[0];
+      const recovery = state.featuredWorkouts[2];
       const upcoming = state.sessions.filter(s => s.athletes.includes(ath.name) && s.status !== 'Canceled');
-      const doneCount = ath.drills.filter(d => d.done).length;
-      const drillPct = ath.drills.length ? Math.round((doneCount / ath.drills.length) * 100) : 0;
 
       return `
         ${renderSiblingBar()}
 
-        <!-- Personal Training Hero Card -->
-        <div class="rounded-3xl bg-[#010101] text-white border border-[#252B33] p-5 sm:p-6 relative overflow-hidden">
-          <div class="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-[#D5FF5F]/20 blur-3xl pointer-events-none"></div>
-          <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-            <div class="space-y-1.5">
-              <div class="text-xs font-bold text-[#9AC0D6] uppercase tracking-wider">${ath.streakDays}-Day Training Streak</div>
-              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Let’s work, ${ath.name.split(' ')[0]}!</h1>
-              <p class="text-xs text-[#9F9F9F]">${ath.primaryMetricLabel}: <span class="text-[#D5FF5F] font-extrabold">${ath.primaryMetricValue} ${ath.primaryMetricUnit}</span> (${ath.primaryMetricDelta})</p>
+        <!-- Top 2-Column Peloton / FitStreak Bento -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <!-- Left: Mist-Gray Performance Card (Exact FitStreak Card 1!) -->
+          <div class="lg:col-span-5 card-mist rounded-[28px] p-5 sm:p-6 flex flex-col justify-between gap-4">
+            <div>
+              <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-extrabold tracking-tight">Training</h1>
+                <span class="px-3 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-xs font-extrabold">${ath.primaryMetricValue} ${ath.primaryMetricUnit} PR</span>
+              </div>
+              <p class="text-xs font-semibold text-[var(--text-muted)] mt-1">Your performance • ${ath.primaryMetricDelta}</p>
+              <div class="mt-4">${performanceAreaChart()}</div>
             </div>
-            <div class="flex items-center gap-4">
-              ${progressRing(drillPct, 74)}
-              <div>
-                <div class="text-xs font-extrabold">Weekly Drills</div>
-                <div class="text-[11px] text-[#9F9F9F]">${doneCount} of ${ath.drills.length} done</div>
-                <button onclick="setTab('book')" class="mt-2 px-3.5 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Book Lesson</button>
+            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-[#010101]/10">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-2xl bg-white/70 dark:bg-white/10 flex items-center justify-center text-sm">🥎</div>
+                <div>
+                  <div class="text-[11px] text-[var(--text-muted)] font-semibold">Total Reps Logged</div>
+                  <div class="text-sm font-extrabold tabular-nums">${ath.weeklyReps} reps</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-2xl bg-white/70 dark:bg-white/10 flex items-center justify-center text-sm">⏱️</div>
+                <div>
+                  <div class="text-[11px] text-[var(--text-muted)] font-semibold">Total Duration</div>
+                  <div class="text-sm font-extrabold tabular-nums">${ath.weeklyDuration}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Full-Bleed Editorial Hero Session Card ("Day 6" + White GO -> Pill!) -->
+          <div onclick="openRepPicker('${hero.title}', '${hero.subtitle}', '${hero.img}', ${hero.defaultReps})" class="lg:col-span-7 relative rounded-[28px] overflow-hidden min-h-[270px] sm:min-h-[300px] cursor-pointer group shadow-lg">
+            <img src="${hero.img}" alt="${hero.title}" class="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition duration-500" />
+            <div class="absolute inset-0 bg-gradient-to-b from-[#010101]/70 via-[#010101]/20 to-[#010101]/75"></div>
+            <div class="relative h-full p-6 flex flex-col justify-between text-white">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-2xl sm:text-3xl font-extrabold tracking-tight">Day ${ath.streakDays}</div>
+                  <div class="text-xs sm:text-sm text-[#D6DFE2] font-medium mt-0.5">Start your ${ath.name.split(' ')[0]}’s daily drill workout</div>
+                </div>
+                ${icons.arrowBtn}
+              </div>
+              <div class="space-y-1">
+                <span class="inline-block px-2.5 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold tracking-wider">${hero.duration} • ${hero.category}</span>
+                <div class="text-xl font-extrabold">${hero.title}</div>
+                <div class="text-xs text-[#D6DFE2]">Coach Gina Fuchs • Tap to set reps &amp; start</div>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <!-- Today's Drill Workout -->
-          <div class="lg:col-span-2 space-y-4">
-            <div class="card-surface rounded-3xl p-5 space-y-3">
-              <div class="flex items-center justify-between">
-                <h2 class="text-sm font-extrabold">Coach Gina’s Homework Drills</h2>
-                <span class="text-xs font-bold text-[#9AC0D6]">Syncs live to Coach</span>
-              </div>
-              <div class="space-y-2.5">
-                ${ath.drills.map(d => `
-                  <label class="elevated-surface rounded-2xl p-4 flex items-center justify-between gap-3 cursor-pointer hover:border-[#D5FF5F] transition">
-                    <div class="flex items-center gap-3.5">
-                      <input type="checkbox" ${d.done ? 'checked' : ''} onchange="toggleDrill('${ath.id}','${d.id}')" class="w-5 h-5 accent-[#D5FF5F]" />
-                      <div>
-                        <div class="text-sm font-bold ${d.done ? 'line-through text-[var(--text-muted)]' : ''}">${d.title}</div>
-                        <div class="text-xs text-[var(--text-muted)]">${d.focus}</div>
-                      </div>
-                    </div>
-                    <span class="px-3 py-1 rounded-full bg-[#4E6075]/25 text-[#9AC0D6] text-xs font-bold shrink-0">${d.reps}</span>
-                  </label>
-                `).join('')}
-              </div>
-            </div>
-
-            <!-- Upcoming Sessions -->
-            <div class="card-surface rounded-3xl p-5 space-y-3">
-              <div class="flex items-center justify-between">
-                <h2 class="text-sm font-extrabold">Upcoming Sessions</h2>
-                <button onclick="setTab('book')" class="text-xs font-bold text-[#9AC0D6] hover:underline cursor-pointer">+ Add Session</button>
-              </div>
-              ${upcoming.length ? upcoming.map(s => `
-                <div class="elevated-surface rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <div class="text-xs font-bold text-[#D5FF5F]">${s.day} • ${s.time}</div>
-                    <div class="font-bold text-sm mt-0.5">${s.focus}</div>
-                    <div class="text-xs text-[var(--text-muted)]">${s.type} • ${s.duration}</div>
-                  </div>
-                  <button onclick="cancelSessionParent('${s.id}')" class="px-3.5 py-2 rounded-xl card-surface text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer">Reschedule / Cancel</button>
+        <!-- Peloton-Style Recommended Drills & Live Classes Carousel -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-extrabold tracking-tight">Recommended by Coach Gina</h2>
+            <button onclick="setTab('book')" class="text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">Browse All Sessions →</button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            ${state.featuredWorkouts.map(w => `
+              <div onclick="openRepPicker('${w.title}', '${w.subtitle}', '${w.img}', ${w.defaultReps})" class="card-white rounded-[26px] overflow-hidden cursor-pointer group hover:-translate-y-0.5 transition">
+                <div class="relative h-40 overflow-hidden">
+                  <img src="${w.img}" alt="${w.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                  <div class="absolute inset-0 bg-gradient-to-t from-[#010101]/75 via-transparent to-[#010101]/30"></div>
+                  <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#010101]/75 backdrop-blur text-[#D5FF5F] text-[10px] font-extrabold">${w.duration}</span>
+                  <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/90 text-[#010101] text-[10px] font-extrabold">${w.category}</span>
                 </div>
-              `).join('') : `<p class="text-xs text-[var(--text-muted)]">No sessions booked yet—tap Book to reserve a slot!</p>`}
+                <div class="p-4 space-y-2">
+                  <div class="font-extrabold text-sm">${w.title}</div>
+                  <div class="text-xs text-[var(--text-muted)]">${w.subtitle}</div>
+                  <div class="pt-1">
+                    <span class="inline-flex w-full items-center justify-center py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold">
+                      ${w.category === 'ARM CARE' ? '✨ Start Recovery' : '🔥 LET’S GO'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Homework Checklist + Upcoming Live Session -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div class="lg:col-span-7 card-white rounded-[28px] p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <h2 class="text-sm font-extrabold">Weekly Drill Checklist</h2>
+              <span class="text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6]">Synced live to Coach Gina</span>
+            </div>
+            <div class="space-y-2.5">
+              ${ath.drills.map(d => `
+                <label class="surface-soft rounded-2xl p-3.5 flex items-center justify-between gap-3 cursor-pointer hover:border-[#010101] transition">
+                  <div class="flex items-center gap-3">
+                    <input type="checkbox" ${d.done ? 'checked' : ''} onchange="toggleDrill('${ath.id}','${d.id}')" class="w-5 h-5 accent-[#010101]" />
+                    <div>
+                      <div class="text-sm font-bold ${d.done ? 'line-through text-[var(--text-muted)]' : ''}">${d.title}</div>
+                      <div class="text-xs text-[var(--text-muted)]">${d.focus}</div>
+                    </div>
+                  </div>
+                  <span class="px-2.5 py-1 rounded-full bg-[#D6DFE2] text-[#010101] text-xs font-extrabold shrink-0">${d.reps}</span>
+                </label>
+              `).join('')}
             </div>
           </div>
 
-          <!-- Coach Note -->
-          <div class="space-y-4">
-            <div class="card-surface rounded-3xl p-5 space-y-3">
-              <div class="flex items-center gap-2.5">
-                <div class="w-8 h-8 rounded-full bg-[#D5FF5F] text-[#010101] font-extrabold text-xs flex items-center justify-center">GF</div>
-                <div>
-                  <div class="text-xs font-extrabold">Latest Note from Gina</div>
-                  <div class="text-[11px] text-[var(--text-muted)]">${ath.notes[0]?.date || 'Recent'}</div>
-                </div>
+          <!-- Upcoming Live Cage Session + Arm Care -->
+          <div class="lg:col-span-5 space-y-4">
+            <div class="card-white rounded-[28px] p-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <h2 class="text-sm font-extrabold">Next Live Session</h2>
+                <button onclick="setTab('book')" class="text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ Book</button>
               </div>
-              <p class="text-xs leading-relaxed text-[var(--text-muted)]">${ath.notes[0]?.text || ''}</p>
+              ${upcoming.length ? upcoming.slice(0, 2).map(s => `
+                <div class="surface-soft rounded-2xl p-3.5 flex items-center justify-between gap-3">
+                  <div>
+                    <div class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${s.day} • ${s.time}</div>
+                    <div class="font-extrabold text-sm mt-0.5">${s.focus}</div>
+                    <div class="text-xs text-[var(--text-muted)]">${s.type} • ${s.duration}</div>
+                  </div>
+                  <button onclick="cancelSessionParent('${s.id}')" class="px-3 py-1.5 rounded-xl card-white text-xs font-bold text-[var(--text-muted)] cursor-pointer">Cancel</button>
+                </div>
+              `).join('') : `<p class="text-xs text-[var(--text-muted)]">No live sessions booked yet.</p>`}
             </div>
 
-            <div class="card-surface rounded-3xl p-5 space-y-3">
-              <div class="text-xs font-extrabold">Velocity / Skill Progression</div>
-              <div class="flex items-end gap-3 h-24 pt-2">
-                ${ath.veloHistory.map(pt => `
-                  <div class="flex-1 flex flex-col items-center gap-1.5">
-                    <span class="text-[11px] font-extrabold tabular-nums">${pt.val}</span>
-                    <div class="w-full rounded-t-xl bg-[#D5FF5F]" style="height:${Math.max(24, (pt.val - 48) * 4)}px"></div>
-                    <span class="text-[10px] font-bold text-[var(--text-muted)]">${pt.label}</span>
-                  </div>
-                `).join('')}
-              </div>
+            <div class="card-mist rounded-[28px] p-5 space-y-2">
+              <div class="text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Coach Gina’s Latest Note</div>
+              <p class="text-xs leading-relaxed font-medium">${ath.notes[0]?.text || ''}</p>
             </div>
           </div>
         </div>
       `;
+    }
+
+    // =========================================================================
+    // INTERACTIVE FITSTREAK REPETITION RULER MODAL + "GREAT JOB!!" CELEBRATION
+    // =========================================================================
+    function openRepPicker(title, subtitle, img, defaultReps) {
+      state.repPickerVal = defaultReps || 20;
+      renderRepPickerModal(title, subtitle, img);
+    }
+
+    function renderRepPickerModal(title, subtitle, img) {
+      const steps = [5, 10, 15, 20, 25, 30, 35];
+      openModal(`
+        <div>
+          <div class="relative h-56">
+            <img src="${img}" alt="${title}" class="w-full h-full object-cover" />
+            <div class="absolute inset-0 bg-gradient-to-b from-[#010101]/70 via-transparent to-[#010101]/40"></div>
+            <div class="absolute top-4 left-5 right-5 flex items-start justify-between text-white">
+              <div>
+                <div class="text-xl font-extrabold tracking-tight">${title}</div>
+                <div class="text-xs text-[#D6DFE2] mt-0.5">${subtitle}</div>
+              </div>
+              <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-white/20 backdrop-blur text-white text-xs font-bold cursor-pointer">✕</button>
+            </div>
+          </div>
+          <div class="p-6 text-center space-y-5 bg-[var(--bg-card)]">
+            <div class="text-lg font-extrabold tracking-tight">Choose number of repetitions</div>
+            <div class="text-3xl font-extrabold tabular-nums">${state.repPickerVal}</div>
+            <!-- Vertical Tick Ruler Picker (exact FitStreak look!) -->
+            <div class="flex items-end justify-between gap-1 px-2 pt-1">
+              ${steps.map(v => {
+                const active = v === state.repPickerVal;
+                return `
+                  <button onclick="state.repPickerVal=${v}; renderRepPickerModal('${title.replace(/'/g, "\\'")}','${subtitle.replace(/'/g, "\\'")}','${img}');" class="flex flex-col items-center gap-2 flex-1 cursor-pointer group">
+                    <span class="text-xs font-bold tabular-nums ${active ? 'text-[var(--text-main)]' : 'text-[var(--text-soft)]'}">${v}</span>
+                    <span class="w-0.5 rounded-full transition-all ${active ? 'h-12 bg-[#010101] dark:bg-[#D5FF5F] w-1' : 'h-7 bg-[#9F9F9F]/60 group-hover:bg-[#4E6075]'}"></span>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+            <button onclick="completeDrillWorkout('${title.replace(/'/g, "\\'")}', '${img}')" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold tracking-wide cursor-pointer hover:brightness-95 transition">
+              🔥 LET’S GO
+            </button>
+          </div>
+        </div>
+      `, true);
+    }
+
+    function completeDrillWorkout(title, img) {
+      const ath = state.athletes.find(a => a.id === state.activeSiblingId);
+      ath.weeklyReps += state.repPickerVal;
+      openModal(`
+        <div class="card-mist p-6 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="text-2xl font-extrabold tracking-tight">Great Job!!</div>
+            <button onclick="closeModal(); render();" class="w-8 h-8 rounded-full bg-white/70 text-[#010101] text-xs font-bold cursor-pointer">✕</button>
+          </div>
+          <p class="text-xs font-medium text-[var(--text-muted)]">Successfully completed ${title} (${state.repPickerVal} reps)</p>
+          <div class="grid grid-cols-2 gap-3 pt-2">
+            <div>
+              <div class="text-[11px] text-[var(--text-muted)] font-semibold">Reps Logged</div>
+              <div class="text-base font-extrabold tabular-nums">${state.repPickerVal} reps</div>
+            </div>
+            <div>
+              <div class="text-[11px] text-[var(--text-muted)] font-semibold">Total This Week</div>
+              <div class="text-base font-extrabold tabular-nums">${ath.weeklyReps} reps</div>
+            </div>
+          </div>
+        </div>
+        <div class="p-5 bg-[var(--bg-card)] space-y-4">
+          <div class="rounded-2xl overflow-hidden h-44">
+            <img src="assets/images/fastpitch-recovery.jpg" alt="Arm Care Cool Down" class="w-full h-full object-cover" />
+          </div>
+          <div>
+            <div class="text-lg font-extrabold">Arm Care &amp; Cool Down</div>
+            <p class="text-xs text-[var(--text-muted)] mt-0.5">After pitching or hitting, take 5 minutes for shoulder band mobility to keep your arm fresh.</p>
+          </div>
+          <button onclick="closeModal(); render(); showToast('Logged ${state.repPickerVal} reps & synced to Coach Gina!');" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">
+            ❄️ Cool Down &amp; Done!
+          </button>
+        </div>
+      `, true);
     }
 
     function renderParentBook() {
@@ -1277,36 +886,36 @@
         ${renderSiblingBar()}
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 class="text-2xl font-extrabold tracking-tight">Book Training for ${ath.name.split(' ')[0]}</h1>
-            <p class="text-xs text-[var(--text-muted)]">Book 1-on-1s with your credits or reserve small group &amp; clinic spots</p>
+            <h1 class="text-2xl font-extrabold tracking-tight">Book Live Sessions &amp; Clinics</h1>
+            <p class="text-xs text-[var(--text-muted)]">Use package credits or reserve with Card / Apple Pay</p>
           </div>
           <div class="flex flex-wrap gap-1.5">
             ${filters.map(f => `
-              <button onclick="state.bookingFilter='${f}'; render();" class="px-3.5 py-2 rounded-full text-xs font-bold cursor-pointer transition ${state.bookingFilter === f ? 'bg-[#D5FF5F] text-[#010101]' : 'card-surface text-[var(--text-muted)]'}">
+              <button onclick="state.bookingFilter='${f}'; render();" class="px-3.5 py-2 rounded-full text-xs font-extrabold cursor-pointer transition ${state.bookingFilter === f ? 'bg-[#010101] text-[#D5FF5F]' : 'card-white text-[var(--text-muted)]'}">
                 ${f === 'all' ? 'All' : f}
               </button>
             `).join('')}
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
           ${slots.map(s => `
-            <div class="card-surface rounded-3xl p-5 flex flex-col justify-between gap-4 hover:border-[#D5FF5F] transition">
-              <div class="space-y-2">
-                <div class="flex items-center justify-between">
-                  <span class="px-2.5 py-1 rounded-full bg-[#4E6075]/25 text-[#9AC0D6] text-[11px] font-bold">${s.type}</span>
-                  <span class="text-xs font-extrabold text-[#D5FF5F]">${s.spotsLeft} ${s.spotsLeft === 1 ? 'spot' : 'spots'} left</span>
+            <div class="card-white rounded-[28px] overflow-hidden flex flex-col justify-between">
+              <div class="relative h-44">
+                <img src="${s.img}" alt="${s.focus}" class="w-full h-full object-cover" />
+                <div class="absolute inset-0 bg-gradient-to-t from-[#010101]/80 via-[#010101]/20 to-transparent"></div>
+                <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#010101]/80 text-[#D5FF5F] text-[10px] font-extrabold">${s.duration} • ${s.type}</span>
+                <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white text-[#010101] text-[10px] font-extrabold">${s.spotsLeft} ${s.spotsLeft === 1 ? 'spot' : 'spots'} left</span>
+                <div class="absolute bottom-3 left-4 right-4 text-white">
+                  <div class="font-extrabold text-base">${s.focus}</div>
+                  <div class="text-xs text-[#D6DFE2]">${s.day} • ${s.time}</div>
                 </div>
-                <div class="font-extrabold text-base">${s.focus}</div>
-                <div class="text-xs text-[var(--text-muted)]">${s.day} • ${s.time} (${s.duration})</div>
               </div>
-              <div class="flex items-center justify-between gap-2 pt-3 border-t border-[var(--border-subtle)]">
+              <div class="p-4 flex items-center justify-between gap-2">
                 <div class="text-base font-extrabold tabular-nums">$${s.price}</div>
                 <div class="flex items-center gap-2">
-                  ${s.type === '1-on-1 Private' && ath.credits > 0 ? `
-                    <button onclick="bookSlot('${s.id}', 'credit')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Use 1 Credit</button>
-                  ` : ''}
-                  <button onclick="bookSlot('${s.id}', 'card')" class="px-3.5 py-2 rounded-xl elevated-surface text-xs font-bold cursor-pointer">Pay $${s.price}</button>
+                  ${s.type === '1-on-1 Private' && ath.credits > 0 ? `<button onclick="bookSlot('${s.id}','credit')" class="px-4 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Use 1 Credit</button>` : ''}
+                  <button onclick="bookSlot('${s.id}','card')" class="px-4 py-2 rounded-xl bg-[#010101] text-white text-xs font-extrabold cursor-pointer">Pay $${s.price}</button>
                 </div>
               </div>
             </div>
@@ -1321,49 +930,29 @@
       return `
         ${renderSiblingBar()}
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="rounded-3xl bg-[#010101] text-white border border-[#252B33] p-5 flex items-center justify-between">
-            <div>
-              <div class="text-xs text-[#9F9F9F] font-semibold">Family Balance</div>
-              <div class="text-3xl font-extrabold text-[#D5FF5F] mt-1 tabular-nums">${famAth.credits} Credits</div>
-              <div class="text-[11px] text-[#9AC0D6] mt-1">Shared: Chloe &amp; Maya</div>
-            </div>
-            ${progressRing(Math.min(100, Math.round((famAth.credits / famAth.packTotal) * 100)), 64, `${famAth.credits}`)}
+          <div class="card-mist rounded-[28px] p-5 flex flex-col justify-between">
+            <div class="text-xs font-bold text-[var(--text-muted)]">Family Credit Balance</div>
+            <div class="text-4xl font-extrabold tabular-nums mt-2">${famAth.credits} <span class="text-sm font-bold text-[var(--text-muted)]">credits</span></div>
+            <div class="text-xs font-semibold text-[#4E6075] dark:text-[#9AC0D6] mt-2">Shared across Chloe &amp; Maya</div>
           </div>
-
-          <div class="card-surface rounded-3xl p-5 border-[#D5FF5F] flex flex-col justify-between gap-4">
+          <div class="card-white rounded-[28px] p-5 flex flex-col justify-between gap-4 border-2 border-[#010101] dark:border-[#D5FF5F]">
             <div>
-              <div class="flex items-center justify-between">
-                <span class="font-extrabold text-sm">5-Lesson Pack</span>
-                <span class="px-2.5 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">SAVE $25</span>
-              </div>
-              <div class="text-2xl font-extrabold mt-2 tabular-nums">$350 <span class="text-xs font-normal text-[var(--text-muted)]">$70/ea</span></div>
+              <div class="flex justify-between items-center"><span class="font-extrabold text-sm">5-Lesson Pack</span><span class="px-2.5 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">SAVE $25</span></div>
+              <div class="text-2xl font-extrabold mt-2 tabular-nums">$350 <span class="text-xs font-semibold text-[var(--text-muted)]">$70/lesson</span></div>
             </div>
-            <button onclick="buyPackage(5, 350)" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Buy 5-Pack (Apple Pay / Card)</button>
+            <button onclick="buyPackage(5,350)" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Buy 5-Pack (Apple Pay)</button>
           </div>
-
-          <div class="card-surface rounded-3xl p-5 flex flex-col justify-between gap-4">
+          <div class="card-white rounded-[28px] p-5 flex flex-col justify-between gap-4">
             <div>
-              <div class="flex items-center justify-between">
-                <span class="font-extrabold text-sm">10-Lesson Elite Pack</span>
-                <span class="px-2.5 py-0.5 rounded-full bg-[#9AC0D6]/20 text-[#9AC0D6] text-[10px] font-extrabold">SAVE $100</span>
-              </div>
-              <div class="text-2xl font-extrabold mt-2 tabular-nums">$650 <span class="text-xs font-normal text-[var(--text-muted)]">$65/ea</span></div>
+              <div class="flex justify-between items-center"><span class="font-extrabold text-sm">10-Lesson Elite Pack</span><span class="px-2.5 py-0.5 rounded-full bg-[#D6DFE2] text-[#010101] text-[10px] font-extrabold">SAVE $100</span></div>
+              <div class="text-2xl font-extrabold mt-2 tabular-nums">$650 <span class="text-xs font-semibold text-[var(--text-muted)]">$65/lesson</span></div>
             </div>
-            <button onclick="buyPackage(10, 650)" class="w-full py-2.5 rounded-2xl elevated-surface hover:border-[#D5FF5F] text-xs font-extrabold cursor-pointer">Buy 10-Pack (Apple Pay / Card)</button>
+            <button onclick="buyPackage(10,650)" class="w-full py-2.5 rounded-2xl bg-[#010101] text-white text-xs font-extrabold cursor-pointer">Buy 10-Pack (Apple Pay)</button>
           </div>
         </div>
-
-        <div class="card-surface rounded-3xl p-5 space-y-3">
-          <h2 class="text-sm font-extrabold">Payment Receipts</h2>
-          ${famPayments.map(p => `
-            <div class="elevated-surface rounded-2xl p-3.5 flex items-center justify-between text-xs">
-              <div>
-                <div class="font-bold">${p.item}</div>
-                <div class="text-[var(--text-muted)]">${p.date} • ${p.method}</div>
-              </div>
-              <div class="font-extrabold tabular-nums">$${p.amount}</div>
-            </div>
-          `).join('')}
+        <div class="card-white rounded-[28px] p-5 space-y-3">
+          <h2 class="text-sm font-extrabold">Receipts &amp; Billing History</h2>
+          ${famPayments.map(p => `<div class="surface-soft rounded-2xl p-3.5 flex items-center justify-between text-xs"><div><div class="font-extrabold">${p.item}</div><div class="text-[var(--text-muted)]">${p.date} • ${p.method}</div></div><div class="font-extrabold tabular-nums">$${p.amount}</div></div>`).join('')}
         </div>
       `;
     }
@@ -1374,32 +963,21 @@
       return `
         ${renderSiblingBar()}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div class="card-surface rounded-3xl p-5 space-y-3">
+          <div class="card-mist rounded-[28px] p-5 space-y-3">
             <h2 class="text-sm font-extrabold">Upload Practice Clip</h2>
-            <p class="text-xs text-[var(--text-muted)]">Send a quick clip from home—it drops right into Coach Gina’s Video Lab.</p>
-            <form onsubmit="uploadParentVideo(event, '${ath.id}')" class="space-y-2.5">
-              <input name="title" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface text-xs" placeholder="e.g., Changeup Bullpen (Side View)" required />
+            <p class="text-xs text-[var(--text-muted)]">Send a slow-mo clip to Coach Gina for frame-by-frame cues.</p>
+            <form onsubmit="uploadParentVideo(event,'${ath.id}')" class="space-y-2.5">
+              <input name="title" class="w-full px-3.5 py-2.5 rounded-2xl card-white text-xs" placeholder="e.g., Changeup Bullpen (Side View)" required />
               <button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Upload to Coach Gina</button>
             </form>
           </div>
-
-          <div class="lg:col-span-2 space-y-3">
+          <div class="lg:col-span-2 space-y-4">
             ${vids.map(v => `
-              <div class="card-surface rounded-3xl p-5 space-y-3">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <div class="font-extrabold text-sm">${v.title}</div>
-                    <div class="text-xs text-[var(--text-muted)]">${v.uploadedAt}</div>
-                  </div>
-                  <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold ${v.status === 'Reviewed' ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#9AC0D6]/20 text-[#9AC0D6]'}">${v.status}</span>
-                </div>
-                <div class="space-y-2">
-                  ${v.cues.length ? v.cues.map(c => `
-                    <div class="elevated-surface rounded-2xl p-3 flex items-start gap-2.5 text-xs">
-                      <span class="px-2 py-0.5 rounded-lg bg-[#D5FF5F] text-[#010101] font-mono font-extrabold">${c.time}</span>
-                      <span>${c.note}</span>
-                    </div>
-                  `).join('') : `<div class="text-xs text-[var(--text-muted)]">Waiting for Coach Gina’s review cues.</div>`}
+              <div class="card-white rounded-[28px] overflow-hidden">
+                <div class="relative h-44"><img src="${v.img}" class="w-full h-full object-cover" /><div class="absolute inset-0 bg-[#010101]/45 flex items-center justify-center"><div class="w-12 h-12 rounded-full bg-[#D5FF5F] text-[#010101] flex items-center justify-center shadow-lg">▶</div></div><span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white text-[#010101] text-[10px] font-extrabold">${v.status}</span></div>
+                <div class="p-5 space-y-2.5">
+                  <div class="font-extrabold text-sm">${v.title}</div>
+                  ${v.cues.map(c => `<div class="surface-soft rounded-2xl p-3 flex items-start gap-2.5 text-xs"><span class="px-2 py-0.5 rounded-lg bg-[#010101] text-[#D5FF5F] font-mono font-extrabold">${c.time}</span><span>${c.note}</span></div>`).join('')}
                 </div>
               </div>
             `).join('')}
@@ -1412,238 +990,280 @@
       const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
       return `
         ${renderSiblingBar()}
-        <div class="card-surface rounded-3xl p-6 max-w-2xl space-y-4">
+        <div class="card-white rounded-[28px] p-6 max-w-2xl space-y-4">
           <div class="flex items-center justify-between">
-            <div>
-              <h2 class="font-extrabold text-base">Waiver &amp; Emergency Profile</h2>
-              <p class="text-xs text-[var(--text-muted)]">${ath.name} • Gina Fuchs Elite Fastpitch</p>
-            </div>
-            <span class="px-3 py-1 rounded-full text-xs font-extrabold ${ath.waiverSigned ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-red-500/20 text-red-400'}">
-              ${ath.waiverSigned ? `Signed ${ath.waiverDate}` : 'Action Needed'}
-            </span>
+            <div><h2 class="font-extrabold text-base">Waiver &amp; Emergency Profile</h2><p class="text-xs text-[var(--text-muted)]">${ath.name} • Gina Fuchs Elite Fastpitch</p></div>
+            <span class="px-3 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold">${ath.waiverSigned ? `Signed ${ath.waiverDate}` : 'Needed'}</span>
           </div>
-          <form onsubmit="saveParentProfile(event, '${ath.id}')" class="space-y-3 text-xs">
-            <div>
-              <label class="block text-[var(--text-muted)] mb-1 font-semibold">Emergency Contact</label>
-              <input name="emergency" value="${ath.emergencyContact}" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface" required />
-            </div>
-            <div>
-              <label class="block text-[var(--text-muted)] mb-1 font-semibold">Medical Conditions / Allergies</label>
-              <input name="medical" value="${ath.medicalNotes}" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface" required />
-            </div>
-            <button type="submit" class="px-5 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold cursor-pointer">Save &amp; Confirm Digital Waiver</button>
+          <form onsubmit="saveParentProfile(event,'${ath.id}')" class="space-y-3 text-xs">
+            <div><label class="block text-[var(--text-muted)] mb-1 font-bold">Emergency Contact</label><input name="emergency" value="${ath.emergencyContact}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" required /></div>
+            <div><label class="block text-[var(--text-muted)] mb-1 font-bold">Medical / Allergies</label><input name="medical" value="${ath.medicalNotes}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" required /></div>
+            <button type="submit" class="px-5 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold cursor-pointer">Save &amp; Confirm Waiver</button>
           </form>
         </div>
       `;
     }
 
     // =========================================================================
-    // INTERACTIVE HANDLERS & MODALS
+    // COACH GINA VIEWS (SAME CRISP PELOTON / FITSTREAK VISUAL SYSTEM)
     // =========================================================================
-    function completeSession(id) {
-      const s = state.sessions.find(x => x.id === id);
-      if (s) s.status = 'Completed';
-      render();
-      showToast(`Checked in ${s.athletes[0]}!`);
-    }
-    function cancelSessionCoach(id) {
-      const s = state.sessions.find(x => x.id === id);
-      if (s) s.status = 'Canceled';
-      render();
-      showToast('Session canceled — waitlist ready to notify.');
-    }
-    function cancelSessionParent(id) {
-      const s = state.sessions.find(x => x.id === id);
-      if (!s) return;
-      s.status = 'Canceled';
-      if (s.payment.includes('Credit')) state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits += 1);
-      render();
-      showToast('Canceled (>24h notice). 1 credit returned!');
-    }
-    function notifyWaitlist(id) {
-      const w = state.waitlist.find(x => x.id === id);
-      if (w) w.status = 'Notified';
-      render();
-      showToast(`SMS offer sent to ${w.parent}!`);
-    }
-    function jumpToAthlete(id) { state.selectedAthleteId = id; state.coachTab = 'athletes'; render(); }
-    function toggleDrill(athId, drillId) {
-      const a = state.athletes.find(x => x.id === athId);
-      const d = a?.drills.find(x => x.id === drillId);
-      if (d) d.done = !d.done;
-      render();
-      showToast(d?.done ? 'Drill completed! Nice work!' : 'Drill unchecked.');
-    }
-    function markVideoReviewed(id) {
-      const v = state.videos.find(x => x.id === id);
-      if (v) v.status = 'Reviewed';
-      render();
-      showToast(`Reviewed & notified ${v.athleteName}’s parent!`);
-    }
-    function addVideoCue(e, id) {
-      e.preventDefault();
-      const v = state.videos.find(x => x.id === id);
-      v.cues.push({ time: e.target.time.value, pct: 60, note: e.target.note.value });
-      v.status = 'Reviewed';
-      render();
-      showToast('Mechanics cue added!');
-    }
-    function openThread(id) {
-      state.activeThreadId = id;
-      const t = state.threads.find(x => x.id === id);
-      if (t) t.unread = 0;
-      render();
-    }
-    function sendCoachReply(e, id) {
-      e.preventDefault();
-      const t = state.threads.find(x => x.id === id);
-      t.messages.push({ from: 'coach', time: 'Just now', text: e.target.text.value });
-      render();
-      showToast(`Sent to ${t.parent}`);
-    }
-    function bookSlot(slotId, payMode) {
-      const slot = state.openSlots.find(s => s.id === slotId);
-      const ath = state.athletes.find(a => a.id === state.activeSiblingId);
-      if (!slot || !ath) return;
-      if (payMode === 'credit') {
-        state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits = Math.max(0, a.credits - 1));
-      } else {
-        state.payments.unshift({ id: 'pay-' + Date.now(), date: 'Today', family: 'Miller Family', item: `${slot.type}: ${slot.focus}`, amount: slot.price, method: 'Stripe • Apple Pay' });
-      }
-      state.sessions.unshift({
-        id: 'ses-' + Date.now(), dayKey: slot.dayKey, day: slot.day, time: slot.time, duration: slot.duration,
-        type: slot.type, focus: slot.focus, athletes: [ath.name], athleteId: ath.id, spotsMax: slot.spotsMax,
-        status: 'Confirmed', payment: payMode === 'credit' ? '1 Credit' : `Paid ($${slot.price})`, price: slot.price
-      });
-      slot.spotsLeft -= 1;
-      if (slot.spotsLeft <= 0) state.openSlots = state.openSlots.filter(s => s.id !== slotId);
-      state.parentTab = 'home';
-      render();
-      showToast(`Booked ${slot.focus} for ${ath.name.split(' ')[0]}!`);
-    }
-    function buyPackage(credits, price) {
-      state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => { a.credits += credits; a.packTotal = Math.max(a.packTotal, a.credits); });
-      state.payments.unshift({ id: 'pay-' + Date.now(), date: 'Today', family: 'Miller Family', item: `${credits}-Lesson Pack`, amount: price, method: 'Stripe • Apple Pay' });
-      render();
-      showToast(`Added ${credits} credits ($${price})!`);
-    }
-    function uploadParentVideo(e, athId) {
-      e.preventDefault();
-      const ath = state.athletes.find(a => a.id === athId);
-      state.videos.unshift({ id: 'vid-' + Date.now(), athleteId: ath.id, athleteName: ath.name, title: e.target.title.value, uploadedAt: 'Just now • 0:12', status: 'Needs Review', cues: [] });
-      render();
-      showToast('Clip uploaded to Coach Gina’s Video Lab!');
-    }
-    function saveParentProfile(e, athId) {
-      e.preventDefault();
-      const ath = state.athletes.find(a => a.id === athId);
-      ath.emergencyContact = e.target.emergency.value;
-      ath.medicalNotes = e.target.medical.value;
-      ath.waiverSigned = true; ath.waiverDate = 'Today';
-      render();
-      showToast('Profile & waiver saved!');
+    function renderCoachToday() {
+      const totalRev = state.payments.reduce((s, p) => s + p.amount, 0);
+      const daySessions = state.sessions.filter(s => s.dayKey === state.selectedDay);
+      const displaySessions = daySessions.length ? daySessions : state.sessions;
+
+      return `
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div class="lg:col-span-5 card-mist rounded-[28px] p-5 sm:p-6 flex flex-col justify-between gap-4">
+            <div>
+              <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-extrabold tracking-tight">Coach Hub</h1>
+                <span class="px-3 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-xs font-extrabold">$${totalRev.toLocaleString()}</span>
+              </div>
+              <p class="text-xs font-semibold text-[var(--text-muted)] mt-1">Single facility • 24h cancellation rule active</p>
+              <div class="mt-3">${performanceAreaChart()}</div>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="openAddSessionModal()" class="flex-1 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ New Session</button>
+              <button onclick="openWeatherModal()" class="flex-1 py-2.5 rounded-2xl bg-[#010101] text-white text-xs font-extrabold cursor-pointer">SMS Blast</button>
+            </div>
+          </div>
+
+          <!-- Next Session Hero Photo Card -->
+          <div class="lg:col-span-7 relative rounded-[28px] overflow-hidden min-h-[260px] shadow-lg">
+            <img src="assets/images/fastpitch-pitcher.jpg" alt="Up Next Session" class="absolute inset-0 w-full h-full object-cover" />
+            <div class="absolute inset-0 bg-gradient-to-b from-[#010101]/70 via-[#010101]/25 to-[#010101]/80"></div>
+            <div class="relative h-full p-6 flex flex-col justify-between text-white">
+              <div class="flex items-start justify-between">
+                <div>
+                  <span class="px-2.5 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">UP NEXT • 4:00 PM</span>
+                  <div class="text-2xl font-extrabold mt-2">Pitching Velocity &amp; Changeup</div>
+                  <div class="text-xs text-[#D6DFE2]">Chloe Miller (14U) • 45 min • 1 Credit</div>
+                </div>
+                <button onclick="completeSession('ses-1')" class="cursor-pointer">${icons.arrowBtn}</button>
+              </div>
+              <div class="flex items-center gap-2 text-xs text-[#D6DFE2]">
+                <span>Waitlist Queue: <strong class="text-[#D5FF5F]">${state.waitlist.length} waiting</strong></span>
+                <span>•</span>
+                <span>Auto SMS reminders sent</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7-Day Date Strip -->
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+          ${state.weekDays.map(d => {
+            const active = d.key === state.selectedDay;
+            return `
+              <button onclick="state.selectedDay='${d.key}'; render();" class="flex flex-col items-center justify-center min-w-[64px] py-3 rounded-2xl border transition cursor-pointer ${active ? 'bg-[#010101] text-[#D5FF5F] border-[#010101] font-extrabold' : 'card-white text-[var(--text-muted)]'}">
+                <span class="text-[10px] font-bold">${d.dow}</span>
+                <span class="text-lg font-extrabold leading-tight mt-0.5">${d.num}</span>
+                <span class="w-1.5 h-1.5 rounded-full mt-1 ${d.dot ? 'bg-[#D5FF5F]' : 'bg-transparent'}"></span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div class="lg:col-span-2 space-y-3">
+            ${displaySessions.map(s => `
+              <div class="card-white rounded-[24px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-3.5 min-w-0">
+                  <img src="${s.img}" class="w-16 h-16 rounded-2xl object-cover shrink-0" />
+                  <div class="min-w-0">
+                    <div class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${s.time} • ${s.duration} • ${s.type}</div>
+                    <div class="font-extrabold text-sm truncate">${s.focus}</div>
+                    <div class="text-xs text-[var(--text-muted)] truncate">${s.athletes.join(', ')} • ${s.payment}</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  ${s.status !== 'Completed' && s.status !== 'Canceled'
+                    ? `<button onclick="completeSession('${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Check In</button>`
+                    : `<span class="px-3 py-1.5 rounded-xl bg-[#D6DFE2] text-[#010101] text-xs font-extrabold">${s.status}</span>`
+                  }
+                  ${s.athleteId ? `<button onclick="jumpToAthlete('${s.athleteId}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">Profile</button>` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="card-white rounded-[28px] p-5 space-y-3">
+            <div class="flex items-center justify-between"><h2 class="text-sm font-extrabold">Waitlist Fill</h2><span class="px-2.5 py-0.5 rounded-full bg-[#D6DFE2] text-[#010101] text-[10px] font-extrabold">1-TAP SMS</span></div>
+            ${state.waitlist.map(w => `
+              <div class="surface-soft rounded-2xl p-3.5 space-y-2">
+                <div class="flex justify-between text-xs"><span class="font-extrabold">${w.athlete}</span><span class="font-bold text-[#4E6075] dark:text-[#9AC0D6]">${w.status}</span></div>
+                <div class="text-[11px] text-[var(--text-muted)]">${w.parent} • ${w.requested}</div>
+                <button onclick="notifyWaitlist('${w.id}')" class="w-full py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Text Open Slot Offer</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
     }
 
-    function openAddSessionModal() {
-      openModal(`
-        <div class="flex items-center justify-between"><h3 class="font-extrabold text-sm">New Session / Clinic</h3><button onclick="closeModal()" class="text-xs text-[var(--text-muted)] cursor-pointer">Close</button></div>
-        <form onsubmit="submitAddSession(event)" class="space-y-3 text-xs">
-          <select name="type" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface"><option>1-on-1 Private</option><option>Small Group</option><option>Camp / Clinic</option></select>
-          <input name="focus" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface" placeholder="e.g., Rise Ball & Spin Mechanics" required />
-          <div class="grid grid-cols-2 gap-2">
-            <input name="day" value="Today (Thu 26)" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface" required />
-            <input name="time" value="6:15 PM" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface" required />
+    function renderCoachAthletes() {
+      const sel = state.athletes.find(a => a.id === state.selectedAthleteId) || state.athletes[0];
+      return `
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          ${state.athletes.map(a => {
+            const active = a.id === sel.id;
+            return `
+              <button onclick="state.selectedAthleteId='${a.id}'; render();" class="flex items-center gap-2.5 px-4 py-2.5 rounded-full border shrink-0 cursor-pointer transition ${active ? 'bg-[#010101] text-[#D5FF5F] border-[#010101]' : 'card-white'}">
+                <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold ${active ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#D6DFE2] text-[#010101]'}">${a.initials}</span>
+                <span class="text-xs font-extrabold">${a.name}</span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div class="lg:col-span-5 card-mist rounded-[28px] p-6 space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="px-3 py-1 rounded-full bg-white text-[#010101] text-xs font-extrabold">${sel.ageGroup} • Class of ${sel.gradYear}</span>
+              <span class="text-xs font-extrabold">${sel.waiverSigned ? 'Waiver ✓' : 'Waiver Pending'}</span>
+            </div>
+            <div>
+              <div class="text-2xl font-extrabold">${sel.name}</div>
+              <div class="text-xs text-[var(--text-muted)]">${sel.position} • B/T: ${sel.batsThrows}</div>
+            </div>
+            <div class="p-4 rounded-2xl bg-white dark:bg-[#15191E] flex items-end justify-between">
+              <div>
+                <div class="text-[11px] text-[var(--text-muted)] font-bold">${sel.primaryMetricLabel}</div>
+                <div class="text-3xl font-extrabold tabular-nums mt-0.5">${sel.primaryMetricValue} <span class="text-xs">${sel.primaryMetricUnit}</span></div>
+              </div>
+              <button onclick="openAddMetricModal('${sel.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Log PR</button>
+            </div>
+            <div class="text-xs space-y-1">
+              <div><span class="text-[var(--text-muted)]">Emergency:</span> <strong>${sel.emergencyContact}</strong></div>
+              <div><span class="text-[var(--text-muted)]">Medical:</span> <strong>${sel.medicalNotes}</strong></div>
+            </div>
           </div>
-          <input name="athlete" value="Chloe Miller" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface" required />
-          <button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold cursor-pointer">Add to Schedule</button>
-        </form>
-      `);
-    }
-    function submitAddSession(e) {
-      e.preventDefault();
-      state.sessions.unshift({ id: 'ses-' + Date.now(), dayKey: state.selectedDay, day: e.target.day.value, time: e.target.time.value, duration: '45 min', type: e.target.type.value, focus: e.target.focus.value, athletes: [e.target.athlete.value], athleteId: null, spotsMax: 1, status: 'Confirmed', payment: '1 Credit', price: 75 });
-      closeModal(); render(); showToast('Session added!');
-    }
-    function openWeatherModal() {
-      openModal(`
-        <div class="flex items-center justify-between"><h3 class="font-extrabold text-sm">Facility / Weather Broadcast</h3><button onclick="closeModal()" class="text-xs text-[var(--text-muted)] cursor-pointer">Close</button></div>
-        <form onsubmit="submitBroadcast(event)" class="space-y-3 text-xs">
-          <select name="audience" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface"><option>Today’s Booked Families (5)</option><option>Winter Clinic Roster (14)</option><option>All Active Families (28)</option></select>
-          <textarea name="text" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface" placeholder="e.g., Indoor cages are warm & ready for tonight’s lessons!" required></textarea>
-          <button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold cursor-pointer">Send SMS + Email Blast</button>
-        </form>
-      `);
-    }
-    function submitBroadcast(e) {
-      e.preventDefault();
-      state.broadcasts.unshift({ date: 'Just now', audience: e.target.audience.value, channel: 'SMS + Email', text: e.target.text.value });
-      closeModal(); render(); showToast('Broadcast sent!');
-    }
-    function openAddMetricModal(athId) {
-      openModal(`
-        <div class="flex items-center justify-between"><h3 class="font-extrabold text-sm">Log Performance Metric</h3><button onclick="closeModal()" class="text-xs text-[var(--text-muted)] cursor-pointer">Close</button></div>
-        <form onsubmit="submitMetric(event, '${athId}')" class="space-y-3 text-xs">
-          <input name="value" placeholder="e.g., 59.5" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface" required />
-          <button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold cursor-pointer">Save PR</button>
-        </form>
-      `);
-    }
-    function submitMetric(e, athId) {
-      e.preventDefault();
-      const a = state.athletes.find(x => x.id === athId);
-      a.primaryMetricValue = e.target.value.value;
-      a.veloHistory.push({ label: 'Now', val: parseFloat(e.target.value.value) || 60 });
-      closeModal(); render(); showToast('New PR logged!');
-    }
-    function openAddNoteModal(athId) {
-      openModal(`
-        <div class="flex items-center justify-between"><h3 class="font-extrabold text-sm">Add Coach Note</h3><button onclick="closeModal()" class="text-xs text-[var(--text-muted)] cursor-pointer">Close</button></div>
-        <form onsubmit="submitNote(event, '${athId}')" class="space-y-3 text-xs">
-          <textarea name="text" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface" placeholder="Key mechanics takeaway..." required></textarea>
-          <button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold cursor-pointer">Save Note</button>
-        </form>
-      `);
-    }
-    function submitNote(e, athId) {
-      e.preventDefault();
-      state.athletes.find(x => x.id === athId).notes.unshift({ date: 'Today', text: e.target.text.value });
-      closeModal(); render(); showToast('Note saved & synced!');
-    }
-    function openAddDrillModal(athId) {
-      openModal(`
-        <div class="flex items-center justify-between"><h3 class="font-extrabold text-sm">Assign Homework Drill</h3><button onclick="closeModal()" class="text-xs text-[var(--text-muted)] cursor-pointer">Close</button></div>
-        <form onsubmit="submitDrill(event, '${athId}')" class="space-y-3 text-xs">
-          <input name="title" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface" placeholder="e.g., K-Drill Wrist Snaps" required />
-          <input name="reps" value="3 × 15 reps" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface" required />
-          <input name="focus" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface" placeholder="Focus cue..." required />
-          <button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold cursor-pointer">Assign Drill</button>
-        </form>
-      `);
-    }
-    function submitDrill(e, athId) {
-      e.preventDefault();
-      state.athletes.find(x => x.id === athId).drills.unshift({ id: 'd-' + Date.now(), title: e.target.title.value, reps: e.target.reps.value, focus: e.target.focus.value, done: false });
-      closeModal(); render(); showToast('Drill assigned!');
-    }
-    function openLogPaymentModal() {
-      openModal(`
-        <div class="flex items-center justify-between"><h3 class="font-extrabold text-sm">Log Manual Payment</h3><button onclick="closeModal()" class="text-xs text-[var(--text-muted)] cursor-pointer">Close</button></div>
-        <form onsubmit="submitManualPayment(event)" class="space-y-3 text-xs">
-          <input name="family" value="Vance Family" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface" required />
-          <input name="item" value="10-Lesson Elite Pack" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface" required />
-          <div class="grid grid-cols-2 gap-2">
-            <input name="amount" type="number" value="650" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface" required />
-            <select name="method" class="w-full px-3.5 py-2.5 rounded-2xl elevated-surface"><option>Venmo (Logged)</option><option>Zelle (Logged)</option><option>Cash (Logged)</option></select>
+
+          <div class="lg:col-span-7 card-white rounded-[28px] p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="text-sm font-extrabold">Assigned Homework Drills</h2>
+              <button onclick="openAddDrillModal('${sel.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Assign Drill</button>
+            </div>
+            <div class="space-y-2.5">
+              ${sel.drills.map(d => `
+                <label class="surface-soft rounded-2xl p-3.5 flex items-center justify-between gap-3 cursor-pointer">
+                  <div class="flex items-center gap-3">
+                    <input type="checkbox" ${d.done ? 'checked' : ''} onchange="toggleDrill('${sel.id}','${d.id}')" class="w-4 h-4 accent-[#010101]" />
+                    <div><div class="text-sm font-bold ${d.done ? 'line-through text-[var(--text-muted)]' : ''}">${d.title}</div><div class="text-xs text-[var(--text-muted)]">${d.focus}</div></div>
+                  </div>
+                  <span class="px-2.5 py-1 rounded-full bg-[#D6DFE2] text-[#010101] text-xs font-extrabold">${d.reps}</span>
+                </label>
+              `).join('')}
+            </div>
           </div>
-          <button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold cursor-pointer">Record Payment</button>
-        </form>
-      `);
+        </div>
+      `;
     }
-    function submitManualPayment(e) {
-      e.preventDefault();
-      state.payments.unshift({ id: 'pay-' + Date.now(), date: 'Today', family: e.target.family.value, item: e.target.item.value, amount: Number(e.target.amount.value), method: e.target.method.value });
-      closeModal(); render(); showToast('Payment recorded!');
+
+    function renderCoachVideo() {
+      const vid = state.videos.find(v => v.id === state.selectedVideoId) || state.videos[0];
+      return `
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div class="space-y-3">
+            ${state.videos.map(v => `
+              <button onclick="state.selectedVideoId='${v.id}'; render();" class="w-full text-left p-4 rounded-[24px] border cursor-pointer ${v.id === vid.id ? 'bg-[#010101] text-white border-[#010101]' : 'card-white'}">
+                <div class="flex justify-between items-center"><span class="font-extrabold text-xs">${v.athleteName}</span><span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${v.status === 'Reviewed' ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#D6DFE2] text-[#010101]'}">${v.status}</span></div>
+                <div class="text-xs font-semibold mt-1">${v.title}</div>
+              </button>
+            `).join('')}
+          </div>
+          <div class="lg:col-span-2 card-white rounded-[28px] overflow-hidden">
+            <div class="relative h-56">
+              <img src="${vid.img}" class="w-full h-full object-cover" />
+              <div class="absolute inset-0 bg-[#010101]/45 flex flex-col items-center justify-center gap-2 text-white">
+                <div class="w-14 h-14 rounded-full bg-[#D5FF5F] text-[#010101] flex items-center justify-center text-lg shadow-xl">▶</div>
+                <div class="text-xs font-extrabold">Slow-Mo Mechanics Breakdown (${state.videoSpeed})</div>
+              </div>
+              <div class="absolute top-3 right-3 flex gap-1">
+                ${['0.25x', '0.5x', '1x'].map(sp => `<button onclick="state.videoSpeed='${sp}'; render();" class="px-2.5 py-1 rounded-full text-[11px] font-extrabold cursor-pointer ${state.videoSpeed === sp ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#010101]/70 text-white'}">${sp}</button>`).join('')}
+              </div>
+            </div>
+            <div class="p-5 space-y-3">
+              <div class="flex items-center justify-between"><h2 class="font-extrabold text-base">${vid.title}</h2><button onclick="markVideoReviewed('${vid.id}')" class="px-4 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">${vid.status === 'Reviewed' ? 'Reviewed ✓' : 'Mark Reviewed'}</button></div>
+              ${vid.cues.map(c => `<div class="surface-soft rounded-2xl p-3 flex items-start gap-2.5 text-xs"><span class="px-2 py-0.5 rounded-lg bg-[#010101] text-[#D5FF5F] font-mono font-extrabold">${c.time}</span><span>${c.note}</span></div>`).join('')}
+              <form onsubmit="addVideoCue(event,'${vid.id}')" class="flex gap-2 pt-1"><input name="time" value="0:08" class="w-20 px-3 py-2.5 rounded-2xl surface-soft text-xs font-mono font-bold" required /><input name="note" class="flex-1 px-3.5 py-2.5 rounded-2xl surface-soft text-xs" placeholder="Add timestamped cue..." required /><button type="submit" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Add</button></form>
+            </div>
+          </div>
+        </div>
+      `;
     }
+
+    function renderCoachPayments() {
+      const total = state.payments.reduce((s, p) => s + p.amount, 0);
+      return `
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div><h1 class="text-2xl font-extrabold">Packages &amp; Payments</h1><p class="text-xs text-[var(--text-muted)]">Stripe Card / Apple Pay + Venmo / Zelle / Cash</p></div>
+          <button onclick="openLogPaymentModal()" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Log Venmo / Cash</button>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div class="space-y-3">
+            ${state.athletes.filter((a, i, arr) => arr.findIndex(x => x.familyId === a.familyId) === i).map(a => `
+              <div class="card-mist rounded-[24px] p-4 flex items-center justify-between">
+                <div><div class="font-extrabold text-sm">${a.parentName}</div><div class="text-xs text-[var(--text-muted)]">${a.credits} / ${a.packTotal} credits left</div></div>
+                <span class="px-3 py-1.5 rounded-full bg-[#010101] text-[#D5FF5F] text-xs font-extrabold">${a.credits} cr</span>
+              </div>
+            `).join('')}
+          </div>
+          <div class="lg:col-span-2 card-white rounded-[28px] p-5 space-y-3">
+            <div class="flex justify-between items-center"><h2 class="text-sm font-extrabold">Recent Transactions</h2><span class="px-3 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold">$${total.toLocaleString()}</span></div>
+            ${state.payments.map(p => `<div class="surface-soft rounded-2xl p-3.5 flex items-center justify-between text-xs"><div><div class="font-extrabold">${p.family} — ${p.item}</div><div class="text-[var(--text-muted)]">${p.date} • ${p.method}</div></div><div class="font-extrabold">+$${p.amount}</div></div>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCoachMessaging() {
+      const thread = state.threads.find(t => t.id === state.activeThreadId) || state.threads[0];
+      return `
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div class="space-y-3">
+            ${state.threads.map(t => `<button onclick="openThread('${t.id}')" class="w-full text-left p-4 rounded-[24px] border cursor-pointer ${t.id === thread.id ? 'bg-[#010101] text-white border-[#010101]' : 'card-white'}"><div class="font-extrabold text-xs">${t.parent}</div><div class="text-xs opacity-70">${t.athletes}</div></button>`).join('')}
+            <div class="card-mist rounded-[24px] p-4 space-y-2">
+              <div class="text-xs font-extrabold">Waiver Status</div>
+              ${state.athletes.map(a => `<div class="flex justify-between text-xs"><span>${a.name}</span><span class="font-extrabold">${a.waiverSigned ? 'Signed ✓' : 'Pending'}</span></div>`).join('')}
+            </div>
+          </div>
+          <div class="lg:col-span-2 card-white rounded-[28px] p-5 space-y-4">
+            <div class="space-y-2.5">${thread.messages.map(m => `<div class="flex ${m.from === 'coach' ? 'justify-end' : 'justify-start'}"><div class="max-w-md px-4 py-3 rounded-2xl text-xs ${m.from === 'coach' ? 'bg-[#D5FF5F] text-[#010101] font-bold' : 'surface-soft'}">${m.text}</div></div>`).join('')}</div>
+            <form onsubmit="sendCoachReply(event,'${thread.id}')" class="flex gap-2"><input name="text" class="flex-1 px-4 py-2.5 rounded-2xl surface-soft text-xs" placeholder="Reply to ${thread.parent}..." required /><button type="submit" class="px-5 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Send</button></form>
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // ACTIONS
+    // =========================================================================
+    function completeSession(id) { const s = state.sessions.find(x => x.id === id); if (s) s.status = 'Completed'; render(); showToast('Session checked in!'); }
+    function cancelSessionParent(id) { const s = state.sessions.find(x => x.id === id); if (s) s.status = 'Canceled'; state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits += 1); render(); showToast('Canceled (>24h) — 1 credit returned!'); }
+    function notifyWaitlist(id) { state.waitlist.find(x => x.id === id).status = 'Notified'; render(); showToast('Waitlist SMS sent!'); }
+    function jumpToAthlete(id) { state.selectedAthleteId = id; state.coachTab = 'athletes'; render(); }
+    function toggleDrill(a, d) { const dr = state.athletes.find(x => x.id === a).drills.find(x => x.id === d); dr.done = !dr.done; render(); showToast(dr.done ? 'Drill completed!' : 'Drill unchecked.'); }
+    function markVideoReviewed(id) { state.videos.find(x => x.id === id).status = 'Reviewed'; render(); showToast('Marked reviewed & notified parent!'); }
+    function addVideoCue(e, id) { e.preventDefault(); state.videos.find(x => x.id === id).cues.push({ time: e.target.time.value, pct: 60, note: e.target.note.value }); render(); showToast('Cue added!'); }
+    function openThread(id) { state.activeThreadId = id; state.threads.find(x => x.id === id).unread = 0; render(); }
+    function sendCoachReply(e, id) { e.preventDefault(); state.threads.find(x => x.id === id).messages.push({ from: 'coach', time: 'Just now', text: e.target.text.value }); render(); }
+    function bookSlot(slotId, payMode) {
+      const slot = state.openSlots.find(s => s.id === slotId), ath = state.athletes.find(a => a.id === state.activeSiblingId);
+      if (payMode === 'credit') state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits = Math.max(0, a.credits - 1));
+      else state.payments.unshift({ id: 'p' + Date.now(), date: 'Today', family: 'Miller Family', item: slot.focus, amount: slot.price, method: 'Stripe • Apple Pay' });
+      state.sessions.unshift({ id: 's' + Date.now(), dayKey: slot.dayKey, day: slot.day, time: slot.time, duration: slot.duration, type: slot.type, focus: slot.focus, athletes: [ath.name], athleteId: ath.id, spotsMax: slot.spotsMax, status: 'Confirmed', payment: payMode === 'credit' ? '1 Credit' : `Paid ($${slot.price})`, price: slot.price, img: slot.img });
+      state.parentTab = 'home'; render(); showToast(`Booked ${slot.focus}!`);
+    }
+    function buyPackage(c, p) { state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits += c); state.payments.unshift({ id: 'p' + Date.now(), date: 'Today', family: 'Miller Family', item: `${c}-Lesson Pack`, amount: p, method: 'Stripe • Apple Pay' }); render(); showToast(`Added ${c} credits!`); }
+    function uploadParentVideo(e, athId) { e.preventDefault(); const ath = state.athletes.find(a => a.id === athId); state.videos.unshift({ id: 'v' + Date.now(), athleteId: ath.id, athleteName: ath.name, title: e.target.title.value, uploadedAt: 'Just now', status: 'Needs Review', img: 'assets/images/fastpitch-pitcher.jpg', cues: [] }); render(); showToast('Clip uploaded!'); }
+    function saveParentProfile(e, athId) { e.preventDefault(); const ath = state.athletes.find(a => a.id === athId); ath.emergencyContact = e.target.emergency.value; ath.medicalNotes = e.target.medical.value; ath.waiverSigned = true; ath.waiverDate = 'Today'; render(); showToast('Profile & waiver saved!'); }
+    function openAddSessionModal() { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">New Session</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); closeModal(); showToast('Session added!');" class="space-y-3 text-xs"><input class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="Session focus..." required /><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Save to Schedule</button></form>`); }
+    function openWeatherModal() { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">SMS / Weather Broadcast</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); closeModal(); showToast('SMS Broadcast sent!');" class="space-y-3 text-xs"><textarea rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="Message all booked families..." required></textarea><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Send Broadcast</button></form>`); }
+    function openAddMetricModal(id) { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">Log Performance PR</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); state.athletes.find(x=>x.id==='${id}').primaryMetricValue=this.v.value; closeModal(); render(); showToast('PR saved!');" class="space-y-3 text-xs"><input name="v" placeholder="e.g., 59.5" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" required /><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Save PR</button></form>`); }
+    function openAddDrillModal(id) { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">Assign Homework Drill</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); state.athletes.find(x=>x.id==='${id}').drills.unshift({id:'d'+Date.now(),title:this.t.value,reps:'25 reps',focus:'Mechanics',done:false,img:'assets/images/fastpitch-pitcher.jpg'}); closeModal(); render(); showToast('Drill assigned!');" class="space-y-3 text-xs"><input name="t" placeholder="Drill title..." class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" required /><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Assign Drill</button></form>`); }
+    function openLogPaymentModal() { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">Log Manual Payment</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); state.payments.unshift({id:'p'+Date.now(),date:'Today',family:this.f.value,item:'10-Pack',amount:650,method:'Venmo (Logged)'}); closeModal(); render(); showToast('Payment logged!');" class="space-y-3 text-xs"><input name="f" value="Vance Family" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" required /><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Record Payment</button></form>`); }
 
     function render() {
       renderChrome();
@@ -1662,7 +1282,6 @@
         else if (state.parentTab === 'waiver') root.innerHTML = renderParentWaiver();
       }
     }
-
     render();
   </script>
 </body>
