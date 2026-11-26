@@ -1729,12 +1729,9 @@
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h1 class="text-2xl font-extrabold tracking-tight">Book Sessions</h1>
-            <p class="text-xs text-[var(--text-muted)]">Add multiple dates, class types, or siblings to your cart &amp; check out in one step</p>
+            <p class="text-xs text-[var(--text-muted)]">Add multiple dates or class types to your cart &amp; check out in one step</p>
           </div>
-          <div class="flex items-center gap-2">
-            ${state.cal.cart.length > 0 ? `<button onclick="state.cal.step='details'; render();" class="px-3.5 py-2 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">🛒 Cart (${state.cal.cart.length})</button>` : ''}
-            <button onclick="copyCalLink('${evt.slug}')" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer">🔗 Copy Link</button>
-          </div>
+          ${state.cal.cart.length > 0 ? `<button onclick="state.cal.step='details'; render();" class="px-3.5 py-2 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">🛒 Cart (${state.cal.cart.length})</button>` : ''}
         </div>
 
         ${cartBanner}
