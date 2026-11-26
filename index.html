@@ -43,8 +43,8 @@
       --glass-shadow: 0 14px 36px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
       --border-subtle: rgba(78, 96, 117, 0.16);
       --text-main: #010101;
-      --text-muted: #595959;
-      --text-soft: #7A8694;
+      --text-muted: #4A5562;
+      --text-soft: #64707D;
       --bg-card: rgba(255, 255, 255, 0.78);
       --bg-elevated: rgba(255, 255, 255, 0.56);
     }
@@ -62,8 +62,8 @@
       --glass-shadow: 0 18px 44px rgba(0, 0, 0, 0.48), 0 2px 10px rgba(0, 0, 0, 0.32);
       --border-subtle: rgba(255, 255, 255, 0.12);
       --text-main: #FFFFFF;
-      --text-muted: #B4BCC4;
-      --text-soft: #7E8791;
+      --text-muted: #C2CBD3;
+      --text-soft: #8F99A3;
       --bg-card: rgba(20, 25, 31, 0.76);
       --bg-elevated: rgba(255, 255, 255, 0.08);
     }
@@ -73,6 +73,21 @@
       background-color: var(--bg-page);
       color: var(--text-main);
       overflow-x: hidden;
+    }
+
+    /* Accessible Focus Rings & Native Tactile Tap Feedback */
+    button, a[href], input, select, textarea, [tabindex] {
+      -webkit-tap-highlight-color: transparent;
+    }
+    button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 2px solid #010101;
+      outline-offset: 2px;
+    }
+    html.dark button:focus-visible, html.dark a:focus-visible, html.dark input:focus-visible, html.dark select:focus-visible, html.dark textarea:focus-visible {
+      outline-color: #D5FF5F;
+    }
+    button:active:not(:disabled) {
+      transform: scale(0.97);
     }
 
     /* iOS Safe-Area-Aware Mobile Header & Bottom Dock */
@@ -182,6 +197,15 @@
     #ptr-indicator.dragging {
       transition: none;
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
   </style>
 </head>
 <body class="min-h-screen antialiased selection:bg-[#D5FF5F] selection:text-[#010101]">
@@ -250,9 +274,9 @@
       <div class="space-y-3 pt-4 border-t border-[var(--border-subtle)]">
         <div class="flex items-center justify-between px-2">
           <span class="text-xs font-semibold text-[var(--text-muted)]">Liquid Glass</span>
-          <button onclick="toggleTheme()" class="px-3 py-1.5 rounded-full surface-soft text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+          <button onclick="toggleTheme()" class="px-3.5 py-2 rounded-full surface-soft text-xs font-bold flex items-center gap-1.5 cursor-pointer" aria-label="Toggle light or dark theme">
             <span id="desk-theme-label">Light</span>
-            <span id="desk-theme-icon">☀️</span>
+            <span id="desk-theme-icon" class="inline-flex items-center" aria-hidden="true"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path stroke-linecap="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></svg></span>
           </button>
         </div>
         <button id="sidebar-user-card" onclick="openProfileFromName()" class="w-full text-left p-3 rounded-2xl surface-soft hover:border-[#010101] flex items-center justify-between gap-3 transition cursor-pointer">
@@ -270,9 +294,9 @@
 
     <!-- Floating Mobile Liquid Glass Header Capsule (iOS Safe-Area Aware) -->
     <div class="lg:hidden mobile-header-wrap">
-      <header class="glass-dock rounded-[26px] px-3.5 py-2.5 flex items-center justify-between gap-2">
+      <header class="glass-dock rounded-[26px] px-3.5 py-2 flex items-center justify-between gap-2">
         <div class="flex items-center gap-2.5 min-w-0">
-          <svg class="h-8 w-8 shrink-0 text-[var(--text-main)]" viewBox="15 42 165 168" fill="none">
+          <svg class="h-8 w-8 shrink-0 text-[var(--text-main)]" viewBox="15 42 165 168" fill="none" aria-hidden="true">
             <polygon fill="#4E6075" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
             <polygon fill="currentColor" points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
           </svg>
@@ -284,11 +308,11 @@
 
         <div class="flex items-center gap-1.5 shrink-0">
           <div class="flex p-0.5 rounded-full surface-soft text-[11px] font-bold">
-            <button id="mob-role-parent" onclick="switchRole('parent')" class="px-2.5 py-1 rounded-full transition cursor-pointer">Athlete</button>
-            <button id="mob-role-coach" onclick="switchRole('coach')" class="px-2.5 py-1 rounded-full transition cursor-pointer">Coach</button>
+            <button id="mob-role-parent" onclick="switchRole('parent')" class="px-2.5 py-1.5 min-h-[34px] rounded-full transition cursor-pointer">Athlete</button>
+            <button id="mob-role-coach" onclick="switchRole('coach')" class="px-2.5 py-1.5 min-h-[34px] rounded-full transition cursor-pointer">Coach</button>
           </div>
-          <button onclick="toggleTheme()" class="w-8 h-8 rounded-full surface-soft flex items-center justify-center text-xs cursor-pointer" aria-label="Toggle theme">
-            <span id="mob-theme-icon">☀️</span>
+          <button onclick="toggleTheme()" class="w-10 h-10 rounded-full surface-soft flex items-center justify-center cursor-pointer" aria-label="Toggle light or dark theme">
+            <span id="mob-theme-icon" class="inline-flex items-center" aria-hidden="true"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path stroke-linecap="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></svg></span>
           </button>
         </div>
       </header>
@@ -300,24 +324,57 @@
     </main>
 
     <!-- Floating Detached Mobile Liquid Glass Dock (iOS 26 Signature!) -->
-    <nav id="mobile-bottom-nav" class="lg:hidden fixed mobile-dock-safe left-3 right-3 z-30 glass-dock rounded-[30px] px-2 py-2 flex items-center justify-around"></nav>
+    <nav id="mobile-bottom-nav" aria-label="Primary navigation" class="lg:hidden fixed mobile-dock-safe left-3 right-3 z-30 glass-dock rounded-[30px] px-2 py-2 flex items-center justify-around"></nav>
   </div>
 
   <!-- Modal Root (Repetition Ruler / Session / Celebration) -->
-  <div id="modal-root" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop"></div>
+  <div id="modal-root" role="dialog" aria-modal="true" aria-label="Dialog" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop"></div>
 
   <!-- Toast -->
-  <div id="toast" class="fixed bottom-24 lg:bottom-6 right-4 z-50 hidden max-w-sm px-4 py-3 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-bold shadow-2xl"></div>
+  <div id="toast" role="status" aria-live="polite" class="fixed bottom-24 lg:bottom-6 right-4 z-50 hidden max-w-sm px-4 py-3 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-bold shadow-2xl"></div>
 
   <script>
+    const UI_SVGS = {
+      sun: '<circle cx="12" cy="12" r="4"/><path stroke-linecap="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/>',
+      moon: '<path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/>',
+      cart: '<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h2l2.4 11.2a2 2 0 002 1.6h8.2a2 2 0 002-1.5L21 8H7"/>',
+      flame: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 3c.5 4-3 5.5-3 9.5a5 5 0 0010 0c0-3.5-2.5-5.5-4-8-.5 2-1.5 3-3 3.5 0-2-.5-3.5 0-5z"/>',
+      sparkle: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z"/>',
+      note: '<path stroke-linecap="round" stroke-linejoin="round" d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z"/><path stroke-linecap="round" d="M14 3v5h5M9 13h6M9 17h4"/>',
+      video: '<rect x="3" y="6" width="13" height="12" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M16 10l5-3v10l-5-3"/>',
+      copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path stroke-linecap="round" d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>',
+      eye: '<path stroke-linecap="round" stroke-linejoin="round" d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/>',
+      edit: '<path stroke-linecap="round" stroke-linejoin="round" d="M16.5 3.5a2.1 2.1 0 013 3L8 18l-4 1 1-4 11.5-11.5z"/>',
+      cash: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+      card: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+      pin: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 21s-6-5.3-6-10a6 6 0 1112 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2"/>',
+      globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/>',
+      link: '<path stroke-linecap="round" stroke-linejoin="round" d="M10 13a5 5 0 007.07 0l2.12-2.12a5 5 0 00-7.07-7.07L10.5 5.4M14 11a5 5 0 00-7.07 0l-2.12 2.12a5 5 0 007.07 7.07l1.62-1.62"/>',
+      softball: '<circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M8.5 5.5c2 2.5 2 10.5 0 13M15.5 5.5c-2 2.5-2 10.5 0 13"/>'
+    };
+    function uiIcon(name, cls = 'w-3.5 h-3.5') {
+      return `<svg class="${cls} inline-block shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">${UI_SVGS[name] || ''}</svg>`;
+    }
+
     function toggleTheme() {
       const isDark = document.documentElement.classList.toggle('dark');
-      const icon = isDark ? '🌙' : '☀️';
+      const iconHtml = uiIcon(isDark ? 'moon' : 'sun', 'w-4 h-4');
       const label = isDark ? 'Dark' : 'Light';
-      ['desk-theme-icon', 'mob-theme-icon'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = icon; });
+      ['desk-theme-icon', 'mob-theme-icon'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = iconHtml; });
       const dl = document.getElementById('desk-theme-label'); if (dl) dl.textContent = label;
       const meta = document.getElementById('meta-theme-color'); if (meta) meta.setAttribute('content', isDark ? '#07090C' : '#DDE6EA');
     }
+
+    // Global Escape-key modal close (auto-saves recap draft if open)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const m = document.getElementById('modal-root');
+        if (m && !m.classList.contains('hidden')) {
+          if (typeof _recapActiveAthId !== 'undefined' && _recapActiveAthId) closeRecapComposer();
+          else closeModal();
+        }
+      }
+    });
 
     // =========================================================================
     // SHARED LIVE STATE (Defaults to Athlete/Parent Training Hub so Gina immediately sees the Peloton/FitStreak feel!)
@@ -981,7 +1038,7 @@
       document.getElementById('mobile-bottom-nav').innerHTML = navItems.map(item => {
         const active = item.id === activeTab;
         return `
-          <button onclick="setTab('${item.id}')" class="relative flex flex-col items-center gap-0.5 px-3 py-1 rounded-2xl transition cursor-pointer ${active ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}">
+          <button onclick="setTab('${item.id}')" ${active ? 'aria-current="page"' : ''} class="relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 min-h-[44px] min-w-[52px] rounded-2xl transition cursor-pointer ${active ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}">
             <span class="p-1.5 rounded-xl ${active ? 'bg-[#D5FF5F] text-[#010101]' : ''}">${item.icon}</span>
             <span class="text-[10px] font-bold">${item.label}</span>
           </button>
@@ -997,13 +1054,13 @@
       const isProfile = state.parentTab === 'profile';
       return `
         <div class="flex items-center justify-between gap-2">
-          <button onclick="openProfileFromName('${ath.id}')" title="Tap to view ${ath.name}'s profile" class="flex items-center gap-2 px-3 py-2 rounded-full text-xs font-extrabold transition cursor-pointer bg-[#010101] text-[#D5FF5F] shadow-md min-w-0">
+          <button onclick="openProfileFromName('${ath.id}')" title="Tap to view ${ath.name}'s profile" class="flex items-center gap-2 px-3 py-2 min-h-[40px] rounded-full text-xs font-extrabold transition cursor-pointer bg-[#010101] text-[#D5FF5F] shadow-md min-w-0">
             <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-[#D5FF5F] text-[#010101] shrink-0">${ath.initials}</span>
             <span class="truncate">${ath.name.split(' ')[0]} (${ath.ageGroup})</span>
             ${!isProfile ? `<span class="ml-0.5 px-1.5 py-0.5 rounded-full bg-white/15 text-[10px] font-bold text-white shrink-0">Profile ›</span>` : ''}
           </button>
-          <button onclick="setTab('book'); if(state.cal.cart.length){ state.cal.step='details'; render(); }" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer shrink-0 whitespace-nowrap">
-            ${state.cal.cart.length > 0 ? `🛒 Cart (<span class="text-[#010101] bg-[#D5FF5F] px-1.5 py-0.5 rounded-md">${state.cal.cart.length}</span>)` : '+ Book Session'}
+          <button onclick="setTab('book'); if(state.cal.cart.length){ state.cal.step='details'; render(); }" class="px-3.5 py-2 min-h-[40px] rounded-full card-white text-xs font-extrabold cursor-pointer shrink-0 whitespace-nowrap inline-flex items-center gap-1.5">
+            ${state.cal.cart.length > 0 ? `${uiIcon('cart')}<span>Cart</span><span class="text-[#010101] bg-[#D5FF5F] px-1.5 py-0.5 rounded-md">${state.cal.cart.length}</span>` : '+ Book Session'}
           </button>
         </div>
       `;
@@ -1033,19 +1090,19 @@
             <div class="grid grid-cols-2 gap-3 pt-3 border-t border-[#010101]/10 dark:border-white/10">
               <div class="flex items-center gap-2.5">
                 <div class="w-9 h-9 rounded-2xl bg-white/80 dark:bg-white/10 flex items-center justify-center shrink-0 text-[#010101] dark:text-[#D5FF5F]">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M8.5 5.5c2 2.5 2 10.5 0 13M15.5 5.5c-2 2.5-2 10.5 0 13"/></svg>
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M8.5 5.5c2 2.5 2 10.5 0 13M15.5 5.5c-2 2.5-2 10.5 0 13"/></svg>
                 </div>
                 <div class="min-w-0">
-                  <div class="text-[11px] text-[var(--text-muted)] font-semibold truncate">Total Reps</div>
+                  <div class="text-xs text-[var(--text-muted)] font-semibold truncate">Total Reps</div>
                   <div class="text-sm font-extrabold tabular-nums">${ath.weeklyReps} reps</div>
                 </div>
               </div>
               <div class="flex items-center gap-2.5">
                 <div class="w-9 h-9 rounded-2xl bg-white/80 dark:bg-white/10 flex items-center justify-center shrink-0 text-[#010101] dark:text-[#D5FF5F]">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path stroke-linecap="round" d="M12 9v4l2.5 1.5M9.5 3h5"/></svg>
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path stroke-linecap="round" d="M12 9v4l2.5 1.5M9.5 3h5"/></svg>
                 </div>
                 <div class="min-w-0">
-                  <div class="text-[11px] text-[var(--text-muted)] font-semibold truncate">Duration</div>
+                  <div class="text-xs text-[var(--text-muted)] font-semibold truncate">Duration</div>
                   <div class="text-sm font-extrabold tabular-nums">${ath.weeklyDuration}</div>
                 </div>
               </div>
@@ -1054,7 +1111,7 @@
 
           <!-- Right: Full-Bleed Editorial Hero Session Card ("Day 6" + White GO -> Pill!) -->
           <div onclick="openRepPicker('${hero.title}', '${hero.subtitle}', '${hero.img}', ${hero.defaultReps})" class="lg:col-span-7 relative rounded-[28px] overflow-hidden min-h-[285px] sm:min-h-[305px] cursor-pointer group shadow-lg">
-            <img src="${hero.img}" alt="${hero.title}" class="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition duration-500" />
+            <img src="${hero.img}" alt="${hero.title}" decoding="async" class="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition duration-500" />
             <div class="absolute inset-0 bg-gradient-to-b from-[#010101]/65 via-[#010101]/15 to-[#010101]/90"></div>
             <div class="relative h-full p-5 sm:p-6 flex flex-col justify-between text-white">
               <div class="flex items-start justify-between gap-3">
@@ -1073,27 +1130,30 @@
           </div>
         </div>
 
-        <!-- Peloton-Style Recommended Drills & Live Classes Carousel -->
+        <!-- Peloton-Style Recommended Drills & Live Classes Carousel (Snap-Scroll on Mobile, 3-Col Grid on Desktop) -->
         <div class="space-y-3">
-          <div class="flex items-center justify-between">
-            <h2 class="text-lg font-extrabold tracking-tight">Recommended by Coach Gina</h2>
-            <button onclick="setTab('book')" class="text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">Browse All Sessions →</button>
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <h2 class="text-lg font-extrabold tracking-tight">Recommended by Coach Gina</h2>
+              <span class="md:hidden text-[11px] font-bold text-[var(--text-muted)]">Swipe →</span>
+            </div>
+            <button onclick="setTab('book')" class="text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer shrink-0">Browse All →</button>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="flex md:grid md:grid-cols-3 gap-3.5 md:gap-4 overflow-x-auto md:overflow-visible snap-x snap-mandatory no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 pb-1">
             ${state.featuredWorkouts.map(w => `
-              <div onclick="openRepPicker('${w.title}', '${w.subtitle}', '${w.img}', ${w.defaultReps})" class="card-white rounded-[26px] overflow-hidden cursor-pointer group hover:-translate-y-0.5 transition">
+              <div onclick="openRepPicker('${w.title}', '${w.subtitle}', '${w.img}', ${w.defaultReps})" class="min-w-[265px] max-w-[285px] md:min-w-0 md:max-w-none snap-start shrink-0 card-white rounded-[26px] overflow-hidden cursor-pointer group hover:-translate-y-0.5 transition">
                 <div class="relative h-40 overflow-hidden">
-                  <img src="${w.img}" alt="${w.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                  <img src="${w.img}" alt="${w.title}" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
                   <div class="absolute inset-0 bg-gradient-to-t from-[#010101]/75 via-transparent to-[#010101]/30"></div>
                   <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#010101]/75 backdrop-blur text-[#D5FF5F] text-[10px] font-extrabold">${w.duration}</span>
                   <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/90 text-[#010101] text-[10px] font-extrabold">${w.category}</span>
                 </div>
                 <div class="p-4 space-y-2">
-                  <div class="font-extrabold text-sm">${w.title}</div>
+                  <div class="font-extrabold text-sm leading-snug">${w.title}</div>
                   <div class="text-xs text-[var(--text-muted)]">${w.subtitle}</div>
                   <div class="pt-1">
-                    <span class="inline-flex w-full items-center justify-center py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold">
-                      ${w.category === 'ARM CARE' ? '✨ Start Recovery' : '🔥 LET’S GO'}
+                    <span class="inline-flex w-full items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold">
+                      ${w.category === 'ARM CARE' ? `${uiIcon('sparkle')} Start Recovery` : `${uiIcon('flame')} LET’S GO`}
                     </span>
                   </div>
                 </div>
@@ -1161,7 +1221,7 @@
                     <p class="text-xs leading-relaxed font-medium">${latest.note}</p>
                     <button onclick="openRecapViewerModal('${latest.id}')" class="w-full surface-soft rounded-2xl p-2.5 flex items-center gap-3 text-left cursor-pointer hover:border-[#010101] transition">
                       <div class="relative w-14 h-12 rounded-xl overflow-hidden shrink-0">
-                        <img src="${latest.videoImg}" class="w-full h-full object-cover" />
+                        <img src="${latest.videoImg}" class="w-full h-full object-cover" / alt="Fastpitch softball training" loading="lazy" decoding="async">
                         <div class="absolute inset-0 bg-[#010101]/40 flex items-center justify-center text-[#D5FF5F] text-xs">▶</div>
                       </div>
                       <div class="min-w-0 flex-1">
@@ -1194,14 +1254,14 @@
       openModal(`
         <div>
           <div class="relative h-56">
-            <img src="${img}" alt="${title}" class="w-full h-full object-cover" />
+            <img src="${img}" alt="${title}" class="w-full h-full object-cover" / loading="lazy" decoding="async">
             <div class="absolute inset-0 bg-gradient-to-b from-[#010101]/70 via-transparent to-[#010101]/40"></div>
             <div class="absolute top-4 left-5 right-5 flex items-start justify-between text-white">
               <div>
                 <div class="text-xl font-extrabold tracking-tight">${title}</div>
                 <div class="text-xs text-[#D6DFE2] mt-0.5">${subtitle}</div>
               </div>
-              <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-white/20 backdrop-blur text-white text-xs font-bold cursor-pointer">✕</button>
+              <button onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center bg-white/20 backdrop-blur text-white text-xs font-bold cursor-pointer">✕</button>
             </div>
           </div>
           <div class="p-6 text-center space-y-5 bg-[var(--bg-card)]">
@@ -1234,7 +1294,7 @@
         <div class="card-mist p-6 space-y-3">
           <div class="flex items-center justify-between">
             <div class="text-2xl font-extrabold tracking-tight">Great Job!!</div>
-            <button onclick="closeModal(); render();" class="w-8 h-8 rounded-full bg-white/70 text-[#010101] text-xs font-bold cursor-pointer">✕</button>
+            <button onclick="closeModal(); render();" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center bg-white/70 text-[#010101] text-xs font-bold cursor-pointer">✕</button>
           </div>
           <p class="text-xs font-medium text-[var(--text-muted)]">Successfully completed ${title} (${state.repPickerVal} reps)</p>
           <div class="grid grid-cols-2 gap-3 pt-2">
@@ -1250,7 +1310,7 @@
         </div>
         <div class="p-5 bg-[var(--bg-card)] space-y-4">
           <div class="rounded-2xl overflow-hidden h-44">
-            <img src="assets/images/fastpitch-recovery.jpg" alt="Arm Care Cool Down" class="w-full h-full object-cover" />
+            <img src="assets/images/fastpitch-recovery.jpg" alt="Arm Care Cool Down" class="w-full h-full object-cover" / loading="lazy" decoding="async">
           </div>
           <div>
             <div class="text-lg font-extrabold">Arm Care &amp; Cool Down</div>
@@ -1657,7 +1717,7 @@
             return `
               <button onclick="calSelectEvent('${t.id}')" class="text-left rounded-[24px] overflow-hidden transition cursor-pointer group ${active ? 'bg-[#010101] text-white shadow-xl ring-2 ring-[#D5FF5F]' : 'card-white hover:-translate-y-0.5'}">
                 <div class="relative h-24 w-full overflow-hidden">
-                  <img src="${t.img || 'assets/images/fastpitch-hitter.jpg'}" alt="${t.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                  <img src="${t.img || 'assets/images/fastpitch-hitter.jpg'}" alt="${t.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" / loading="lazy" decoding="async">
                   <div class="absolute inset-0 bg-gradient-to-t from-[#010101]/70 via-[#010101]/15 to-transparent"></div>
                   <div class="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-2">
                     <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${active ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#010101]/70 text-white backdrop-blur'}">${t.durationLabel}</span>
@@ -1731,7 +1791,7 @@
             <h1 class="text-2xl font-extrabold tracking-tight">Book Sessions</h1>
             <p class="text-xs text-[var(--text-muted)]">Add multiple dates or class types to your cart &amp; check out in one step</p>
           </div>
-          ${state.cal.cart.length > 0 ? `<button onclick="state.cal.step='details'; render();" class="px-3.5 py-2 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">🛒 Cart (${state.cal.cart.length})</button>` : ''}
+          ${state.cal.cart.length > 0 ? `<button onclick="state.cal.step='details'; render();" class="px-3.5 py-2 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">${uiIcon('cart')} Cart (${state.cal.cart.length})</button>` : ''}
         </div>
 
         ${cartBanner}
@@ -1857,7 +1917,7 @@
               <div class="font-extrabold text-sm mt-0.5">${state.cal.availability.minNoticeHours} hours</div>
             </div>
           </div>
-          <button onclick="copyCalLink('hitting-45')" class="w-full py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] font-extrabold cursor-pointer">🔗 Copy Shareable Booking Link</button>
+          <button onclick="copyCalLink('hitting-45')" class="w-full py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] font-extrabold cursor-pointer">${uiIcon('link')} Copy Shareable Booking Link</button>
         </div>
       `);
     }
@@ -1940,7 +2000,7 @@
             ${recaps.length ? recaps.map(r => `
               <div class="card-white rounded-[28px] overflow-hidden">
                 <div onclick="openRecapViewerModal('${r.id}')" class="relative h-48 cursor-pointer group">
-                  <img src="${r.videoImg}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                  <img src="${r.videoImg}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" / alt="Fastpitch softball training" loading="lazy" decoding="async">
                   <div class="absolute inset-0 bg-[#010101]/45 flex items-center justify-center">
                     <div class="w-12 h-12 rounded-full bg-[#D5FF5F] text-[#010101] flex items-center justify-center shadow-lg text-base">▶</div>
                   </div>
@@ -2034,7 +2094,7 @@
       openModal(`
         <div class="flex items-center justify-between">
           <h3 class="font-extrabold text-sm">Edit Athlete Profile — ${ath.name}</h3>
-          <button onclick="closeModal()" class="w-8 h-8 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+          <button onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
         </div>
         <form onsubmit="saveAthleteBio(event, '${ath.id}')" class="space-y-3 text-xs">
           <div>
@@ -2083,7 +2143,7 @@
 
         <!-- Editorial Athlete Profile Hero Card -->
         <div class="relative rounded-[32px] overflow-hidden shadow-xl">
-          <img src="${coverImg}" alt="${ath.name}" class="absolute inset-0 w-full h-full object-cover object-center" />
+          <img src="${coverImg}" alt="${ath.name}" class="absolute inset-0 w-full h-full object-cover object-center" / loading="lazy" decoding="async">
           <div class="absolute inset-0 bg-gradient-to-r from-[#010101]/88 via-[#010101]/60 to-[#010101]/35"></div>
           <div class="relative p-6 sm:p-8 text-white space-y-6">
             <div class="flex flex-wrap items-start justify-between gap-4">
@@ -2196,7 +2256,7 @@
               ${recaps.slice(0, 2).map(r => `
                 <button onclick="openRecapViewerModal('${r.id}')" class="w-full surface-soft rounded-2xl p-3 flex items-center gap-3 text-left cursor-pointer hover:border-[#010101] transition">
                   <div class="relative w-16 h-12 rounded-xl overflow-hidden shrink-0">
-                    <img src="${r.videoImg}" class="w-full h-full object-cover" />
+                    <img src="${r.videoImg}" class="w-full h-full object-cover" / alt="Fastpitch softball training" loading="lazy" decoding="async">
                     <div class="absolute inset-0 bg-[#010101]/40 flex items-center justify-center text-[#D5FF5F] text-xs">▶</div>
                   </div>
                   <div class="min-w-0 flex-1">
@@ -2250,7 +2310,7 @@
                 ${ath.waiverSigned ? 'Signed ✓' : 'Pending'}
               </span>
             </div>
-            <button onclick="showToast('Downloaded signed PDF waiver for ${ath.name}!')" class="w-full py-2.5 rounded-2xl card-white text-xs font-extrabold cursor-pointer">📄 Download Signed Waiver PDF</button>
+            <button onclick="showToast('Downloaded signed PDF waiver for ${ath.name}!')" class="w-full py-2.5 rounded-2xl card-white text-xs font-extrabold cursor-pointer">${uiIcon('note')} Download Signed Waiver PDF</button>
           </div>
 
           <!-- Active Athlete Waiver & Emergency Form -->
@@ -2330,7 +2390,7 @@
       openModal(`
         <div class="flex items-center justify-between">
           <h3 class="font-extrabold text-sm">${existing ? 'Edit Class Type & Length' : 'Add New Class Type'}</h3>
-          <button onclick="closeModal()" class="w-8 h-8 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+          <button onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
         </div>
         <form onsubmit="saveClassType(event, '${existing ? existing.id : ''}')" class="space-y-3 text-xs">
           <div>
@@ -2517,7 +2577,7 @@
                   <p class="text-xs text-[var(--text-muted)] leading-relaxed">${t.desc}</p>
                 </div>
                 <div class="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border-subtle)]">
-                  <button onclick="copyCalLink('${t.slug}')" class="text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">🔗 Copy Link</button>
+                  <button onclick="copyCalLink('${t.slug}')" class="text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">${uiIcon('link')} Copy Link</button>
                   <div class="flex items-center gap-1.5">
                     <button onclick="openClassTypeModal('${t.id}')" class="px-3 py-1.5 rounded-xl card-white text-xs font-extrabold cursor-pointer">Edit Length / Price</button>
                     <button onclick="deleteClassType('${t.id}')" class="px-2.5 py-1.5 rounded-xl card-white text-xs font-bold text-[var(--text-muted)] hover:text-red-500 cursor-pointer">✕</button>
@@ -2569,7 +2629,7 @@
 
           <!-- Next Session Hero Photo Card -->
           <div class="lg:col-span-7 relative rounded-[28px] overflow-hidden min-h-[260px] shadow-lg">
-            <img src="assets/images/fastpitch-hitter.jpg" alt="Up Next Session" class="absolute inset-0 w-full h-full object-cover" />
+            <img src="assets/images/fastpitch-hitter.jpg" alt="Up Next Session" class="absolute inset-0 w-full h-full object-cover" / loading="lazy" decoding="async">
             <div class="absolute inset-0 bg-gradient-to-b from-[#010101]/70 via-[#010101]/25 to-[#010101]/80"></div>
             <div class="relative h-full p-6 flex flex-col justify-between text-white">
               <div class="flex items-start justify-between">
@@ -2611,7 +2671,7 @@
               ${displaySessions.map(s => `
                 <div class="card-white rounded-[24px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div class="flex items-center gap-3.5 min-w-0">
-                    <img src="${s.img}" class="w-16 h-16 rounded-2xl object-cover shrink-0" />
+                    <img src="${s.img}" class="w-16 h-16 rounded-2xl object-cover shrink-0" / alt="Fastpitch softball training" loading="lazy" decoding="async">
                     <div class="min-w-0">
                       <div class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${s.time} • ${s.duration} • ${s.type}</div>
                       <div class="font-extrabold text-sm truncate">${s.focus}</div>
@@ -2619,7 +2679,7 @@
                     </div>
                   </div>
                   <div class="flex flex-wrap items-center gap-2 shrink-0">
-                    <button onclick="openSessionRecapModal('${s.athleteId || 'ath-1'}', '${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">📝 Log Recap &amp; Send</button>
+                    <button onclick="openSessionRecapModal('${s.athleteId || 'ath-1'}', '${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">${uiIcon('note')} Log Recap &amp; Send</button>
                     ${s.status !== 'Completed' && s.status !== 'Canceled'
                       ? `<button onclick="completeSession('${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">Check In</button>`
                       : `<span class="px-2.5 py-1.5 rounded-xl bg-[#D6DFE2] text-[#010101] text-[11px] font-extrabold">${s.status}</span>`
@@ -2653,7 +2713,7 @@
             <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${isParentFlow ? 'Family Account' : 'Coach Roster'}</div>
             <h3 class="font-extrabold text-base mt-0.5">Add New Athlete</h3>
           </div>
-          <button onclick="closeModal()" class="w-8 h-8 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+          <button onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
         </div>
 
         <form onsubmit="submitAddAthlete(event, ${familyId ? `'${familyId}'` : 'null'})" class="space-y-3 text-xs">
@@ -2813,7 +2873,7 @@
             <div class="text-[11px] font-extrabold uppercase tracking-wider text-red-600 dark:text-red-400">Remove Athlete</div>
             <h3 class="font-extrabold text-base mt-0.5">Remove ${ath.name}?</h3>
           </div>
-          <button onclick="closeModal()" class="w-8 h-8 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+          <button onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
         </div>
         <p class="text-xs text-[var(--text-muted)] leading-relaxed">
           This removes <strong>${ath.name} (${ath.ageGroup} • ${ath.position})</strong> from the roster and clears any pending cart items for them.
@@ -2892,7 +2952,7 @@
               </div>
               <div class="pt-2 border-t border-[#010101]/10 flex items-center justify-between gap-2">
                 <button onclick="state.activeSiblingId='${sel.id}'; state.role='parent'; state.parentTab='home'; render(); showToast('Viewing ${sel.name}’s Athlete Page');" class="px-3 py-1.5 rounded-xl bg-white/80 dark:bg-white/10 text-[11px] font-extrabold cursor-pointer hover:bg-white transition">
-                  👁️ View Athlete Page
+                  ${uiIcon('eye')} View Athlete Page
                 </button>
                 ${state.athletes.length > 1 ? `
                   <button onclick="openRemoveAthleteModal('${sel.id}')" class="px-3 py-1.5 rounded-xl text-[11px] font-extrabold text-red-600 dark:text-red-400 hover:bg-red-500/10 cursor-pointer transition">
@@ -2930,7 +2990,7 @@
                 <p class="text-xs text-[var(--text-muted)]">Replaces Apple Notes — log notes + attach video &amp; send straight to ${sel.parentName}</p>
               </div>
               <button onclick="openSessionRecapModal('${sel.id}', null)" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm">
-                📝 + New Recap &amp; Send
+                ${uiIcon('note')} New Recap &amp; Send
               </button>
             </div>
 
@@ -2946,7 +3006,7 @@
                       <div class="text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-semibold">${r.isDraft ? `✓ Auto-saved ${r.sentAt} — tap to keep editing or send` : `✓ Sent to ${r.sentTo} (${r.sentAt})`}</div>
                     </div>
                     <div class="flex flex-wrap items-center gap-1">
-                      ${r.isDraft ? `<button onclick="openSessionRecapModal('${sel.id}', null)" class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold cursor-pointer">✏️ Continue Editing</button>` : ''}
+                      ${r.isDraft ? `<button onclick="openSessionRecapModal('${sel.id}', null)" class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold cursor-pointer">${uiIcon('edit')} Continue Editing</button>` : ''}
                       ${r.tags.map(t => `<span class="px-2 py-0.5 rounded-full card-white text-[10px] font-extrabold">${t}</span>`).join('')}
                     </div>
                   </div>
@@ -2954,7 +3014,7 @@
                   <div class="flex items-center gap-2">
                     <button onclick="openRecapViewerModal('${r.id}')" class="flex-1 card-white rounded-2xl p-2.5 flex items-center gap-3 text-left cursor-pointer hover:border-[#010101] transition">
                       <div class="relative w-16 h-12 rounded-xl overflow-hidden shrink-0">
-                        <img src="${r.videoImg}" class="w-full h-full object-cover" />
+                        <img src="${r.videoImg}" class="w-full h-full object-cover" / alt="Fastpitch softball training" loading="lazy" decoding="async">
                         <div class="absolute inset-0 bg-[#010101]/40 flex items-center justify-center text-[#D5FF5F] text-xs">▶</div>
                       </div>
                       <div class="min-w-0 flex-1">
@@ -2962,7 +3022,7 @@
                         <div class="text-[11px] text-[var(--text-muted)]">Attached session video • Tap to preview</div>
                       </div>
                     </button>
-                    <button onclick="copyRecapNote('${r.id}')" title="Copy formatted note" class="px-3 py-3 rounded-2xl card-white text-xs font-extrabold cursor-pointer hover:border-[#010101] shrink-0">📋</button>
+                    <button onclick="copyRecapNote('${r.id}')" title="Copy formatted note" class="px-3 py-3 rounded-2xl card-white text-xs font-extrabold cursor-pointer hover:border-[#010101] shrink-0">${uiIcon('copy')}</button>
                   </div>
                 </div>
               `).join('') : `<div class="p-6 text-center text-xs text-[var(--text-muted)] surface-soft rounded-2xl">No session notes yet. Tap "+ New Recap &amp; Send" after today’s lesson!</div>`}
@@ -3093,7 +3153,7 @@
           ${hwHead ? `
             <div class="rounded-2xl px-3 py-2.5 bg-[#D5FF5F]/25 dark:bg-[#D5FF5F]/15 border border-[#D5FF5F]/60 space-y-1">
               <div class="flex items-start gap-2 text-[11px] leading-snug">
-                <span class="text-xs">🥎</span>
+                ${uiIcon('softball', 'w-4 h-4 mt-0.5')}
                 <div><span class="font-extrabold">Homework:</span> ${hwHead}</div>
               </div>
               ${hwBullets.length ? `<ul class="pl-5 space-y-0.5 text-[11px] leading-snug">${formatBulletLines(hwBullets.join('\n'))}</ul>` : ''}
@@ -3102,11 +3162,11 @@
 
           ${r.clips && r.clips.length > 1 ? `
             <div class="space-y-1.5">
-              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">🎥 Attached Clips (${r.clips.length})</div>
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('video')} Attached Clips (${r.clips.length})</div>
               <div class="grid grid-cols-2 gap-2">
                 ${r.clips.map(c => `
                   <button type="button" onclick="openRecapViewerModal('${r.id}')" class="relative h-20 rounded-2xl overflow-hidden text-left group cursor-pointer">
-                    <img src="${c.img || r.videoImg}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                    <img src="${c.img || r.videoImg}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" / alt="Fastpitch softball training" loading="lazy" decoding="async">
                     <div class="absolute inset-0 bg-gradient-to-t from-[#010101]/80 via-[#010101]/20 to-transparent flex flex-col justify-between p-2">
                       <span class="w-6 h-6 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold flex items-center justify-center">▶</span>
                       <span class="text-[10px] font-extrabold text-white truncate">${c.title}</span>
@@ -3305,7 +3365,7 @@
           </div>
           <div class="flex items-center gap-1.5">
             <button type="button" onclick="clearRecapDraft('${ath.id}','${ses ? ses.id : ''}')" title="Reset draft" class="px-2.5 h-8 rounded-full surface-soft text-[10px] font-extrabold text-[var(--text-muted)] cursor-pointer">Reset</button>
-            <button type="button" onclick="closeRecapComposer()" class="w-8 h-8 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+            <button type="button" onclick="closeRecapComposer()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
           </div>
         </div>
 
@@ -3377,7 +3437,7 @@
           <!-- Attach Session Videos / Photos from Camera Roll (Supports Multiple Clips!) -->
           <div class="surface-soft rounded-2xl p-3 space-y-2">
             <div class="flex items-center justify-between">
-              <span class="font-extrabold">🎥 Attach Session Videos / Clips</span>
+              <span class="font-extrabold">${uiIcon('video')} Attach Session Videos / Clips</span>
               <span id="recap-video-status" class="text-[11px] font-bold text-[#4E6075] dark:text-[#9AC0D6]">${_recapDraftVideoName ? `✓ ${_recapDraftVideoName}` : '1 or more clips'}</span>
             </div>
             <label class="block w-full py-2 px-3 rounded-xl card-white text-center font-bold cursor-pointer hover:border-[#010101]">
@@ -3488,9 +3548,9 @@
           <div class="relative bg-[#010101]">
             ${r.videoUrl
               ? `<video src="${r.videoUrl}" controls autoplay playsinline class="w-full max-h-64 object-contain"></video>`
-              : `<div class="relative h-48"><img src="${r.videoImg}" class="w-full h-full object-cover" /><div class="absolute inset-0 bg-[#010101]/40 flex flex-col items-center justify-center gap-1.5 text-white"><div class="w-14 h-14 rounded-full bg-[#D5FF5F] text-[#010101] flex items-center justify-center text-lg shadow-xl">▶</div><span class="text-xs font-extrabold">${r.videoTitle}</span></div></div>`
+              : `<div class="relative h-48"><img src="${r.videoImg}" class="w-full h-full object-cover" / alt="Fastpitch softball training" loading="lazy" decoding="async"><div class="absolute inset-0 bg-[#010101]/40 flex flex-col items-center justify-center gap-1.5 text-white"><div class="w-14 h-14 rounded-full bg-[#D5FF5F] text-[#010101] flex items-center justify-center text-lg shadow-xl">▶</div><span class="text-xs font-extrabold">${r.videoTitle}</span></div></div>`
             }
-            <button onclick="closeModal()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-[#010101]/70 text-white text-xs font-bold cursor-pointer">✕</button>
+            <button onclick="closeModal()" aria-label="Close" class="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center bg-[#010101]/70 text-white text-xs font-bold cursor-pointer">✕</button>
           </div>
           <div class="p-5 space-y-3 bg-[var(--bg-card)]">
             <div class="flex items-center justify-between gap-2">
@@ -3503,7 +3563,7 @@
             </div>
             ${renderRecapTemplateBody(r)}
             <div class="grid grid-cols-2 gap-2 pt-1">
-              <button onclick="copyRecapNote('${r.id}')" class="py-2.5 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">📋 Copy Note</button>
+              <button onclick="copyRecapNote('${r.id}')" class="py-2.5 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">${uiIcon('copy')} Copy Note</button>
               <button onclick="closeModal()" class="py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Done</button>
             </div>
           </div>
@@ -3525,7 +3585,7 @@
           </div>
           <div class="lg:col-span-2 card-white rounded-[28px] overflow-hidden">
             <div class="relative h-56">
-              <img src="${vid.img}" class="w-full h-full object-cover" />
+              <img src="${vid.img}" class="w-full h-full object-cover" / alt="Fastpitch softball training" loading="lazy" decoding="async">
               <div class="absolute inset-0 bg-[#010101]/45 flex flex-col items-center justify-center gap-2 text-white">
                 <div class="w-14 h-14 rounded-full bg-[#D5FF5F] text-[#010101] flex items-center justify-center text-lg shadow-xl">▶</div>
                 <div class="text-xs font-extrabold">Slow-Mo Mechanics Breakdown (${state.videoSpeed})</div>
