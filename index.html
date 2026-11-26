@@ -583,7 +583,7 @@
           athleteId: 'ath-1',
           spotsMax: 1,
           status: 'Up Next',
-          payment: '1 Credit',
+          payment: 'Clover Paid ($75)',
           price: 75,
           img: 'assets/images/fastpitch-fielding.jpg'
         },
@@ -615,7 +615,7 @@
           athleteId: 'ath-2',
           spotsMax: 1,
           status: 'Confirmed',
-          payment: '1 Credit',
+          payment: 'Clover Paid ($75)',
           price: 75,
           img: 'assets/images/fastpitch-hitter.jpg'
         },
@@ -721,8 +721,8 @@
       ],
 
       payments: [
-        { id: 'pay-1', date: 'Nov 24', family: 'Miller Family', item: '5-Lesson Private Pack', amount: 350, method: 'Clover • Apple Pay' },
-        { id: 'pay-2', date: 'Nov 22', family: 'Reyes Family', item: '5-Lesson Private Pack', amount: 350, method: 'Venmo (Logged)' },
+        { id: 'pay-1', date: 'Nov 24', family: 'Miller Family', item: '1-on-1 Hitting Private (Chloe)', amount: 75, method: 'Clover • Apple Pay', status: 'Paid' },
+        { id: 'pay-2', date: 'Nov 22', family: 'Reyes Family', item: '1-on-1 Fielding & Defense (Ava)', amount: 75, method: 'Cash (Collected ✓)', status: 'Paid' },
         { id: 'pay-3', date: 'Nov 20', family: 'Vance Family', item: 'Winter Hitting & Defense Clinic', amount: 95, method: 'Clover • Card' },
         { id: 'pay-4', date: 'Nov 18', family: 'Brooks Family', item: '1-on-1 Drop-In', amount: 75, method: 'Zelle (Logged)' }
       ],
@@ -735,7 +735,7 @@
             { from: 'coach', time: '10:28 AM', text: 'Love hearing that! Yes—we’ll spend the last 15 minutes on inside front-toss and quick hands.' }
           ]
         },
-        { id: 'msg-2', parent: 'Tricia Vance', athletes: 'Brooklyn', unread: 0, messages: [{ from: 'parent', time: 'Yesterday', text: 'Grabbing another 10-pack before next week!' }] }
+        { id: 'msg-2', parent: 'Tricia Vance', athletes: 'Brooklyn', unread: 0, messages: [{ from: 'parent', time: 'Yesterday', text: 'Booking Brooklyn for Thursday & Saturday next week!' }] }
       ]
     };
 
@@ -864,14 +864,14 @@
             { id: 'today', label: 'Today', fullLabel: 'Today & Schedule', icon: icons.calendar },
             { id: 'athletes', label: 'Athletes', fullLabel: 'Athletes & PRs', icon: icons.athletes },
             { id: 'video', label: 'Video', fullLabel: 'Video Lab', icon: icons.video, badge: pendingVids },
-            { id: 'payments', label: 'Packs', fullLabel: 'Packages & Pay', icon: icons.wallet },
+            { id: 'payments', label: 'Pay', fullLabel: 'Payments', icon: icons.wallet },
             { id: 'messaging', label: 'Inbox', fullLabel: 'Messages & Waivers', icon: icons.chat, badge: unread }
           ]
         : [
             { id: 'home', label: 'Train', fullLabel: 'Training Hub', icon: icons.home },
             { id: 'book', label: 'Book', fullLabel: 'Book Session', icon: icons.plus },
             { id: 'video', label: 'Recaps', fullLabel: 'Session Recaps', icon: icons.video },
-            { id: 'packages', label: 'Packs', fullLabel: 'Credits & Packs', icon: icons.wallet },
+            { id: 'packages', label: 'Billing', fullLabel: 'Billing & Receipts', icon: icons.wallet },
             { id: 'waiver', label: 'Waivers', fullLabel: 'Waivers & Safety', icon: icons.shield }
           ];
 
@@ -918,8 +918,8 @@
               `;
             }).join('')}
           </div>
-          <button onclick="setTab('packages')" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer">
-            <span class="px-1.5 py-0.5 rounded-md bg-[#D5FF5F] text-[#010101] mr-1">${siblings[0].credits}</span> shared credits
+          <button onclick="setTab('book'); if(state.cal.cart.length){ state.cal.step='details'; render(); }" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer">
+            ${state.cal.cart.length > 0 ? `🛒 Cart (<span class="text-[#010101] bg-[#D5FF5F] px-1.5 py-0.5 rounded-md">${state.cal.cart.length}</span>)` : '+ Book Session'}
           </button>
         </div>
       `;
@@ -1256,18 +1256,8 @@
     }
 
     function calCartTotals() {
-      const ath = state.athletes.find(a => a.familyId === 'fam-1') || state.athletes[0];
-      const availCredits = ath.credits;
-      let creditsUsed = 0;
-      let cardTotal = 0;
-      state.cal.cart.forEach(item => {
-        if (item.payMode === 'credit' && item.evt.allowCredit && creditsUsed < availCredits) {
-          creditsUsed += 1;
-        } else {
-          cardTotal += item.evt.price;
-        }
-      });
-      return { creditsUsed, cardTotal, availCredits };
+      const cardTotal = state.cal.cart.reduce((sum, item) => sum + item.evt.price, 0);
+      return { cardTotal };
     }
 
     function calAddToCart(time24, goToCheckout = false) {
@@ -1280,8 +1270,7 @@
         else showToast('This time slot is already in your cart!');
         return;
       }
-      const { creditsUsed, availCredits } = calCartTotals();
-      const defaultPay = (evt.allowCredit && creditsUsed < availCredits) ? 'credit' : 'card';
+
       state.cal.cart.push({
         id: 'ci-' + Date.now() + Math.random().toString(36).slice(2, 5),
         slotKey,
@@ -1293,7 +1282,6 @@
         athleteId: ath.id,
         athleteName: ath.name,
         athleteAge: ath.ageGroup,
-        payMode: defaultPay
       });
       state.cal.selectedTime = null;
       if (goToCheckout) {
@@ -1336,14 +1324,10 @@
       const parentName = e.target.parentName.value;
       const email = e.target.email.value;
       const phone = e.target.phone.value;
-      const { creditsUsed, cardTotal } = calCartTotals();
-
+      const { cardTotal } = calCartTotals();
       const confirmedItems = [];
-      let creditsRemainingToDeduct = creditsUsed;
 
       state.cal.cart.forEach(item => {
-        const useCred = item.payMode === 'credit' && item.evt.allowCredit && creditsRemainingToDeduct > 0;
-        if (useCred) creditsRemainingToDeduct -= 1;
 
         // Prevent double-booking
         state.cal.bookedSlots.push(item.slotKey);
@@ -1362,20 +1346,18 @@
           athleteId: item.athleteId,
           spotsMax: item.evt.type === '1-on-1 Private' ? 1 : 6,
           status: 'Confirmed',
-          payment: useCred ? '1 Credit' : (state.cal.checkoutMethod === 'cash' ? `Cash Due ($${item.evt.price})` : `Clover Paid ($${item.evt.price})`),
+          payment: state.cal.checkoutMethod === 'cash' ? `Cash Due ($${item.evt.price})` : `Clover Paid ($${item.evt.price})`,
           price: item.evt.price,
           img: item.evt.img
         });
 
         confirmedItems.push({
           ...item,
-          payLabel: useCred ? '1 Credit' : (state.cal.checkoutMethod === 'cash' ? `$${item.evt.price} Cash Due` : `$${item.evt.price} Clover`)
+          payLabel: state.cal.checkoutMethod === 'cash' ? `$${item.evt.price} Cash Due` : `$${item.evt.price} Clover`
         });
       });
 
-      if (creditsUsed > 0) {
-        state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits = Math.max(0, a.credits - creditsUsed));
-      }
+
       const isCash = state.cal.checkoutMethod === 'cash';
       if (cardTotal > 0) {
         state.payments.unshift({
@@ -1391,7 +1373,6 @@
 
       state.cal.lastBooking = {
         items: confirmedItems,
-        creditsUsed,
         cardTotal,
         checkoutMethod: state.cal.checkoutMethod,
         parentName,
@@ -1452,7 +1433,7 @@
     function renderParentBook() {
       const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
       const evt = state.cal.eventTypes.find(e => e.id === state.cal.eventTypeId) || state.cal.eventTypes[0];
-      const { creditsUsed, cardTotal, availCredits } = calCartTotals();
+      const { cardTotal } = calCartTotals();
 
       // STEP 3: MULTI-SESSION CONFIRMED SCREEN
       if (state.cal.step === 'confirmed' && state.cal.lastBooking) {
@@ -1478,7 +1459,7 @@
             </div>
             <div class="surface-soft rounded-2xl p-3.5 flex items-center justify-between text-xs font-extrabold">
               <span class="text-[var(--text-muted)]">Total Applied</span>
-              <span>${b.creditsUsed ? `${b.creditsUsed} ${b.creditsUsed === 1 ? 'Credit' : 'Credits'}` : ''}${b.creditsUsed && b.cardTotal ? ' + ' : ''}${b.cardTotal ? `$${b.cardTotal} (${b.checkoutMethod === 'cash' ? 'Cash Due at Lesson' : 'Paid via Clover'})` : (b.creditsUsed ? '' : '$0')}</span>
+              <span>$${b.cardTotal} (${b.checkoutMethod === 'cash' ? 'Cash Due at Lesson' : 'Paid via Clover'})</span>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <button onclick="downloadIcs()" class="py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">📅 Add All to Calendar (.ics)</button>
@@ -1513,20 +1494,16 @@
                     </div>
                     <div class="flex items-center justify-between pt-1.5 border-t border-[var(--border-subtle)]">
                       <span class="text-[11px] font-bold text-[var(--text-muted)]">${item.evt.durationLabel} • ${item.evt.location.split('•')[1] || 'Cage 1'}</span>
-                      ${item.evt.allowCredit ? `
-                        <button type="button" onclick="calToggleCartItemPay('${item.id}')" class="px-2.5 py-1 rounded-full text-[10px] font-extrabold cursor-pointer ${item.payMode === 'credit' ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#010101] text-white'}">
-                          ${item.payMode === 'credit' ? '1 Credit ✓ (Switch)' : `$${item.evt.price} Card (Use Credit)`}
-                        </button>
-                      ` : `<span class="font-extrabold">$${item.evt.price}</span>`}
+                      <span class="font-extrabold">$${item.evt.price}</span>
                     </div>
                   </div>
                 `).join('')}
               </div>
 
               <!-- Cart Totals Summary -->
-              <div class="card-white rounded-2xl p-4 space-y-1.5 text-xs">
-                <div class="flex justify-between"><span class="text-[var(--text-muted)] font-semibold">Credits Applied (${availCredits} avail)</span><span class="font-extrabold">${creditsUsed} ${creditsUsed === 1 ? 'Credit' : 'Credits'}</span></div>
-                <div class="flex justify-between text-sm pt-1 border-t border-[var(--border-subtle)]"><span class="font-extrabold">Due Today (Clover / Cash)</span><span class="font-extrabold tabular-nums">$${cardTotal}</span></div>
+              <div class="card-white rounded-2xl p-4 flex items-center justify-between text-sm">
+                <span class="font-extrabold">Total Due</span>
+                <span class="font-extrabold tabular-nums text-lg">$${cardTotal}</span>
               </div>
             </div>
 
@@ -1577,7 +1554,7 @@
                 <span class="text-[11px] text-[var(--text-muted)]">I agree to the 24-hour reschedule &amp; cancellation policy for all sessions in my cart.</span>
               </label>
               <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
-                Confirm ${state.cal.cart.length} ${state.cal.cart.length === 1 ? 'Session' : 'Sessions'} ${cardTotal > 0 ? (state.cal.checkoutMethod === 'cash' ? `• $${cardTotal} Cash at Lesson` : `• Pay $${cardTotal} w/ Clover`) : `• Use ${creditsUsed} ${creditsUsed === 1 ? 'Credit' : 'Credits'}`} →
+                Confirm ${state.cal.cart.length} ${state.cal.cart.length === 1 ? 'Session' : 'Sessions'} • ${state.cal.checkoutMethod === 'cash' ? `$${cardTotal} Cash at Lesson` : `Pay $${cardTotal} w/ Clover`} →
               </button>
             </form>
           </div>
@@ -1593,7 +1570,7 @@
               <button onclick="calSelectEvent('${t.id}')" class="text-left p-4 rounded-[24px] transition cursor-pointer ${active ? 'bg-[#010101] text-white shadow-xl' : 'card-white hover:-translate-y-0.5'}">
                 <div class="flex items-center justify-between gap-2">
                   <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${active ? 'bg-[#D5FF5F] text-[#010101]' : 'surface-soft'}">${t.durationLabel}</span>
-                  <span class="text-xs font-extrabold tabular-nums">${t.allowCredit ? `$${t.price} / 1 cr` : `$${t.price}`}</span>
+                  <span class="text-xs font-extrabold tabular-nums">$${t.price}</span>
                 </div>
                 <div class="font-extrabold text-sm mt-2">${t.title}</div>
                 <div class="text-[11px] mt-0.5 ${active ? 'text-[#D6DFE2]' : 'text-[var(--text-muted)]'}">${t.type}</div>
@@ -1615,7 +1592,7 @@
             </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <span class="px-3 py-1.5 rounded-full surface-soft text-xs font-extrabold">${creditsUsed ? `${creditsUsed} cr` : ''}${creditsUsed && cardTotal ? ' + ' : ''}${cardTotal ? `$${cardTotal}` : ''}</span>
+            <span class="px-3 py-1.5 rounded-full surface-soft text-xs font-extrabold">$${cardTotal}</span>
             <button onclick="state.cal.step='details'; render();" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-md">Checkout (${state.cal.cart.length}) →</button>
           </div>
         </div>
@@ -1685,7 +1662,7 @@
               <div class="space-y-2 text-xs font-semibold">
                 <div class="flex items-center gap-2"><span>⏱️</span><span>${evt.durationLabel} (${evt.duration} min)</span></div>
                 <div class="flex items-center gap-2"><span>📍</span><span>${evt.location}</span></div>
-                <div class="flex items-center gap-2"><span>💳</span><span>$${evt.price} ${evt.allowCredit ? 'or 1 Package Credit' : 'Flat Fee'}</span></div>
+                <div class="flex items-center gap-2"><span>💳</span><span>$${evt.price} • Clover or Cash</span></div>
               </div>
             </div>
             <div>
@@ -1804,34 +1781,46 @@
     }
 
     function renderParentPackages() {
-      const famAth = state.athletes.find(a => a.familyId === 'fam-1');
       const famPayments = state.payments.filter(p => p.family === 'Miller Family');
+      const totalPaid = famPayments.filter(p => p.status !== 'Pending Cash').reduce((s, p) => s + p.amount, 0);
+      const pendingCash = famPayments.filter(p => p.status === 'Pending Cash').reduce((s, p) => s + p.amount, 0);
       return `
         ${renderSiblingBar()}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="card-mist rounded-[28px] p-5 flex flex-col justify-between">
-            <div class="text-xs font-bold text-[var(--text-muted)]">Family Credit Balance</div>
-            <div class="text-4xl font-extrabold tabular-nums mt-2">${famAth.credits} <span class="text-sm font-bold text-[var(--text-muted)]">credits</span></div>
-            <div class="text-xs font-semibold text-[#4E6075] dark:text-[#9AC0D6] mt-2">Shared across Chloe &amp; Maya</div>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 class="text-2xl font-extrabold tracking-tight">Billing &amp; Receipts</h1>
+            <p class="text-xs text-[var(--text-muted)]">Pay per session online via 🍀 Clover (Card / Apple Pay) or 💵 Cash at the facility</p>
           </div>
-          <div class="card-white rounded-[28px] p-5 flex flex-col justify-between gap-4 border-2 border-[#010101] dark:border-[#D5FF5F]">
-            <div>
-              <div class="flex justify-between items-center"><span class="font-extrabold text-sm">5-Lesson Pack</span><span class="px-2.5 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">SAVE $25</span></div>
-              <div class="text-2xl font-extrabold mt-2 tabular-nums">$350 <span class="text-xs font-semibold text-[var(--text-muted)]">$70/lesson</span></div>
-            </div>
-            <div class="grid grid-cols-2 gap-2"><button onclick="buyPackage(5,350,'clover')" class="py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">🍀 Clover Pay</button><button onclick="buyPackage(5,350,'cash')" class="py-2.5 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">💵 Cash</button></div>
+          <button onclick="setTab('book')" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Book Sessions</button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="card-mist rounded-[28px] p-5 space-y-1">
+            <div class="text-xs font-bold text-[var(--text-muted)]">Total Paid (Miller Family)</div>
+            <div class="text-3xl font-extrabold tabular-nums">$${totalPaid.toLocaleString()}</div>
+            <div class="text-xs font-semibold text-[#4E6075] dark:text-[#9AC0D6]">🍀 Clover &amp; Cash receipts saved automatically</div>
           </div>
-          <div class="card-white rounded-[28px] p-5 flex flex-col justify-between gap-4">
-            <div>
-              <div class="flex justify-between items-center"><span class="font-extrabold text-sm">10-Lesson Elite Pack</span><span class="px-2.5 py-0.5 rounded-full bg-[#D6DFE2] text-[#010101] text-[10px] font-extrabold">SAVE $100</span></div>
-              <div class="text-2xl font-extrabold mt-2 tabular-nums">$650 <span class="text-xs font-semibold text-[var(--text-muted)]">$65/lesson</span></div>
-            </div>
-            <div class="grid grid-cols-2 gap-2"><button onclick="buyPackage(10,650,'clover')" class="py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">🍀 Clover Pay</button><button onclick="buyPackage(10,650,'cash')" class="py-2.5 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">💵 Cash</button></div>
+          <div class="card-white rounded-[28px] p-5 space-y-1">
+            <div class="text-xs font-bold text-[var(--text-muted)]">Cash Due at Upcoming Lessons</div>
+            <div class="text-3xl font-extrabold tabular-nums">$${pendingCash.toLocaleString()}</div>
+            <div class="text-xs font-semibold text-[var(--text-muted)]">${pendingCash > 0 ? 'Bring cash to Coach Gina at check-in' : 'All caught up — $0 due!'}</div>
           </div>
         </div>
+
         <div class="card-white rounded-[28px] p-5 space-y-3">
-          <h2 class="text-sm font-extrabold">Receipts &amp; Billing History</h2>
-          ${famPayments.map(p => `<div class="surface-soft rounded-2xl p-3.5 flex items-center justify-between text-xs"><div><div class="font-extrabold">${p.item}</div><div class="text-[var(--text-muted)]">${p.date} • ${p.method}</div></div><div class="font-extrabold tabular-nums">$${p.amount}</div></div>`).join('')}
+          <h2 class="text-sm font-extrabold">Payment History &amp; Receipts</h2>
+          ${famPayments.map(p => `
+            <div class="surface-soft rounded-2xl p-3.5 flex items-center justify-between text-xs">
+              <div>
+                <div class="font-extrabold">${p.item}</div>
+                <div class="text-[var(--text-muted)]">${p.date} • ${p.method}</div>
+              </div>
+              <div class="flex items-center gap-2">
+                ${p.status === 'Pending Cash' ? `<span class="px-2.5 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">Cash Due</span>` : `<span class="px-2.5 py-0.5 rounded-full surface-soft text-[10px] font-bold">Paid ✓</span>`}
+                <div class="font-extrabold tabular-nums">$${p.amount}</div>
+              </div>
+            </div>
+          `).join('')}
         </div>
       `;
     }
@@ -2282,10 +2271,7 @@
             <label class="block text-[var(--text-muted)] font-bold mb-1">Description</label>
             <textarea name="desc" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="What players work on in this session...">${existing ? existing.desc : ''}</textarea>
           </div>
-          <label class="flex items-center justify-between p-3 rounded-2xl surface-soft cursor-pointer">
-            <span class="font-bold">Allow Lesson Package Credits</span>
-            <input type="checkbox" name="allowCredit" ${(!existing || existing.allowCredit) ? 'checked' : ''} class="w-4 h-4 accent-[#010101]" />
-          </label>
+
           <button type="submit" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer">
             ${existing ? 'Save Changes' : 'Create Class Type'}
           </button>
@@ -2305,7 +2291,7 @@
         price: Number(e.target.price.value),
         location: e.target.location.value.trim(),
         desc: e.target.desc.value.trim() || 'Fastpitch training session with Coach Gina.',
-        allowCredit: e.target.allowCredit.checked,
+        allowCredit: false,
         img: e.target.type.value === 'Small Group' ? 'assets/images/fastpitch-fielding.jpg' : 'assets/images/fastpitch-hitter.jpg'
       };
       if (editId) {
@@ -2426,7 +2412,7 @@
                     <span class="text-sm font-extrabold tabular-nums">$${t.price}</span>
                   </div>
                   <div class="font-extrabold text-sm">${t.title}</div>
-                  <div class="text-xs text-[var(--text-muted)]">${t.type} • ${t.allowCredit ? 'Package credits allowed' : 'Flat fee'}</div>
+                  <div class="text-xs text-[var(--text-muted)]">${t.type} • Clover or Cash</div>
                   <p class="text-xs text-[var(--text-muted)] leading-relaxed">${t.desc}</p>
                 </div>
                 <div class="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border-subtle)]">
@@ -2489,7 +2475,7 @@
                 <div>
                   <span class="px-2.5 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">UP NEXT • 4:00 PM</span>
                   <div class="text-2xl font-extrabold mt-2">Hitting Mechanics &amp; Exit Velo</div>
-                  <div class="text-xs text-[#D6DFE2]">Chloe Miller (14U) • 45 min • 1 Credit</div>
+                  <div class="text-xs text-[#D6DFE2]">Chloe Miller (14U) • 45 min • Clover Paid ($75)</div>
                 </div>
                 <button onclick="completeSession('ses-1')" class="cursor-pointer">${icons.arrowBtn}</button>
               </div>
@@ -2875,38 +2861,39 @@
     }
 
     function renderCoachPayments() {
-      const total = state.payments.reduce((s, p) => s + p.amount, 0);
+      const collected = state.payments.filter(p => p.status !== 'Pending Cash').reduce((s, p) => s + p.amount, 0);
       const pendingCash = state.payments.filter(p => p.status === 'Pending Cash').reduce((s, p) => s + p.amount, 0);
       return `
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div class="flex items-center gap-2">
-              <h1 class="text-2xl font-extrabold">Packages &amp; Payments</h1>
+              <h1 class="text-2xl font-extrabold">Payments</h1>
               <span class="px-2.5 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">🍀 CLOVER CONNECTED ✓</span>
             </div>
             <p class="text-xs text-[var(--text-muted)] mt-0.5">Clover Hosted Checkout &amp; Tap-to-Pay + Cash / Venmo / Zelle tracking</p>
           </div>
           <button onclick="openLogPaymentModal()" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Log Cash / Clover</button>
         </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div class="space-y-3">
-            <div class="card-mist rounded-[24px] p-4 space-y-2">
+            <div class="card-mist rounded-[24px] p-5 space-y-2">
               <div class="flex items-center justify-between text-xs">
                 <span class="font-extrabold">🍀 Clover Merchant Sync</span>
                 <span class="text-[11px] font-extrabold text-[#22c55e]">● Live</span>
               </div>
-              <div class="text-[11px] text-[var(--text-muted)]">Accepts Credit/Debit, Apple Pay &amp; Google Pay online or via Clover terminal at the facility.</div>
-              ${pendingCash > 0 ? `<div class="pt-1.5 border-t border-[var(--border-subtle)] text-xs font-extrabold">💵 Pending Cash Due: $${pendingCash}</div>` : ''}
+              <div class="text-3xl font-extrabold tabular-nums">$${collected.toLocaleString()}</div>
+              <div class="text-[11px] text-[var(--text-muted)]">Collected via Clover (Card / Apple Pay) &amp; Cash</div>
             </div>
-            ${state.athletes.filter((a, i, arr) => arr.findIndex(x => x.familyId === a.familyId) === i).map(a => `
-              <div class="card-mist rounded-[24px] p-4 flex items-center justify-between">
-                <div><div class="font-extrabold text-sm">${a.parentName}</div><div class="text-xs text-[var(--text-muted)]">${a.credits} / ${a.packTotal} credits left</div></div>
-                <span class="px-3 py-1.5 rounded-full bg-[#010101] text-[#D5FF5F] text-xs font-extrabold">${a.credits} cr</span>
-              </div>
-            `).join('')}
+            <div class="card-white rounded-[24px] p-5 space-y-1.5">
+              <div class="text-xs font-extrabold">💵 Pending Cash Due</div>
+              <div class="text-2xl font-extrabold tabular-nums">$${pendingCash.toLocaleString()}</div>
+              <div class="text-[11px] text-[var(--text-muted)]">${pendingCash > 0 ? 'Tap "Mark Cash Paid ✓" when collected at the cage' : 'No unpaid cash sessions right now'}</div>
+            </div>
           </div>
+
           <div class="lg:col-span-2 card-white rounded-[28px] p-5 space-y-3">
-            <div class="flex justify-between items-center"><h2 class="text-sm font-extrabold">Recent Transactions</h2><span class="px-3 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold">$${total.toLocaleString()}</span></div>
+            <div class="flex justify-between items-center"><h2 class="text-sm font-extrabold">Recent Transactions</h2><span class="px-3 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold">${state.payments.length} entries</span></div>
             ${state.payments.map(p => `
               <div class="surface-soft rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-2 text-xs">
                 <div>
@@ -2947,7 +2934,7 @@
     // ACTIONS
     // =========================================================================
     function completeSession(id) { const s = state.sessions.find(x => x.id === id); if (s) s.status = 'Completed'; render(); showToast('Session checked in!'); }
-    function cancelSessionParent(id) { const s = state.sessions.find(x => x.id === id); if (s) s.status = 'Canceled'; state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits += 1); render(); showToast('Canceled (>24h) — 1 credit returned!'); }
+    function cancelSessionParent(id) { const s = state.sessions.find(x => x.id === id); if (s) s.status = 'Canceled'; state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits += 1); render(); showToast('Session canceled (>24h notice — no fee).'); }
     function notifyWaitlist(id) { state.waitlist.find(x => x.id === id).status = 'Notified'; render(); showToast('Waitlist SMS sent!'); }
     function jumpToAthlete(id) { state.selectedAthleteId = id; state.coachTab = 'athletes'; render(); }
     function toggleDrill(a, d) { const dr = state.athletes.find(x => x.id === a).drills.find(x => x.id === d); dr.done = !dr.done; render(); showToast(dr.done ? 'Drill completed!' : 'Drill unchecked.'); }
@@ -2996,7 +2983,7 @@
         <div class="flex justify-between items-center"><h3 class="font-extrabold text-sm">Log Cash / Clover / Manual Payment</h3><button onclick="closeModal()" class="text-xs font-bold cursor-pointer">✕</button></div>
         <form onsubmit="event.preventDefault(); state.payments.unshift({id:'p'+Date.now(),date:'Today',family:this.f.value,item:this.item.value,amount:Number(this.amt.value),method:this.m.value,status:'Paid'}); closeModal(); render(); showToast('Payment recorded!');" class="space-y-3 text-xs">
           <input name="f" value="Vance Family" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" placeholder="Family name" required />
-          <input name="item" value="5-Lesson Package" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" placeholder="Item" required />
+          <input name="item" value="1-on-1 Hitting Lesson" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" placeholder="Item" required />
           <div class="grid grid-cols-2 gap-2">
             <input name="amt" type="number" value="350" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
             <select name="m" class="w-full px-3 py-2.5 rounded-2xl surface-soft font-semibold">
@@ -3114,7 +3101,7 @@
             render();
             refreshing = false;
             resetPtr();
-            showToast('✓ Synced schedule, recaps & credits!');
+            showToast('✓ Synced schedule, recaps & payments!');
           }, 650);
         } else {
           resetPtr();
