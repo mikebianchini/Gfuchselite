@@ -383,7 +383,7 @@
             allowCredit: false,
             location: 'Gina Fuchs Elite Facility • Turf Cage',
             desc: 'High-energy competitive reps capped at 6 players per session.',
-            img: 'assets/images/fastpitch-hitter.jpg'
+            img: 'assets/images/fastpitch-group.jpg'
           },
           {
             id: 'evt-clinic',
@@ -396,7 +396,7 @@
             allowCredit: false,
             location: 'Gina Fuchs Elite Facility • Main Indoor',
             desc: 'Intensive 3-hour weekend workshop covering exit velocity, barrel path & defensive footwork.',
-            img: 'assets/images/fastpitch-recovery.jpg'
+            img: 'assets/images/fastpitch-slapper.jpg'
           }
         ]
       },
@@ -434,6 +434,36 @@
         },
         {
           id: 'wk-3',
+          dayLabel: 'Catchers',
+          title: 'Catcher Framing & Pop-Time Lab',
+          subtitle: 'Quiet receiving, blocking & rapid 2B exchange',
+          duration: '35 MIN',
+          category: 'CATCHING',
+          defaultReps: 30,
+          img: 'assets/images/fastpitch-catcher.jpg'
+        },
+        {
+          id: 'wk-4',
+          dayLabel: 'Speed',
+          title: 'Lefty Slapping & Crossover Speed',
+          subtitle: 'Soft slap barrel control & box footwork',
+          duration: '30 MIN',
+          category: 'SLAPPING',
+          defaultReps: 25,
+          img: 'assets/images/fastpitch-slapper.jpg'
+        },
+        {
+          id: 'wk-5',
+          dayLabel: 'Small Group',
+          title: 'Competitive Cage Hitting Lab',
+          subtitle: 'Live tee & front-toss stations (2–6 players)',
+          duration: '60 MIN',
+          category: 'SMALL GROUP',
+          defaultReps: 40,
+          img: 'assets/images/fastpitch-group.jpg'
+        },
+        {
+          id: 'wk-6',
           dayLabel: 'Recovery',
           title: 'Arm Care & Cool Down',
           subtitle: '5 min band mobility & shoulder recovery',
@@ -474,7 +504,7 @@
             { date: 'Nov 19', text: 'Explosive hip-to-hand separation today—hit 66.5 mph exit velo! Keep barrel working slightly up through the zone on inside pitches.' }
           ],
           drills: [
-            { id: 'd1', title: 'Walk-Through Swing Timing', reps: '25 reps', focus: 'Rhythm & lower-half load', done: true, img: 'assets/images/fastpitch-fielding.jpg' },
+            { id: 'd1', title: 'Walk-Through Swing Timing', reps: '25 reps', focus: 'Rhythm & lower-half load', done: true, img: 'assets/images/fastpitch-hitter.jpg' },
             { id: 'd2', title: 'Inside-Out High Tee Drill', reps: '30 reps', focus: 'Stay compact through the zone', done: false, img: 'assets/images/fastpitch-fielding.jpg' },
             { id: 'd3', title: 'Band Shoulder Mobility', reps: '15 reps', focus: 'Throwing arm care & mobility', done: false, img: 'assets/images/fastpitch-recovery.jpg' }
           ]
@@ -508,7 +538,7 @@
             { date: 'Nov 18', text: 'Staying through the middle of the field much better! Watch front shoulder on outside pitches.' }
           ],
           drills: [
-            { id: 'd4', title: 'Opposite-Field High Tee', reps: '3 × 15 swings', focus: 'Inside-out bat path', done: true, img: 'assets/images/fastpitch-hitter.jpg' },
+            { id: 'd4', title: 'Opposite-Field High Tee', reps: '3 × 15 swings', focus: 'Inside-out bat path', done: true, img: 'assets/images/fastpitch-slapper.jpg' },
             { id: 'd5', title: 'Stride & Freeze Balance Drill', reps: '20 reps', focus: 'Weight shift control', done: false, img: 'assets/images/fastpitch-hitter.jpg' }
           ]
         },
@@ -538,7 +568,7 @@
           primaryMetricDelta: '-0.08s faster to 2B',
           pitches: [],
           notes: [{ date: 'Nov 15', text: 'Footwork transfer is electric—dropped 0.08s off pop time!' }],
-          drills: [{ id: 'd6', title: 'Rapid Exchange Wall Drill', reps: '40 reps', focus: 'Quick transfer to ear', done: true, img: 'assets/images/fastpitch-recovery.jpg' }]
+          drills: [{ id: 'd6', title: 'Rapid Exchange Wall Drill', reps: '40 reps', focus: 'Quick transfer to ear', done: true, img: 'assets/images/fastpitch-catcher.jpg' }]
         },
         {
           id: 'ath-4',
@@ -566,7 +596,7 @@
           primaryMetricDelta: 'Baseline eval',
           pitches: [],
           notes: [{ date: 'Nov 20', text: 'First evaluation complete. Explosive speed—focus on soft slap barrel control.' }],
-          drills: [{ id: 'd7', title: '3-Step Crossover Footwork', reps: '25 reps', focus: 'Staying inside the box', done: false, img: 'assets/images/fastpitch-hitter.jpg' }]
+          drills: [{ id: 'd7', title: '3-Step Crossover Footwork', reps: '25 reps', focus: 'Staying inside the box', done: false, img: 'assets/images/fastpitch-slapper.jpg' }]
         }
       ],
 
@@ -585,7 +615,7 @@
           status: 'Up Next',
           payment: 'Clover Paid ($75)',
           price: 75,
-          img: 'assets/images/fastpitch-fielding.jpg'
+          img: 'assets/images/fastpitch-hitter.jpg'
         },
         {
           id: 'ses-2',
@@ -601,7 +631,7 @@
           status: 'Confirmed',
           payment: '$45 / player',
           price: 180,
-          img: 'assets/images/fastpitch-hitter.jpg'
+          img: 'assets/images/fastpitch-group.jpg'
         },
         {
           id: 'ses-3',
@@ -617,7 +647,7 @@
           status: 'Confirmed',
           payment: 'Clover Paid ($75)',
           price: 75,
-          img: 'assets/images/fastpitch-hitter.jpg'
+          img: 'assets/images/fastpitch-slapper.jpg'
         },
         {
           id: 'ses-4',
@@ -638,10 +668,10 @@
       ],
 
       openSlots: [
-        { id: 'slot-1', dayKey: 'Fri 27', day: 'Fri, Nov 27', time: '5:30 PM', duration: '45 MIN', type: '1-on-1 Private', focus: 'Hitting & Swing Mechanics Private', price: 75, spotsLeft: 1, spotsMax: 1, img: 'assets/images/fastpitch-fielding.jpg' },
-        { id: 'slot-2', dayKey: 'Sat 28', day: 'Sat, Nov 28', time: '1:00 PM', duration: '60 MIN', type: 'Small Group', focus: '12U–14U Power Hitting Lab', price: 45, spotsLeft: 2, spotsMax: 4, img: 'assets/images/fastpitch-hitter.jpg' },
-        { id: 'slot-3', dayKey: 'Sat 28', day: 'Sat, Nov 28', time: '9:00 AM', duration: '3 HRS', type: 'Camp / Clinic', focus: 'Winter Power Hitting & Defense Clinic', price: 95, spotsLeft: 2, spotsMax: 16, img: 'assets/images/fastpitch-fielding.jpg' },
-        { id: 'slot-4', dayKey: 'Mon 30', day: 'Mon, Nov 30', time: '4:00 PM', duration: '45 MIN', type: '1-on-1 Private', focus: 'Infield Footwork & Quick Transfer', price: 75, spotsLeft: 1, spotsMax: 1, img: 'assets/images/fastpitch-recovery.jpg' }
+        { id: 'slot-1', dayKey: 'Fri 27', day: 'Fri, Nov 27', time: '5:30 PM', duration: '45 MIN', type: '1-on-1 Private', focus: 'Hitting & Swing Mechanics Private', price: 75, spotsLeft: 1, spotsMax: 1, img: 'assets/images/fastpitch-hitter.jpg' },
+        { id: 'slot-2', dayKey: 'Sat 28', day: 'Sat, Nov 28', time: '1:00 PM', duration: '60 MIN', type: 'Small Group', focus: '12U–14U Power Hitting Lab', price: 45, spotsLeft: 2, spotsMax: 4, img: 'assets/images/fastpitch-group.jpg' },
+        { id: 'slot-3', dayKey: 'Sat 28', day: 'Sat, Nov 28', time: '9:00 AM', duration: '3 HRS', type: 'Camp / Clinic', focus: 'Winter Power Hitting & Defense Clinic', price: 95, spotsLeft: 2, spotsMax: 16, img: 'assets/images/fastpitch-slapper.jpg' },
+        { id: 'slot-4', dayKey: 'Mon 30', day: 'Mon, Nov 30', time: '4:00 PM', duration: '45 MIN', type: '1-on-1 Private', focus: 'Infield Footwork & Quick Transfer', price: 75, spotsLeft: 1, spotsMax: 1, img: 'assets/images/fastpitch-fielding.jpg' }
       ],
 
       waitlist: [
@@ -659,7 +689,7 @@
           tags: ['Barrel Path', 'Hip Separation', 'Exit Velo'],
           note: 'Explosive lower-half rotation today—hit 66.5 mph exit velo! Keep hands inside the ball on tight pitches and stay through the middle of the field.',
           videoTitle: 'Front Toss Side Angle — 66.5 mph (0:14)',
-          videoImg: 'assets/images/fastpitch-fielding.jpg',
+          videoImg: 'assets/images/fastpitch-hitter.jpg',
           videoUrl: null,
           sentTo: 'Sarah Miller (SMS + App)',
           sentAt: 'Nov 19 • 5:02 PM'
@@ -685,7 +715,7 @@
           tags: ['Barrel Path', 'Opposite Field'],
           note: 'Staying through the middle of the field much better! Watch front shoulder flying open on outside pitch—keep chest over the plate.',
           videoTitle: 'Front Toss — Outside Pitch Swing (0:11)',
-          videoImg: 'assets/images/fastpitch-hitter.jpg',
+          videoImg: 'assets/images/fastpitch-slapper.jpg',
           videoUrl: null,
           sentTo: 'Sarah Miller (SMS + App)',
           sentAt: 'Nov 18 • 5:20 PM'
@@ -698,7 +728,7 @@
           tags: ['Pop Time', 'Footwork'],
           note: 'Transfer to ear is super clean—dropped pop time to 1.88s! Keep hips low on the throwdown to 2B.',
           videoTitle: '2B Throwdown 1.88s Slow-Mo (0:09)',
-          videoImg: 'assets/images/fastpitch-recovery.jpg',
+          videoImg: 'assets/images/fastpitch-catcher.jpg',
           videoUrl: null,
           sentTo: 'Tricia Vance (SMS + App)',
           sentAt: 'Nov 15 • 6:05 PM'
@@ -707,7 +737,7 @@
 
       videos: [
         {
-          id: 'vid-1', athleteId: 'ath-1', athleteName: 'Chloe Miller', title: 'Front Toss Side Angle — Swing Clip', uploadedAt: 'Yesterday • 0:14', status: 'Reviewed', img: 'assets/images/fastpitch-fielding.jpg',
+          id: 'vid-1', athleteId: 'ath-1', athleteName: 'Chloe Miller', title: 'Front Toss Side Angle — Swing Clip', uploadedAt: 'Yesterday • 0:14', status: 'Reviewed', img: 'assets/images/fastpitch-hitter.jpg',
           cues: [
             { time: '0:03', pct: 22, note: 'Clean load & stride separation—stay stacked over back hip.' },
             { time: '0:06', pct: 48, note: 'Awesome palm-up/palm-down contact point! Barrel stays in the zone.' },
@@ -715,7 +745,7 @@
           ]
         },
         {
-          id: 'vid-2', athleteId: 'ath-2', athleteName: 'Maya Miller', title: 'Front Toss — Outside Pitch Swing', uploadedAt: '2 days ago • 0:11', status: 'Needs Review', img: 'assets/images/fastpitch-hitter.jpg',
+          id: 'vid-2', athleteId: 'ath-2', athleteName: 'Maya Miller', title: 'Front Toss — Outside Pitch Swing', uploadedAt: '2 days ago • 0:11', status: 'Needs Review', img: 'assets/images/fastpitch-slapper.jpg',
           cues: [{ time: '0:04', pct: 36, note: 'Good load timing—let the ball travel 3 inches deeper.' }]
         }
       ],
@@ -928,7 +958,7 @@
     function renderParentHome() {
       const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
       const hero = state.featuredWorkouts[0];
-      const recovery = state.featuredWorkouts[2];
+      const recovery = state.featuredWorkouts.find(w => w.category === 'ARM CARE') || state.featuredWorkouts[state.featuredWorkouts.length - 1];
       const upcoming = state.sessions.filter(s => s.athletes.includes(ath.name) && s.status !== 'Canceled');
 
       return `
@@ -1567,13 +1597,19 @@
           ${state.cal.eventTypes.map(t => {
             const active = t.id === evt.id;
             return `
-              <button onclick="calSelectEvent('${t.id}')" class="text-left p-4 rounded-[24px] transition cursor-pointer ${active ? 'bg-[#010101] text-white shadow-xl' : 'card-white hover:-translate-y-0.5'}">
-                <div class="flex items-center justify-between gap-2">
-                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${active ? 'bg-[#D5FF5F] text-[#010101]' : 'surface-soft'}">${t.durationLabel}</span>
-                  <span class="text-xs font-extrabold tabular-nums">$${t.price}</span>
+              <button onclick="calSelectEvent('${t.id}')" class="text-left rounded-[24px] overflow-hidden transition cursor-pointer group ${active ? 'bg-[#010101] text-white shadow-xl ring-2 ring-[#D5FF5F]' : 'card-white hover:-translate-y-0.5'}">
+                <div class="relative h-24 w-full overflow-hidden">
+                  <img src="${t.img || 'assets/images/fastpitch-hitter.jpg'}" alt="${t.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                  <div class="absolute inset-0 bg-gradient-to-t from-[#010101]/70 via-[#010101]/15 to-transparent"></div>
+                  <div class="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-2">
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${active ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#010101]/70 text-white backdrop-blur'}">${t.durationLabel}</span>
+                    <span class="px-2.5 py-0.5 rounded-full bg-white/90 text-[#010101] text-[11px] font-extrabold tabular-nums">$${t.price}</span>
+                  </div>
                 </div>
-                <div class="font-extrabold text-sm mt-2">${t.title}</div>
-                <div class="text-[11px] mt-0.5 ${active ? 'text-[#D6DFE2]' : 'text-[var(--text-muted)]'}">${t.type}</div>
+                <div class="p-3.5">
+                  <div class="font-extrabold text-sm leading-snug">${t.title}</div>
+                  <div class="text-[11px] mt-0.5 ${active ? 'text-[#D6DFE2]' : 'text-[var(--text-muted)]'}">${t.type}</div>
+                </div>
               </button>
             `;
           }).join('')}
@@ -1976,10 +2012,18 @@
       showToast('Athlete profile updated!');
     }
 
+    function getAthleteCoverImg(ath) {
+      const pos = (ath?.position || '').toLowerCase();
+      if (pos.includes('catcher')) return 'assets/images/fastpitch-catcher.jpg';
+      if (pos.includes('slap') || (ath?.batsThrows || '').startsWith('L')) return 'assets/images/fastpitch-slapper.jpg';
+      if (pos.includes('ss') || pos.includes('3b') || pos.includes('2b') || pos.includes('infield')) return 'assets/images/fastpitch-fielding.jpg';
+      return 'assets/images/fastpitch-hitter.jpg';
+    }
+
     function renderAthleteProfile() {
       const ath = ensureAthleteProfileExtras(state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0]);
       const recaps = state.sessionRecaps.filter(r => r.athleteId === ath.id);
-      const coverImg = false ? 'assets/images/fastpitch-fielding.jpg' : 'assets/images/fastpitch-hitter.jpg';
+      const coverImg = getAthleteCoverImg(ath);
 
       return `
         ${renderSiblingBar()}
@@ -2292,7 +2336,14 @@
         location: e.target.location.value.trim(),
         desc: e.target.desc.value.trim() || 'Fastpitch training session with Coach Gina.',
         allowCredit: false,
-        img: e.target.type.value === 'Small Group' ? 'assets/images/fastpitch-fielding.jpg' : 'assets/images/fastpitch-hitter.jpg'
+        img: (() => {
+          const t = (e.target.title.value + ' ' + e.target.type.value).toLowerCase();
+          if (t.includes('small group')) return 'assets/images/fastpitch-group.jpg';
+          if (t.includes('catch')) return 'assets/images/fastpitch-catcher.jpg';
+          if (t.includes('slap') || t.includes('clinic') || t.includes('camp')) return 'assets/images/fastpitch-slapper.jpg';
+          if (t.includes('field') || t.includes('defen') || t.includes('infield')) return 'assets/images/fastpitch-fielding.jpg';
+          return 'assets/images/fastpitch-hitter.jpg';
+        })()
       };
       if (editId) {
         const idx = state.cal.eventTypes.findIndex(x => x.id === editId);
@@ -2754,7 +2805,7 @@
       const drill = e.target.drill.value.trim();
       const sendNow = e.target.sendNow.checked;
       const vidTitle = _recapDraftVideoName || `${ath.name.split(' ')[0]} Session Clip — Today (0:14)`;
-      const vidImg = false ? 'assets/images/fastpitch-fielding.jpg' : 'assets/images/fastpitch-hitter.jpg';
+      const vidImg = getAthleteCoverImg(ath);
 
       // 1. Save permanently in Session Recaps timeline (replaces Apple Notes!)
       state.sessionRecaps.unshift({
