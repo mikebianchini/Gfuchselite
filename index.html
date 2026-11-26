@@ -315,7 +315,7 @@
       // Cal.com-Style Booking Engine State
       cal: {
         step: 'calendar', // 'calendar' | 'details' | 'confirmed'
-        eventTypeId: 'evt-pitch',
+        eventTypeId: 'evt-hit',
         year: 2026,
         month: 10, // 0-indexed: 10 = Nov 2026, 11 = Dec 2026
         selectedDate: '2026-11-27',
@@ -334,17 +334,17 @@
         },
         eventTypes: [
           {
-            id: 'evt-pitch',
-            slug: 'pitching-45',
+            id: 'evt-field',
+            slug: 'fielding-45',
             type: '1-on-1 Private',
-            title: '1-on-1 Pitching Private',
+            title: '1-on-1 Fielding & Defense',
             duration: 45,
             durationLabel: '45m',
             price: 75,
             allowCredit: true,
-            location: 'Gina Fuchs Elite Facility • Cage 1',
-            desc: 'Windmill mechanics, spin axis, changeup & velocity progression with video cues.',
-            img: 'assets/images/fastpitch-pitcher.jpg'
+            location: 'Gina Fuchs Elite Facility • Turf Field',
+            desc: 'Infield/outfield footwork, glove-to-hand transfer, diving angles & throwing mechanics.',
+            img: 'assets/images/fastpitch-fielding.jpg'
           },
           {
             id: 'evt-hit',
@@ -376,13 +376,13 @@
             id: 'evt-clinic',
             slug: 'winter-clinic',
             type: 'Camp / Clinic',
-            title: 'Winter Velocity & Spin Clinic',
+            title: 'Winter Power Hitting & Defense Clinic',
             duration: 180,
             durationLabel: '3h',
             price: 95,
             allowCredit: false,
             location: 'Gina Fuchs Elite Facility • Main Indoor',
-            desc: 'Intensive 3-hour weekend workshop covering velocity, spin & arm care.',
+            desc: 'Intensive 3-hour weekend workshop covering exit velocity, barrel path & defensive footwork.',
             img: 'assets/images/fastpitch-recovery.jpg'
           }
         ]
@@ -402,22 +402,22 @@
         {
           id: 'wk-1',
           dayLabel: 'Day 6',
-          title: 'Windmill Velocity & Brush',
-          subtitle: 'Pitching mechanics with Coach Gina',
+          title: 'Explosive Barrel Path & Exit Velo',
+          subtitle: 'Hitting mechanics with Coach Gina',
           duration: '45 MIN',
-          category: 'PITCHING',
+          category: 'HITTING',
           defaultReps: 25,
-          img: 'assets/images/fastpitch-pitcher.jpg'
+          img: 'assets/images/fastpitch-hitter.jpg'
         },
         {
           id: 'wk-2',
           dayLabel: 'Power Lab',
-          title: 'Opposite-Field Barrel Path',
-          subtitle: 'High tee & front-toss swing sequence',
+          title: 'Elite Infield Footwork & Transfer',
+          subtitle: 'Short-hop reads & quick glove-to-hand reps',
           duration: '30 MIN',
-          category: 'HITTING',
+          category: 'DEFENSE',
           defaultReps: 20,
-          img: 'assets/images/fastpitch-hitter.jpg'
+          img: 'assets/images/fastpitch-fielding.jpg'
         },
         {
           id: 'wk-3',
@@ -441,7 +441,7 @@
           parentPhone: '(555) 234-8910',
           ageGroup: '14U',
           gradYear: 2029,
-          position: 'Pitcher / 1B',
+          position: 'SS / 3B',
           batsThrows: 'R / R',
           credits: 3,
           packTotal: 5,
@@ -452,18 +452,18 @@
           waiverDate: 'Nov 02, 2026',
           emergencyContact: 'David Miller (Dad) — (555) 234-8911',
           medicalNotes: 'Mild seasonal asthma (inhaler in bat bag)',
-          primaryMetricLabel: 'Fastball PR',
-          primaryMetricValue: '58.5',
+          primaryMetricLabel: 'Exit Velo PR',
+          primaryMetricValue: '66.5',
           primaryMetricUnit: 'MPH',
-          primaryMetricDelta: '+3.5 mph this fall',
-          pitches: ['Fastball 58.5', 'Changeup 43', 'Drop Ball', 'Curve (New)'],
+          primaryMetricDelta: '+4.0 mph this fall',
+          pitches: [],
           notes: [
-            { date: 'Nov 19', text: 'Explosive drive off the rubber today! Keep glove-side arm pulling straight down the power line.' }
+            { date: 'Nov 19', text: 'Explosive hip-to-hand separation today—hit 66.5 mph exit velo! Keep barrel working slightly up through the zone on inside pitches.' }
           ],
           drills: [
-            { id: 'd1', title: 'Walk-Through Pitching Reps', reps: '25 reps', focus: 'Drive leg timing', done: true, img: 'assets/images/fastpitch-pitcher.jpg' },
-            { id: 'd2', title: '9 o’clock Brush Whip Drill', reps: '30 reps', focus: 'Internal rotation & brush contact', done: false, img: 'assets/images/fastpitch-pitcher.jpg' },
-            { id: 'd3', title: 'Band Shoulder Mobility', reps: '15 reps', focus: 'Post-bullpen arm care', done: false, img: 'assets/images/fastpitch-recovery.jpg' }
+            { id: 'd1', title: 'Walk-Through Swing Timing', reps: '25 reps', focus: 'Rhythm & lower-half load', done: true, img: 'assets/images/fastpitch-fielding.jpg' },
+            { id: 'd2', title: 'Inside-Out High Tee Drill', reps: '30 reps', focus: 'Stay compact through the zone', done: false, img: 'assets/images/fastpitch-fielding.jpg' },
+            { id: 'd3', title: 'Band Shoulder Mobility', reps: '15 reps', focus: 'Throwing arm care & mobility', done: false, img: 'assets/images/fastpitch-recovery.jpg' }
           ]
         },
         {
@@ -565,14 +565,14 @@
           time: '4:00 PM',
           duration: '45 MIN',
           type: '1-on-1 Private',
-          focus: 'Pitching Velocity & Changeup',
+          focus: 'Hitting Mechanics & Exit Velo',
           athletes: ['Chloe Miller'],
           athleteId: 'ath-1',
           spotsMax: 1,
           status: 'Up Next',
           payment: '1 Credit',
           price: 75,
-          img: 'assets/images/fastpitch-pitcher.jpg'
+          img: 'assets/images/fastpitch-fielding.jpg'
         },
         {
           id: 'ses-2',
@@ -613,26 +613,26 @@
           time: '9:00 AM',
           duration: '3 HRS',
           type: 'Camp / Clinic',
-          focus: 'Winter Velocity & Spin Clinic',
+          focus: 'Winter Power Hitting & Defense Clinic',
           athletes: ['14 Registered Players'],
           athleteId: null,
           spotsMax: 16,
           status: '2 Spots Left',
           payment: '$95 Flat Fee',
           price: 1330,
-          img: 'assets/images/fastpitch-pitcher.jpg'
+          img: 'assets/images/fastpitch-fielding.jpg'
         }
       ],
 
       openSlots: [
-        { id: 'slot-1', dayKey: 'Fri 27', day: 'Fri, Nov 27', time: '5:30 PM', duration: '45 MIN', type: '1-on-1 Private', focus: 'Pitching Mechanics Private', price: 75, spotsLeft: 1, spotsMax: 1, img: 'assets/images/fastpitch-pitcher.jpg' },
+        { id: 'slot-1', dayKey: 'Fri 27', day: 'Fri, Nov 27', time: '5:30 PM', duration: '45 MIN', type: '1-on-1 Private', focus: 'Hitting & Swing Mechanics Private', price: 75, spotsLeft: 1, spotsMax: 1, img: 'assets/images/fastpitch-fielding.jpg' },
         { id: 'slot-2', dayKey: 'Sat 28', day: 'Sat, Nov 28', time: '1:00 PM', duration: '60 MIN', type: 'Small Group', focus: '12U–14U Power Hitting Lab', price: 45, spotsLeft: 2, spotsMax: 4, img: 'assets/images/fastpitch-hitter.jpg' },
-        { id: 'slot-3', dayKey: 'Sat 28', day: 'Sat, Nov 28', time: '9:00 AM', duration: '3 HRS', type: 'Camp / Clinic', focus: 'Winter Velocity & Spin Clinic', price: 95, spotsLeft: 2, spotsMax: 16, img: 'assets/images/fastpitch-pitcher.jpg' },
-        { id: 'slot-4', dayKey: 'Mon 30', day: 'Mon, Nov 30', time: '4:00 PM', duration: '45 MIN', type: '1-on-1 Private', focus: 'Arm Care & Spin Progression', price: 75, spotsLeft: 1, spotsMax: 1, img: 'assets/images/fastpitch-recovery.jpg' }
+        { id: 'slot-3', dayKey: 'Sat 28', day: 'Sat, Nov 28', time: '9:00 AM', duration: '3 HRS', type: 'Camp / Clinic', focus: 'Winter Power Hitting & Defense Clinic', price: 95, spotsLeft: 2, spotsMax: 16, img: 'assets/images/fastpitch-fielding.jpg' },
+        { id: 'slot-4', dayKey: 'Mon 30', day: 'Mon, Nov 30', time: '4:00 PM', duration: '45 MIN', type: '1-on-1 Private', focus: 'Infield Footwork & Quick Transfer', price: 75, spotsLeft: 1, spotsMax: 1, img: 'assets/images/fastpitch-recovery.jpg' }
       ],
 
       waitlist: [
-        { id: 'w-1', athlete: 'Harper Brooks (12U)', parent: 'Kelly Brooks', requested: 'Thu 4–6 PM Pitching', status: 'Waiting' },
+        { id: 'w-1', athlete: 'Harper Brooks (12U)', parent: 'Kelly Brooks', requested: 'Thu 4–6 PM Hitting', status: 'Waiting' },
         { id: 'w-2', athlete: 'Sienna Ortiz (14U)', parent: 'Lori Ortiz', requested: 'Sat Morning Private', status: 'Waiting' }
       ],
 
@@ -642,11 +642,11 @@
           id: 'rec-1',
           athleteId: 'ath-1',
           date: 'Nov 19, 2026',
-          sessionTitle: '1-on-1 Pitching Private (45m)',
-          tags: ['Drive Leg', 'Brush Contact', 'Changeup Grip'],
-          note: 'Explosive drive off the rubber today—hit 58.5 mph! Keep glove-side arm pulling straight down the power line instead of swimming out. Great snap on the flip changeup in the last 10 mins.',
-          videoTitle: 'Fastball Side Angle — 58.5 mph (0:14)',
-          videoImg: 'assets/images/fastpitch-pitcher.jpg',
+          sessionTitle: '1-on-1 Hitting Private (45m)',
+          tags: ['Barrel Path', 'Hip Separation', 'Exit Velo'],
+          note: 'Explosive lower-half rotation today—hit 66.5 mph exit velo! Keep hands inside the ball on tight pitches and stay through the middle of the field.',
+          videoTitle: 'Front Toss Side Angle — 66.5 mph (0:14)',
+          videoImg: 'assets/images/fastpitch-fielding.jpg',
           videoUrl: null,
           sentTo: 'Sarah Miller (SMS + App)',
           sentAt: 'Nov 19 • 5:02 PM'
@@ -655,11 +655,11 @@
           id: 'rec-2',
           athleteId: 'ath-1',
           date: 'Nov 12, 2026',
-          sessionTitle: '1-on-1 Pitching Private (45m)',
-          tags: ['Spin Axis', 'Curveball'],
-          note: 'Introduced curveball spin axis on the Spin Right spinner. Stay tall through release and keep fingers loose.',
-          videoTitle: 'Curveball Spin Axis Slow-Mo (0:11)',
-          videoImg: 'assets/images/fastpitch-pitcher.jpg',
+          sessionTitle: '1-on-1 Infield Defense (45m)',
+          tags: ['Footwork', 'Glove Transfer'],
+          note: 'Great low athletic posture attacking short hops! Work right-left through the ball so your momentum carries cleanly into the throw to 1B.',
+          videoTitle: 'Short-Hop Footwork Slow-Mo (0:11)',
+          videoImg: 'assets/images/fastpitch-fielding.jpg',
           videoUrl: null,
           sentTo: 'Sarah Miller (SMS + App)',
           sentAt: 'Nov 12 • 4:58 PM'
@@ -694,11 +694,11 @@
 
       videos: [
         {
-          id: 'vid-1', athleteId: 'ath-1', athleteName: 'Chloe Miller', title: 'Fastball Side Angle — Bullpen Clip', uploadedAt: 'Yesterday • 0:14', status: 'Reviewed', img: 'assets/images/fastpitch-pitcher.jpg',
+          id: 'vid-1', athleteId: 'ath-1', athleteName: 'Chloe Miller', title: 'Front Toss Side Angle — Swing Clip', uploadedAt: 'Yesterday • 0:14', status: 'Reviewed', img: 'assets/images/fastpitch-fielding.jpg',
           cues: [
-            { time: '0:03', pct: 22, note: 'Strong push off the rubber—stay stacked over front hip.' },
-            { time: '0:06', pct: 48, note: 'Awesome brush contact on hip! Keep forearm relaxed into release.' },
-            { time: '0:09', pct: 74, note: 'Finish tall without falling off toward first base.' }
+            { time: '0:03', pct: 22, note: 'Clean load & stride separation—stay stacked over back hip.' },
+            { time: '0:06', pct: 48, note: 'Awesome palm-up/palm-down contact point! Barrel stays in the zone.' },
+            { time: '0:09', pct: 74, note: 'Balanced high finish without lunging forward.' }
           ]
         },
         {
@@ -710,7 +710,7 @@
       payments: [
         { id: 'pay-1', date: 'Nov 24', family: 'Miller Family', item: '5-Lesson Private Pack', amount: 350, method: 'Stripe • Apple Pay' },
         { id: 'pay-2', date: 'Nov 22', family: 'Reyes Family', item: '5-Lesson Private Pack', amount: 350, method: 'Venmo (Logged)' },
-        { id: 'pay-3', date: 'Nov 20', family: 'Vance Family', item: 'Winter Velocity Clinic', amount: 95, method: 'Stripe • Card' },
+        { id: 'pay-3', date: 'Nov 20', family: 'Vance Family', item: 'Winter Hitting & Defense Clinic', amount: 95, method: 'Stripe • Card' },
         { id: 'pay-4', date: 'Nov 18', family: 'Brooks Family', item: '1-on-1 Drop-In', amount: 75, method: 'Zelle (Logged)' }
       ],
 
@@ -718,8 +718,8 @@
         {
           id: 'msg-1', parent: 'Sarah Miller', athletes: 'Chloe & Maya', unread: 1,
           messages: [
-            { from: 'parent', time: '10:15 AM', text: 'Hi Gina! Chloe nailed her brush drill all week. Can we work on her changeup grip today at 4?' },
-            { from: 'coach', time: '10:28 AM', text: 'Love hearing that! Yes—we’ll spend the last 15 minutes locking in her flip changeup.' }
+            { from: 'parent', time: '10:15 AM', text: 'Hi Gina! Chloe nailed her high-tee drills all week. Can we work on inside-pitch barrel control today at 4?' },
+            { from: 'coach', time: '10:28 AM', text: 'Love hearing that! Yes—we’ll spend the last 15 minutes on inside front-toss and quick hands.' }
           ]
         },
         { id: 'msg-2', parent: 'Tricia Vance', athletes: 'Brooklyn', unread: 0, messages: [{ from: 'parent', time: 'Yesterday', text: 'Grabbing another 10-pack before next week!' }] }
@@ -1153,7 +1153,7 @@
           </div>
           <div>
             <div class="text-lg font-extrabold">Arm Care &amp; Cool Down</div>
-            <p class="text-xs text-[var(--text-muted)] mt-0.5">After pitching or hitting, take 5 minutes for shoulder band mobility to keep your arm fresh.</p>
+            <p class="text-xs text-[var(--text-muted)] mt-0.5">After hitting or fielding, take 5 minutes for shoulder & hip mobility to keep your body fresh.</p>
           </div>
           <button onclick="closeModal(); render(); showToast('Logged ${state.repPickerVal} reps & synced to Coach Gina!');" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">
             ❄️ Cool Down &amp; Done!
@@ -1421,7 +1421,7 @@
               </div>
               <div>
                 <label class="block text-[var(--text-muted)] font-bold mb-1">What should Coach Gina focus on? (Optional)</label>
-                <textarea name="notes" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., Flip changeup grip, inside pitch mechanics, pre-tournament tune-up..."></textarea>
+                <textarea name="notes" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., Inside pitch barrel path, slapping footwork, infield transfers, pre-tournament tune-up..."></textarea>
               </div>
               <div>
                 <label class="block text-[var(--text-muted)] font-bold mb-1.5">Payment Method</label>
@@ -1599,7 +1599,7 @@
               <div class="font-extrabold text-sm mt-0.5">${state.cal.availability.minNoticeHours} hours</div>
             </div>
           </div>
-          <button onclick="copyCalLink('pitching-45')" class="w-full py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] font-extrabold cursor-pointer">🔗 Copy Shareable Booking Link</button>
+          <button onclick="copyCalLink('hitting-45')" class="w-full py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] font-extrabold cursor-pointer">🔗 Copy Shareable Booking Link</button>
         </div>
       `);
     }
@@ -1660,9 +1660,9 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div class="card-mist rounded-[28px] p-5 space-y-3 h-fit">
             <h2 class="text-sm font-extrabold">Send Practice Clip to Gina</h2>
-            <p class="text-xs text-[var(--text-muted)]">Upload a home bullpen or swing clip for Coach Gina’s review.</p>
+            <p class="text-xs text-[var(--text-muted)]">Upload a home swing or fielding clip for Coach Gina’s review.</p>
             <form onsubmit="uploadParentVideo(event,'${ath.id}')" class="space-y-2.5">
-              <input name="title" class="w-full px-3.5 py-2.5 rounded-2xl card-white text-xs" placeholder="e.g., Changeup Bullpen (Side View)" required />
+              <input name="title" class="w-full px-3.5 py-2.5 rounded-2xl card-white text-xs" placeholder="e.g., Front Toss Swing (Side View)" required />
               <button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Upload to Coach Gina</button>
             </form>
           </div>
@@ -1698,7 +1698,7 @@
       if (!ath.jersey) ath.jersey = ath.id === 'ath-1' ? '#14' : ath.id === 'ath-2' ? '#7' : '#22';
       if (!ath.height) ath.height = ath.id === 'ath-1' ? '5\'6"' : ath.id === 'ath-2' ? '5\'1"' : '5\'7"';
       if (!ath.measurables) {
-        ath.measurables = ath.position.includes('Pitcher')
+        ath.measurables = false
           ? [
               { label: 'Fastball Velo', value: `${ath.primaryMetricValue} mph`, delta: '+3.5 mph' },
               { label: 'Changeup Velo', value: '43.0 mph', delta: '15.5 mph diff' },
@@ -1713,7 +1713,7 @@
             ];
       }
       if (!ath.skills) {
-        ath.skills = ath.position.includes('Pitcher')
+        ath.skills = false
           ? [
               { name: 'Fastball Command', pct: 92 },
               { name: 'Flip Changeup', pct: 78 },
@@ -1728,7 +1728,7 @@
             ];
       }
       if (!ath.goals) {
-        ath.goals = ath.position.includes('Pitcher')
+        ath.goals = false
           ? [
               { id: 'g1', text: 'Hit 60 MPH Fastball before Spring showcase', done: false },
               { id: 'g2', text: 'Locate flip changeup on outside corner 7/10', done: true },
@@ -1800,7 +1800,7 @@
     function renderAthleteProfile() {
       const ath = ensureAthleteProfileExtras(state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0]);
       const recaps = state.sessionRecaps.filter(r => r.athleteId === ath.id);
-      const coverImg = ath.position.includes('Pitcher') ? 'assets/images/fastpitch-pitcher.jpg' : 'assets/images/fastpitch-hitter.jpg';
+      const coverImg = false ? 'assets/images/fastpitch-fielding.jpg' : 'assets/images/fastpitch-hitter.jpg';
 
       return `
         ${renderSiblingBar()}
@@ -1871,10 +1871,10 @@
             <div class="pt-1">${performanceAreaChart()}</div>
           </div>
 
-          <!-- Pitch Arsenal / Skill Mastery + Season Goals -->
+          <!-- Skill Ratings + Season Goals -->
           <div class="lg:col-span-6 space-y-5">
             <div class="card-white rounded-[28px] p-5 space-y-3.5">
-              <h2 class="text-sm font-extrabold">${ath.position.includes('Pitcher') ? 'Pitch Arsenal & Mastery' : 'Skill Ratings'}</h2>
+              <h2 class="text-sm font-extrabold">${false ? 'Skill Ratings' : 'Skill Ratings'}</h2>
               <div class="space-y-3">
                 ${ath.skills.map(sk => `
                   <div class="space-y-1">
@@ -2036,13 +2036,13 @@
 
           <!-- Next Session Hero Photo Card -->
           <div class="lg:col-span-7 relative rounded-[28px] overflow-hidden min-h-[260px] shadow-lg">
-            <img src="assets/images/fastpitch-pitcher.jpg" alt="Up Next Session" class="absolute inset-0 w-full h-full object-cover" />
+            <img src="assets/images/fastpitch-fielding.jpg" alt="Up Next Session" class="absolute inset-0 w-full h-full object-cover" />
             <div class="absolute inset-0 bg-gradient-to-b from-[#010101]/70 via-[#010101]/25 to-[#010101]/80"></div>
             <div class="relative h-full p-6 flex flex-col justify-between text-white">
               <div class="flex items-start justify-between">
                 <div>
                   <span class="px-2.5 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">UP NEXT • 4:00 PM</span>
-                  <div class="text-2xl font-extrabold mt-2">Pitching Velocity &amp; Changeup</div>
+                  <div class="text-2xl font-extrabold mt-2">Hitting Mechanics &amp; Exit Velo</div>
                   <div class="text-xs text-[#D6DFE2]">Chloe Miller (14U) • 45 min • 1 Credit</div>
                 </div>
                 <button onclick="completeSession('ses-1')" class="cursor-pointer">${icons.arrowBtn}</button>
@@ -2215,14 +2215,14 @@
     // =========================================================================
     // POST-SESSION RECAP COMPOSER (Replaces Apple Notes + Camera Roll + Texting)
     // =========================================================================
-    let _recapDraftTags = ['Drive Leg', 'Brush Contact'];
+    let _recapDraftTags = ['Barrel Path', 'Timing'];
     let _recapDraftVideoUrl = null;
     let _recapDraftVideoName = null;
 
     function openSessionRecapModal(athId, sessionId) {
       const ath = state.athletes.find(a => a.id === athId) || state.athletes[0];
       const ses = sessionId ? state.sessions.find(s => s.id === sessionId) : null;
-      _recapDraftTags = ath.position.includes('Pitcher') ? ['Drive Leg', 'Brush Contact'] : ['Barrel Path', 'Timing'];
+      _recapDraftTags = false ? ['Barrel Path', 'Timing'] : ['Barrel Path', 'Timing'];
       _recapDraftVideoUrl = null;
       _recapDraftVideoName = null;
       renderRecapComposerModal(ath, ses);
@@ -2248,7 +2248,7 @@
     }
 
     function renderRecapComposerModal(ath, ses, noteVal = '', drillVal = '') {
-      const allTags = ['Drive Leg', 'Brush Contact', 'Changeup Grip', 'Spin Axis', 'Barrel Path', 'Timing', 'Pop Time', 'Arm Care'];
+      const allTags = ['Barrel Path', 'Exit Velo', 'Timing', 'Slapping', 'Footwork', 'Glove Transfer', 'Pop Time', 'Arm Care'];
       openModal(`
         <div class="flex items-start justify-between gap-2">
           <div>
@@ -2291,7 +2291,7 @@
           <!-- Optional Homework Drill -->
           <div>
             <label class="block text-[var(--text-muted)] font-bold mb-1">Add Homework Drill (Optional)</label>
-            <input id="recap-drill-input" name="drill" value="${drillVal}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., 9 o'clock Brush Whip (25 reps)" />
+            <input id="recap-drill-input" name="drill" value="${drillVal}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., Opposite-Field High Tee (3x15)" />
           </div>
 
           <!-- Auto-Send to Player & Parent Toggle -->
@@ -2318,7 +2318,7 @@
       const drill = e.target.drill.value.trim();
       const sendNow = e.target.sendNow.checked;
       const vidTitle = _recapDraftVideoName || `${ath.name.split(' ')[0]} Session Clip — Today (0:14)`;
-      const vidImg = ath.position.includes('Pitcher') ? 'assets/images/fastpitch-pitcher.jpg' : 'assets/images/fastpitch-hitter.jpg';
+      const vidImg = false ? 'assets/images/fastpitch-fielding.jpg' : 'assets/images/fastpitch-hitter.jpg';
 
       // 1. Save permanently in Session Recaps timeline (replaces Apple Notes!)
       state.sessionRecaps.unshift({
@@ -2487,12 +2487,12 @@
       state.parentTab = 'home'; render(); showToast(`Booked ${slot.focus}!`);
     }
     function buyPackage(c, p) { state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits += c); state.payments.unshift({ id: 'p' + Date.now(), date: 'Today', family: 'Miller Family', item: `${c}-Lesson Pack`, amount: p, method: 'Stripe • Apple Pay' }); render(); showToast(`Added ${c} credits!`); }
-    function uploadParentVideo(e, athId) { e.preventDefault(); const ath = state.athletes.find(a => a.id === athId); state.videos.unshift({ id: 'v' + Date.now(), athleteId: ath.id, athleteName: ath.name, title: e.target.title.value, uploadedAt: 'Just now', status: 'Needs Review', img: 'assets/images/fastpitch-pitcher.jpg', cues: [] }); render(); showToast('Clip uploaded!'); }
+    function uploadParentVideo(e, athId) { e.preventDefault(); const ath = state.athletes.find(a => a.id === athId); state.videos.unshift({ id: 'v' + Date.now(), athleteId: ath.id, athleteName: ath.name, title: e.target.title.value, uploadedAt: 'Just now', status: 'Needs Review', img: 'assets/images/fastpitch-fielding.jpg', cues: [] }); render(); showToast('Clip uploaded!'); }
     function saveParentProfile(e, athId) { e.preventDefault(); const ath = state.athletes.find(a => a.id === athId); ath.emergencyContact = e.target.emergency.value; ath.medicalNotes = e.target.medical.value; ath.waiverSigned = true; ath.waiverDate = 'Today'; render(); showToast('Profile & waiver saved!'); }
     function openAddSessionModal() { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">New Session</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); closeModal(); showToast('Session added!');" class="space-y-3 text-xs"><input class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="Session focus..." required /><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Save to Schedule</button></form>`); }
     function openWeatherModal() { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">SMS / Weather Broadcast</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); closeModal(); showToast('SMS Broadcast sent!');" class="space-y-3 text-xs"><textarea rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="Message all booked families..." required></textarea><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Send Broadcast</button></form>`); }
     function openAddMetricModal(id) { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">Log Performance PR</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); state.athletes.find(x=>x.id==='${id}').primaryMetricValue=this.v.value; closeModal(); render(); showToast('PR saved!');" class="space-y-3 text-xs"><input name="v" placeholder="e.g., 59.5" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" required /><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Save PR</button></form>`); }
-    function openAddDrillModal(id) { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">Assign Homework Drill</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); state.athletes.find(x=>x.id==='${id}').drills.unshift({id:'d'+Date.now(),title:this.t.value,reps:'25 reps',focus:'Mechanics',done:false,img:'assets/images/fastpitch-pitcher.jpg'}); closeModal(); render(); showToast('Drill assigned!');" class="space-y-3 text-xs"><input name="t" placeholder="Drill title..." class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" required /><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Assign Drill</button></form>`); }
+    function openAddDrillModal(id) { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">Assign Homework Drill</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); state.athletes.find(x=>x.id==='${id}').drills.unshift({id:'d'+Date.now(),title:this.t.value,reps:'25 reps',focus:'Mechanics',done:false,img:'assets/images/fastpitch-fielding.jpg'}); closeModal(); render(); showToast('Drill assigned!');" class="space-y-3 text-xs"><input name="t" placeholder="Drill title..." class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" required /><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Assign Drill</button></form>`); }
     function openLogPaymentModal() { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">Log Manual Payment</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); state.payments.unshift({id:'p'+Date.now(),date:'Today',family:this.f.value,item:'10-Pack',amount:650,method:'Venmo (Logged)'}); closeModal(); render(); showToast('Payment logged!');" class="space-y-3 text-xs"><input name="f" value="Vance Family" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" required /><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Record Payment</button></form>`); }
 
     function render() {
