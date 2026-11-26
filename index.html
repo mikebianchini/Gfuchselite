@@ -325,6 +325,7 @@
         timezone: 'America/Los_Angeles',
         payMode: 'credit',
         cart: [],
+        checkoutMethod: 'clover', // 'clover' | 'cash'
         lastBooking: null,
         bookedSlots: ['2026-11-26@16:00', '2026-11-26@17:00', '2026-11-27@16:30'],
         availability: {
@@ -720,9 +721,9 @@
       ],
 
       payments: [
-        { id: 'pay-1', date: 'Nov 24', family: 'Miller Family', item: '5-Lesson Private Pack', amount: 350, method: 'Stripe • Apple Pay' },
+        { id: 'pay-1', date: 'Nov 24', family: 'Miller Family', item: '5-Lesson Private Pack', amount: 350, method: 'Clover • Apple Pay' },
         { id: 'pay-2', date: 'Nov 22', family: 'Reyes Family', item: '5-Lesson Private Pack', amount: 350, method: 'Venmo (Logged)' },
-        { id: 'pay-3', date: 'Nov 20', family: 'Vance Family', item: 'Winter Hitting & Defense Clinic', amount: 95, method: 'Stripe • Card' },
+        { id: 'pay-3', date: 'Nov 20', family: 'Vance Family', item: 'Winter Hitting & Defense Clinic', amount: 95, method: 'Clover • Card' },
         { id: 'pay-4', date: 'Nov 18', family: 'Brooks Family', item: '1-on-1 Drop-In', amount: 75, method: 'Zelle (Logged)' }
       ],
 
@@ -1361,20 +1362,21 @@
           athleteId: item.athleteId,
           spotsMax: item.evt.type === '1-on-1 Private' ? 1 : 6,
           status: 'Confirmed',
-          payment: useCred ? '1 Credit' : `Stripe Paid ($${item.evt.price})`,
+          payment: useCred ? '1 Credit' : (state.cal.checkoutMethod === 'cash' ? `Cash Due ($${item.evt.price})` : `Clover Paid ($${item.evt.price})`),
           price: item.evt.price,
           img: item.evt.img
         });
 
         confirmedItems.push({
           ...item,
-          payLabel: useCred ? '1 Credit' : `$${item.evt.price}`
+          payLabel: useCred ? '1 Credit' : (state.cal.checkoutMethod === 'cash' ? `$${item.evt.price} Cash Due` : `$${item.evt.price} Clover`)
         });
       });
 
       if (creditsUsed > 0) {
         state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits = Math.max(0, a.credits - creditsUsed));
       }
+      const isCash = state.cal.checkoutMethod === 'cash';
       if (cardTotal > 0) {
         state.payments.unshift({
           id: 'pay-' + Date.now(),
@@ -1382,7 +1384,8 @@
           family: 'Miller Family',
           item: confirmedItems.length === 1 ? `${confirmedItems[0].evt.title} (${confirmedItems[0].dayNice})` : `Multi-Session Booking (${confirmedItems.length} sessions)`,
           amount: cardTotal,
-          method: 'Stripe • Apple Pay'
+          method: isCash ? 'Cash (Due at Lesson)' : 'Clover • Card / Apple Pay',
+          status: isCash ? 'Pending Cash' : 'Paid'
         });
       }
 
@@ -1390,6 +1393,7 @@
         items: confirmedItems,
         creditsUsed,
         cardTotal,
+        checkoutMethod: state.cal.checkoutMethod,
         parentName,
         email,
         phone,
@@ -1474,7 +1478,7 @@
             </div>
             <div class="surface-soft rounded-2xl p-3.5 flex items-center justify-between text-xs font-extrabold">
               <span class="text-[var(--text-muted)]">Total Applied</span>
-              <span>${b.creditsUsed ? `${b.creditsUsed} ${b.creditsUsed === 1 ? 'Credit' : 'Credits'}` : ''}${b.creditsUsed && b.cardTotal ? ' + ' : ''}${b.cardTotal ? `$${b.cardTotal} Card` : (b.creditsUsed ? '' : '$0')}</span>
+              <span>${b.creditsUsed ? `${b.creditsUsed} ${b.creditsUsed === 1 ? 'Credit' : 'Credits'}` : ''}${b.creditsUsed && b.cardTotal ? ' + ' : ''}${b.cardTotal ? `$${b.cardTotal} (${b.checkoutMethod === 'cash' ? 'Cash Due at Lesson' : 'Paid via Clover'})` : (b.creditsUsed ? '' : '$0')}</span>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <button onclick="downloadIcs()" class="py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">📅 Add All to Calendar (.ics)</button>
@@ -1522,7 +1526,7 @@
               <!-- Cart Totals Summary -->
               <div class="card-white rounded-2xl p-4 space-y-1.5 text-xs">
                 <div class="flex justify-between"><span class="text-[var(--text-muted)] font-semibold">Credits Applied (${availCredits} avail)</span><span class="font-extrabold">${creditsUsed} ${creditsUsed === 1 ? 'Credit' : 'Credits'}</span></div>
-                <div class="flex justify-between text-sm pt-1 border-t border-[var(--border-subtle)]"><span class="font-extrabold">Due Today (Stripe / Apple Pay)</span><span class="font-extrabold tabular-nums">$${cardTotal}</span></div>
+                <div class="flex justify-between text-sm pt-1 border-t border-[var(--border-subtle)]"><span class="font-extrabold">Due Today (Clover / Cash)</span><span class="font-extrabold tabular-nums">$${cardTotal}</span></div>
               </div>
             </div>
 
@@ -1547,12 +1551,33 @@
                 <label class="block text-[var(--text-muted)] font-bold mb-1">Focus Notes for Coach Gina (Optional)</label>
                 <textarea name="notes" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., Inside pitch barrel path, slapping footwork, infield transfers, pre-tournament tune-up..."></textarea>
               </div>
+              ${cardTotal > 0 ? `
+                <div>
+                  <label class="block text-[var(--text-muted)] font-bold mb-1.5">Payment Method for $${cardTotal} Balance</label>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <button type="button" onclick="state.cal.checkoutMethod='clover'; render();" class="p-3.5 rounded-2xl border text-left cursor-pointer transition ${state.cal.checkoutMethod === 'clover' ? 'bg-[#010101] text-white border-[#010101] shadow-md' : 'surface-soft'}">
+                      <div class="flex items-center justify-between">
+                        <span class="font-extrabold">🍀 Clover Checkout</span>
+                        ${state.cal.checkoutMethod === 'clover' ? `<span class="px-2 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">Selected</span>` : ''}
+                      </div>
+                      <div class="text-[11px] opacity-75 mt-1">Card, Apple Pay, or Google Pay via Clover</div>
+                    </button>
+                    <button type="button" onclick="state.cal.checkoutMethod='cash'; render();" class="p-3.5 rounded-2xl border text-left cursor-pointer transition ${state.cal.checkoutMethod === 'cash' ? 'bg-[#010101] text-white border-[#010101] shadow-md' : 'surface-soft'}">
+                      <div class="flex items-center justify-between">
+                        <span class="font-extrabold">💵 Pay Cash at Lesson</span>
+                        ${state.cal.checkoutMethod === 'cash' ? `<span class="px-2 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">Selected</span>` : ''}
+                      </div>
+                      <div class="text-[11px] opacity-75 mt-1">Reserve now • Pay Gina $${cardTotal} cash at check-in</div>
+                    </button>
+                  </div>
+                </div>
+              ` : ''}
               <label class="flex items-center gap-2 cursor-pointer pt-1">
                 <input type="checkbox" checked required class="w-4 h-4 accent-[#010101]" />
                 <span class="text-[11px] text-[var(--text-muted)]">I agree to the 24-hour reschedule &amp; cancellation policy for all sessions in my cart.</span>
               </label>
               <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
-                Confirm ${state.cal.cart.length} ${state.cal.cart.length === 1 ? 'Session' : 'Sessions'} ${cardTotal > 0 ? `• Pay $${cardTotal}` : `• Use ${creditsUsed} ${creditsUsed === 1 ? 'Credit' : 'Credits'}`} →
+                Confirm ${state.cal.cart.length} ${state.cal.cart.length === 1 ? 'Session' : 'Sessions'} ${cardTotal > 0 ? (state.cal.checkoutMethod === 'cash' ? `• $${cardTotal} Cash at Lesson` : `• Pay $${cardTotal} w/ Clover`) : `• Use ${creditsUsed} ${creditsUsed === 1 ? 'Credit' : 'Credits'}`} →
               </button>
             </form>
           </div>
@@ -1794,14 +1819,14 @@
               <div class="flex justify-between items-center"><span class="font-extrabold text-sm">5-Lesson Pack</span><span class="px-2.5 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">SAVE $25</span></div>
               <div class="text-2xl font-extrabold mt-2 tabular-nums">$350 <span class="text-xs font-semibold text-[var(--text-muted)]">$70/lesson</span></div>
             </div>
-            <button onclick="buyPackage(5,350)" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Buy 5-Pack (Apple Pay)</button>
+            <div class="grid grid-cols-2 gap-2"><button onclick="buyPackage(5,350,'clover')" class="py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">🍀 Clover Pay</button><button onclick="buyPackage(5,350,'cash')" class="py-2.5 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">💵 Cash</button></div>
           </div>
           <div class="card-white rounded-[28px] p-5 flex flex-col justify-between gap-4">
             <div>
               <div class="flex justify-between items-center"><span class="font-extrabold text-sm">10-Lesson Elite Pack</span><span class="px-2.5 py-0.5 rounded-full bg-[#D6DFE2] text-[#010101] text-[10px] font-extrabold">SAVE $100</span></div>
               <div class="text-2xl font-extrabold mt-2 tabular-nums">$650 <span class="text-xs font-semibold text-[var(--text-muted)]">$65/lesson</span></div>
             </div>
-            <button onclick="buyPackage(10,650)" class="w-full py-2.5 rounded-2xl bg-[#010101] text-white text-xs font-extrabold cursor-pointer">Buy 10-Pack (Apple Pay)</button>
+            <div class="grid grid-cols-2 gap-2"><button onclick="buyPackage(10,650,'clover')" class="py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">🍀 Clover Pay</button><button onclick="buyPackage(10,650,'cash')" class="py-2.5 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">💵 Cash</button></div>
           </div>
         </div>
         <div class="card-white rounded-[28px] p-5 space-y-3">
@@ -2851,13 +2876,28 @@
 
     function renderCoachPayments() {
       const total = state.payments.reduce((s, p) => s + p.amount, 0);
+      const pendingCash = state.payments.filter(p => p.status === 'Pending Cash').reduce((s, p) => s + p.amount, 0);
       return `
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <div><h1 class="text-2xl font-extrabold">Packages &amp; Payments</h1><p class="text-xs text-[var(--text-muted)]">Stripe Card / Apple Pay + Venmo / Zelle / Cash</p></div>
-          <button onclick="openLogPaymentModal()" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Log Venmo / Cash</button>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-2xl font-extrabold">Packages &amp; Payments</h1>
+              <span class="px-2.5 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">🍀 CLOVER CONNECTED ✓</span>
+            </div>
+            <p class="text-xs text-[var(--text-muted)] mt-0.5">Clover Hosted Checkout &amp; Tap-to-Pay + Cash / Venmo / Zelle tracking</p>
+          </div>
+          <button onclick="openLogPaymentModal()" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Log Cash / Clover</button>
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div class="space-y-3">
+            <div class="card-mist rounded-[24px] p-4 space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-extrabold">🍀 Clover Merchant Sync</span>
+                <span class="text-[11px] font-extrabold text-[#22c55e]">● Live</span>
+              </div>
+              <div class="text-[11px] text-[var(--text-muted)]">Accepts Credit/Debit, Apple Pay &amp; Google Pay online or via Clover terminal at the facility.</div>
+              ${pendingCash > 0 ? `<div class="pt-1.5 border-t border-[var(--border-subtle)] text-xs font-extrabold">💵 Pending Cash Due: $${pendingCash}</div>` : ''}
+            </div>
             ${state.athletes.filter((a, i, arr) => arr.findIndex(x => x.familyId === a.familyId) === i).map(a => `
               <div class="card-mist rounded-[24px] p-4 flex items-center justify-between">
                 <div><div class="font-extrabold text-sm">${a.parentName}</div><div class="text-xs text-[var(--text-muted)]">${a.credits} / ${a.packTotal} credits left</div></div>
@@ -2867,7 +2907,18 @@
           </div>
           <div class="lg:col-span-2 card-white rounded-[28px] p-5 space-y-3">
             <div class="flex justify-between items-center"><h2 class="text-sm font-extrabold">Recent Transactions</h2><span class="px-3 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold">$${total.toLocaleString()}</span></div>
-            ${state.payments.map(p => `<div class="surface-soft rounded-2xl p-3.5 flex items-center justify-between text-xs"><div><div class="font-extrabold">${p.family} — ${p.item}</div><div class="text-[var(--text-muted)]">${p.date} • ${p.method}</div></div><div class="font-extrabold">+$${p.amount}</div></div>`).join('')}
+            ${state.payments.map(p => `
+              <div class="surface-soft rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div>
+                  <div class="font-extrabold">${p.family} — ${p.item}</div>
+                  <div class="text-[var(--text-muted)]">${p.date} • ${p.method}</div>
+                </div>
+                <div class="flex items-center gap-2">
+                  ${p.status === 'Pending Cash' ? `<button onclick="markCashPaid('${p.id}')" class="px-2.5 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold cursor-pointer">Mark Cash Paid ✓</button>` : ''}
+                  <div class="font-extrabold tabular-nums">+$${p.amount}</div>
+                </div>
+              </div>
+            `).join('')}
           </div>
         </div>
       `;
@@ -2907,18 +2958,58 @@
     function bookSlot(slotId, payMode) {
       const slot = state.openSlots.find(s => s.id === slotId), ath = state.athletes.find(a => a.id === state.activeSiblingId);
       if (payMode === 'credit') state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits = Math.max(0, a.credits - 1));
-      else state.payments.unshift({ id: 'p' + Date.now(), date: 'Today', family: 'Miller Family', item: slot.focus, amount: slot.price, method: 'Stripe • Apple Pay' });
+      else state.payments.unshift({ id: 'p' + Date.now(), date: 'Today', family: 'Miller Family', item: slot.focus, amount: slot.price, method: 'Clover • Apple Pay' });
       state.sessions.unshift({ id: 's' + Date.now(), dayKey: slot.dayKey, day: slot.day, time: slot.time, duration: slot.duration, type: slot.type, focus: slot.focus, athletes: [ath.name], athleteId: ath.id, spotsMax: slot.spotsMax, status: 'Confirmed', payment: payMode === 'credit' ? '1 Credit' : `Paid ($${slot.price})`, price: slot.price, img: slot.img });
       state.parentTab = 'home'; render(); showToast(`Booked ${slot.focus}!`);
     }
-    function buyPackage(c, p) { state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits += c); state.payments.unshift({ id: 'p' + Date.now(), date: 'Today', family: 'Miller Family', item: `${c}-Lesson Pack`, amount: p, method: 'Stripe • Apple Pay' }); render(); showToast(`Added ${c} credits!`); }
+    function buyPackage(c, p, method = 'clover') {
+      const isCash = method === 'cash';
+      state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits += c);
+      state.payments.unshift({
+        id: 'p' + Date.now(),
+        date: 'Today',
+        family: 'Miller Family',
+        item: `${c}-Lesson Pack`,
+        amount: p,
+        method: isCash ? 'Cash (Due at Facility)' : 'Clover • Card / Apple Pay',
+        status: isCash ? 'Pending Cash' : 'Paid'
+      });
+      render();
+      showToast(isCash ? `Reserved ${c}-Pack ($${p} cash due at facility)!` : `Paid $${p} via Clover — added ${c} credits!`);
+    }
+    function markCashPaid(payId) {
+      const p = state.payments.find(x => x.id === payId);
+      if (!p) return;
+      p.status = 'Paid';
+      p.method = 'Cash (Collected ✓)';
+      render();
+      showToast(`Marked $${p.amount} cash collected from ${p.family}!`);
+    }
     function uploadParentVideo(e, athId) { e.preventDefault(); const ath = state.athletes.find(a => a.id === athId); state.videos.unshift({ id: 'v' + Date.now(), athleteId: ath.id, athleteName: ath.name, title: e.target.title.value, uploadedAt: 'Just now', status: 'Needs Review', img: 'assets/images/fastpitch-fielding.jpg', cues: [] }); render(); showToast('Clip uploaded!'); }
     function saveParentProfile(e, athId) { e.preventDefault(); const ath = state.athletes.find(a => a.id === athId); ath.emergencyContact = e.target.emergency.value; ath.medicalNotes = e.target.medical.value; ath.waiverSigned = true; ath.waiverDate = 'Today'; render(); showToast('Profile & waiver saved!'); }
     function openAddSessionModal() { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">New Session</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); closeModal(); showToast('Session added!');" class="space-y-3 text-xs"><input class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="Session focus..." required /><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Save to Schedule</button></form>`); }
     function openWeatherModal() { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">SMS / Weather Broadcast</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); closeModal(); showToast('SMS Broadcast sent!');" class="space-y-3 text-xs"><textarea rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="Message all booked families..." required></textarea><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Send Broadcast</button></form>`); }
     function openAddMetricModal(id) { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">Log Performance PR</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); state.athletes.find(x=>x.id==='${id}').primaryMetricValue=this.v.value; closeModal(); render(); showToast('PR saved!');" class="space-y-3 text-xs"><input name="v" placeholder="e.g., 59.5" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" required /><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Save PR</button></form>`); }
     function openAddDrillModal(id) { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">Assign Homework Drill</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); state.athletes.find(x=>x.id==='${id}').drills.unshift({id:'d'+Date.now(),title:this.t.value,reps:'25 reps',focus:'Mechanics',done:false,img:'assets/images/fastpitch-fielding.jpg'}); closeModal(); render(); showToast('Drill assigned!');" class="space-y-3 text-xs"><input name="t" placeholder="Drill title..." class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" required /><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Assign Drill</button></form>`); }
-    function openLogPaymentModal() { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">Log Manual Payment</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); state.payments.unshift({id:'p'+Date.now(),date:'Today',family:this.f.value,item:'10-Pack',amount:650,method:'Venmo (Logged)'}); closeModal(); render(); showToast('Payment logged!');" class="space-y-3 text-xs"><input name="f" value="Vance Family" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" required /><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Record Payment</button></form>`); }
+    function openLogPaymentModal() {
+      openModal(`
+        <div class="flex justify-between items-center"><h3 class="font-extrabold text-sm">Log Cash / Clover / Manual Payment</h3><button onclick="closeModal()" class="text-xs font-bold cursor-pointer">✕</button></div>
+        <form onsubmit="event.preventDefault(); state.payments.unshift({id:'p'+Date.now(),date:'Today',family:this.f.value,item:this.item.value,amount:Number(this.amt.value),method:this.m.value,status:'Paid'}); closeModal(); render(); showToast('Payment recorded!');" class="space-y-3 text-xs">
+          <input name="f" value="Vance Family" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" placeholder="Family name" required />
+          <input name="item" value="5-Lesson Package" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" placeholder="Item" required />
+          <div class="grid grid-cols-2 gap-2">
+            <input name="amt" type="number" value="350" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
+            <select name="m" class="w-full px-3 py-2.5 rounded-2xl surface-soft font-semibold">
+              <option>Cash (Collected ✓)</option>
+              <option>Clover • Terminal Tap</option>
+              <option>Venmo (Logged)</option>
+              <option>Zelle (Logged)</option>
+            </select>
+          </div>
+          <button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold cursor-pointer">Record Payment</button>
+        </form>
+      `);
+    }
 
     function render() {
       renderChrome();
