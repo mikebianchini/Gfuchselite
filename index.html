@@ -1638,20 +1638,259 @@
       `;
     }
 
+    function ensureAthleteProfileExtras(ath) {
+      if (!ath.team) ath.team = ath.id === 'ath-1' ? 'SoCal Storm 14U Premier' : ath.id === 'ath-2' ? 'SoCal Storm 12U Gold' : 'Elite Travel Fastpitch';
+      if (!ath.jersey) ath.jersey = ath.id === 'ath-1' ? '#14' : ath.id === 'ath-2' ? '#7' : '#22';
+      if (!ath.height) ath.height = ath.id === 'ath-1' ? '5\'6"' : ath.id === 'ath-2' ? '5\'1"' : '5\'7"';
+      if (!ath.measurables) {
+        ath.measurables = ath.position.includes('Pitcher')
+          ? [
+              { label: 'Fastball Velo', value: `${ath.primaryMetricValue} mph`, delta: '+3.5 mph' },
+              { label: 'Changeup Velo', value: '43.0 mph', delta: '15.5 mph diff' },
+              { label: 'Exit Velo (Tee)', value: '64.0 mph', delta: '+2.0 mph' },
+              { label: 'Home to 1st', value: '3.08 sec', delta: '-0.06 sec' }
+            ]
+          : [
+              { label: 'Exit Velo (Tee)', value: `${ath.primaryMetricValue} mph`, delta: '+3.0 mph' },
+              { label: 'Overhand Velo', value: '57.0 mph', delta: '+2.5 mph' },
+              { label: 'Home to 1st', value: '2.96 sec', delta: '-0.08 sec' },
+              { label: 'Bat Speed', value: '62.5 mph', delta: '+1.8 mph' }
+            ];
+      }
+      if (!ath.skills) {
+        ath.skills = ath.position.includes('Pitcher')
+          ? [
+              { name: 'Fastball Command', pct: 92 },
+              { name: 'Flip Changeup', pct: 78 },
+              { name: 'Drop Ball Spin', pct: 74 },
+              { name: 'Curveball (New)', pct: 56 }
+            ]
+          : [
+              { name: 'Inside-Out Bat Path', pct: 86 },
+              { name: 'Opposite-Field Power', pct: 79 },
+              { name: 'Bunt / Short Game', pct: 84 },
+              { name: 'Glove-to-Hand Transfer', pct: 88 }
+            ];
+      }
+      if (!ath.goals) {
+        ath.goals = ath.position.includes('Pitcher')
+          ? [
+              { id: 'g1', text: 'Hit 60 MPH Fastball before Spring showcase', done: false },
+              { id: 'g2', text: 'Locate flip changeup on outside corner 7/10', done: true },
+              { id: 'g3', text: 'Complete 100% of weekly arm-care band drills', done: false }
+            ]
+          : [
+              { id: 'g4', text: 'Reach 62 MPH Exit Velo off the tee', done: false },
+              { id: 'g5', text: 'Keep front shoulder closed on outside pitch', done: true }
+            ];
+      }
+      return ath;
+    }
+
+    function toggleAthleteGoal(athId, goalId) {
+      const ath = state.athletes.find(a => a.id === athId);
+      const g = ath?.goals?.find(x => x.id === goalId);
+      if (g) g.done = !g.done;
+      render();
+      showToast(g?.done ? 'Goal achieved! Keep pushing!' : 'Goal reopened.');
+    }
+
+    function addAthleteGoal(e, athId) {
+      e.preventDefault();
+      const ath = state.athletes.find(a => a.id === athId);
+      const text = e.target.goal.value.trim();
+      if (!text) return;
+      ath.goals.unshift({ id: 'g-' + Date.now(), text, done: false });
+      render();
+      showToast('Added new season goal!');
+    }
+
+    function openEditBioModal(athId) {
+      const ath = ensureAthleteProfileExtras(state.athletes.find(a => a.id === athId));
+      openModal(`
+        <div class="flex items-center justify-between">
+          <h3 class="font-extrabold text-sm">Edit Athlete Profile — ${ath.name}</h3>
+          <button onclick="closeModal()" class="w-8 h-8 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+        <form onsubmit="saveAthleteBio(event, '${ath.id}')" class="space-y-3 text-xs">
+          <div class="grid grid-cols-2 gap-2.5">
+            <div><label class="block text-[var(--text-muted)] font-bold mb-1">Travel / School Team</label><input name="team" value="${ath.team}" class="w-full px-3 py-2 rounded-2xl surface-soft font-semibold" required /></div>
+            <div><label class="block text-[var(--text-muted)] font-bold mb-1">Jersey #</label><input name="jersey" value="${ath.jersey}" class="w-full px-3 py-2 rounded-2xl surface-soft font-semibold" required /></div>
+          </div>
+          <div class="grid grid-cols-3 gap-2.5">
+            <div><label class="block text-[var(--text-muted)] font-bold mb-1">Grad Year</label><input name="gradYear" type="number" value="${ath.gradYear}" class="w-full px-3 py-2 rounded-2xl surface-soft font-semibold" required /></div>
+            <div><label class="block text-[var(--text-muted)] font-bold mb-1">Height</label><input name="height" value="${ath.height}" class="w-full px-3 py-2 rounded-2xl surface-soft font-semibold" required /></div>
+            <div><label class="block text-[var(--text-muted)] font-bold mb-1">Bats / Throws</label><input name="batsThrows" value="${ath.batsThrows}" class="w-full px-3 py-2 rounded-2xl surface-soft font-semibold" required /></div>
+          </div>
+          <div><label class="block text-[var(--text-muted)] font-bold mb-1">Primary / Secondary Position</label><input name="position" value="${ath.position}" class="w-full px-3 py-2 rounded-2xl surface-soft font-semibold" required /></div>
+          <button type="submit" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold cursor-pointer">Save Athlete Profile</button>
+        </form>
+      `);
+    }
+
+    function saveAthleteBio(e, athId) {
+      e.preventDefault();
+      const ath = state.athletes.find(a => a.id === athId);
+      ath.team = e.target.team.value;
+      ath.jersey = e.target.jersey.value;
+      ath.gradYear = Number(e.target.gradYear.value);
+      ath.height = e.target.height.value;
+      ath.batsThrows = e.target.batsThrows.value;
+      ath.position = e.target.position.value;
+      closeModal();
+      render();
+      showToast('Athlete profile updated!');
+    }
+
     function renderParentWaiver() {
-      const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
+      const ath = ensureAthleteProfileExtras(state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0]);
+      const recaps = state.sessionRecaps.filter(r => r.athleteId === ath.id);
+      const coverImg = ath.position.includes('Pitcher') ? 'assets/images/fastpitch-pitcher.jpg' : 'assets/images/fastpitch-hitter.jpg';
+
       return `
         ${renderSiblingBar()}
-        <div class="card-white rounded-[28px] p-6 max-w-2xl space-y-4">
-          <div class="flex items-center justify-between">
-            <div><h2 class="font-extrabold text-base">Waiver &amp; Emergency Profile</h2><p class="text-xs text-[var(--text-muted)]">${ath.name} • Gina Fuchs Elite Fastpitch</p></div>
-            <span class="px-3 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold">${ath.waiverSigned ? `Signed ${ath.waiverDate}` : 'Needed'}</span>
+
+        <!-- Editorial Athlete Profile Hero Card -->
+        <div class="relative rounded-[32px] overflow-hidden shadow-xl">
+          <img src="${coverImg}" alt="${ath.name}" class="absolute inset-0 w-full h-full object-cover object-center" />
+          <div class="absolute inset-0 bg-gradient-to-r from-[#010101]/88 via-[#010101]/60 to-[#010101]/35"></div>
+          <div class="relative p-6 sm:p-8 text-white space-y-6">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+              <div class="flex items-center gap-4">
+                <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-[24px] bg-[#D5FF5F] text-[#010101] font-extrabold text-xl sm:text-2xl flex items-center justify-center shadow-lg shrink-0">
+                  ${ath.initials}
+                </div>
+                <div class="space-y-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="px-2.5 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">${ath.jersey} • ${ath.ageGroup}</span>
+                    <span class="px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur text-xs font-bold">Class of ${ath.gradYear}</span>
+                  </div>
+                  <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">${ath.name}</h1>
+                  <p class="text-xs sm:text-sm text-[#D6DFE2] font-medium">${ath.position} • B/T: ${ath.batsThrows} • ${ath.height} • ${ath.team}</p>
+                </div>
+              </div>
+              <button onclick="openEditBioModal('${ath.id}')" class="glass-pill-hero px-4 py-2 rounded-full text-[#010101] text-xs font-extrabold cursor-pointer">
+                Edit Profile
+              </button>
+            </div>
+
+            <!-- Hero Quick Stats Bar -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div class="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15">
+                <div class="text-[11px] text-[#D6DFE2] font-semibold">${ath.primaryMetricLabel}</div>
+                <div class="text-xl font-extrabold text-[#D5FF5F] tabular-nums mt-0.5">${ath.primaryMetricValue} <span class="text-xs text-white">${ath.primaryMetricUnit}</span></div>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15">
+                <div class="text-[11px] text-[#D6DFE2] font-semibold">Training Streak</div>
+                <div class="text-xl font-extrabold tabular-nums mt-0.5">${ath.streakDays} Days</div>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15">
+                <div class="text-[11px] text-[#D6DFE2] font-semibold">Weekly Reps</div>
+                <div class="text-xl font-extrabold tabular-nums mt-0.5">${ath.weeklyReps}</div>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15">
+                <div class="text-[11px] text-[#D6DFE2] font-semibold">Session Recaps</div>
+                <div class="text-xl font-extrabold tabular-nums mt-0.5">${recaps.length} Logged</div>
+              </div>
+            </div>
           </div>
-          <form onsubmit="saveParentProfile(event,'${ath.id}')" class="space-y-3 text-xs">
-            <div><label class="block text-[var(--text-muted)] mb-1 font-bold">Emergency Contact</label><input name="emergency" value="${ath.emergencyContact}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" required /></div>
-            <div><label class="block text-[var(--text-muted)] mb-1 font-bold">Medical / Allergies</label><input name="medical" value="${ath.medicalNotes}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" required /></div>
-            <button type="submit" class="px-5 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold cursor-pointer">Save &amp; Confirm Waiver</button>
-          </form>
+        </div>
+
+        <!-- Measurables & Skill Arsenal Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <!-- Personal Bests & Velocity Curve -->
+          <div class="lg:col-span-6 card-mist rounded-[28px] p-6 space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="text-base font-extrabold tracking-tight">Measurables &amp; Personal Bests</h2>
+              <span class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold">VERIFIED BY GINA</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              ${ath.measurables.map(m => `
+                <div class="surface-soft rounded-2xl p-3.5">
+                  <div class="text-[11px] text-[var(--text-muted)] font-semibold">${m.label}</div>
+                  <div class="text-lg font-extrabold tabular-nums mt-0.5">${m.value}</div>
+                  <div class="text-[11px] font-bold text-[#4E6075] dark:text-[#9AC0D6] mt-0.5">${m.delta}</div>
+                </div>
+              `).join('')}
+            </div>
+            <div class="pt-1">${performanceAreaChart()}</div>
+          </div>
+
+          <!-- Pitch Arsenal / Skill Mastery + Season Goals -->
+          <div class="lg:col-span-6 space-y-5">
+            <div class="card-white rounded-[28px] p-5 space-y-3.5">
+              <h2 class="text-sm font-extrabold">${ath.position.includes('Pitcher') ? 'Pitch Arsenal & Mastery' : 'Skill Ratings'}</h2>
+              <div class="space-y-3">
+                ${ath.skills.map(sk => `
+                  <div class="space-y-1">
+                    <div class="flex justify-between text-xs font-bold">
+                      <span>${sk.name}</span>
+                      <span class="tabular-nums">${sk.pct}%</span>
+                    </div>
+                    <div class="h-2.5 rounded-full surface-soft overflow-hidden">
+                      <div class="h-full rounded-full bg-[#D5FF5F]" style="width:${sk.pct}%"></div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- Interactive Season Goals -->
+            <div class="card-white rounded-[28px] p-5 space-y-3">
+              <h2 class="text-sm font-extrabold">Season Goals with Coach Gina</h2>
+              <div class="space-y-2">
+                ${ath.goals.map(g => `
+                  <label class="surface-soft rounded-2xl p-3 flex items-center gap-3 text-xs cursor-pointer">
+                    <input type="checkbox" ${g.done ? 'checked' : ''} onchange="toggleAthleteGoal('${ath.id}','${g.id}')" class="w-4 h-4 accent-[#010101]" />
+                    <span class="font-bold ${g.done ? 'line-through text-[var(--text-muted)]' : ''}">${g.text}</span>
+                  </label>
+                `).join('')}
+              </div>
+              <form onsubmit="addAthleteGoal(event, '${ath.id}')" class="flex gap-2 pt-1">
+                <input name="goal" class="flex-1 px-3.5 py-2 rounded-2xl surface-soft text-xs" placeholder="Add a new season goal..." required />
+                <button type="submit" class="px-4 py-2 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">+ Add</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Row: Session Video Locker + Emergency / Waiver -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div class="lg:col-span-6 card-white rounded-[28px] p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <h2 class="text-sm font-extrabold">Session Recap &amp; Video Locker</h2>
+              <button onclick="setTab('video')" class="text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">See All →</button>
+            </div>
+            <div class="space-y-2.5">
+              ${recaps.slice(0, 2).map(r => `
+                <button onclick="openRecapViewerModal('${r.id}')" class="w-full surface-soft rounded-2xl p-3 flex items-center gap-3 text-left cursor-pointer hover:border-[#010101] transition">
+                  <div class="relative w-16 h-12 rounded-xl overflow-hidden shrink-0">
+                    <img src="${r.videoImg}" class="w-full h-full object-cover" />
+                    <div class="absolute inset-0 bg-[#010101]/40 flex items-center justify-center text-[#D5FF5F] text-xs">▶</div>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="text-xs font-extrabold truncate">${r.date} • ${r.sessionTitle}</div>
+                    <div class="text-[11px] text-[var(--text-muted)] truncate">${r.note}</div>
+                  </div>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="lg:col-span-6 card-white rounded-[28px] p-5 space-y-3.5">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="font-extrabold text-sm">Emergency Info &amp; Digital Waiver</h2>
+                <p class="text-[11px] text-[var(--text-muted)]">Gina Fuchs Elite Fastpitch Liability Release</p>
+              </div>
+              <span class="px-3 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold">${ath.waiverSigned ? `Signed ${ath.waiverDate}` : 'Needed'}</span>
+            </div>
+            <form onsubmit="saveParentProfile(event,'${ath.id}')" class="space-y-2.5 text-xs">
+              <div><label class="block text-[var(--text-muted)] mb-1 font-bold">Emergency Contact</label><input name="emergency" value="${ath.emergencyContact}" class="w-full px-3.5 py-2 rounded-2xl surface-soft font-semibold" required /></div>
+              <div><label class="block text-[var(--text-muted)] mb-1 font-bold">Medical / Allergies</label><input name="medical" value="${ath.medicalNotes}" class="w-full px-3.5 py-2 rounded-2xl surface-soft font-semibold" required /></div>
+              <button type="submit" class="px-5 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold cursor-pointer">Save &amp; Confirm Waiver</button>
+            </form>
+          </div>
         </div>
       `;
     }
