@@ -599,6 +599,62 @@
         { id: 'w-2', athlete: 'Sienna Ortiz (14U)', parent: 'Lori Ortiz', requested: 'Sat Morning Private', status: 'Waiting' }
       ],
 
+      // Replaces Gina's Apple Notes + Manual Texting Workflow!
+      sessionRecaps: [
+        {
+          id: 'rec-1',
+          athleteId: 'ath-1',
+          date: 'Nov 19, 2026',
+          sessionTitle: '1-on-1 Pitching Private (45m)',
+          tags: ['Drive Leg', 'Brush Contact', 'Changeup Grip'],
+          note: 'Explosive drive off the rubber today—hit 58.5 mph! Keep glove-side arm pulling straight down the power line instead of swimming out. Great snap on the flip changeup in the last 10 mins.',
+          videoTitle: 'Fastball Side Angle — 58.5 mph (0:14)',
+          videoImg: 'assets/images/fastpitch-pitcher.jpg',
+          videoUrl: null,
+          sentTo: 'Sarah Miller (SMS + App)',
+          sentAt: 'Nov 19 • 5:02 PM'
+        },
+        {
+          id: 'rec-2',
+          athleteId: 'ath-1',
+          date: 'Nov 12, 2026',
+          sessionTitle: '1-on-1 Pitching Private (45m)',
+          tags: ['Spin Axis', 'Curveball'],
+          note: 'Introduced curveball spin axis on the Spin Right spinner. Stay tall through release and keep fingers loose.',
+          videoTitle: 'Curveball Spin Axis Slow-Mo (0:11)',
+          videoImg: 'assets/images/fastpitch-pitcher.jpg',
+          videoUrl: null,
+          sentTo: 'Sarah Miller (SMS + App)',
+          sentAt: 'Nov 12 • 4:58 PM'
+        },
+        {
+          id: 'rec-3',
+          athleteId: 'ath-2',
+          date: 'Nov 18, 2026',
+          sessionTitle: '1-on-1 Hitting Private (45m)',
+          tags: ['Barrel Path', 'Opposite Field'],
+          note: 'Staying through the middle of the field much better! Watch front shoulder flying open on outside pitch—keep chest over the plate.',
+          videoTitle: 'Front Toss — Outside Pitch Swing (0:11)',
+          videoImg: 'assets/images/fastpitch-hitter.jpg',
+          videoUrl: null,
+          sentTo: 'Sarah Miller (SMS + App)',
+          sentAt: 'Nov 18 • 5:20 PM'
+        },
+        {
+          id: 'rec-4',
+          athleteId: 'ath-3',
+          date: 'Nov 15, 2026',
+          sessionTitle: '1-on-1 Catching & Throwdowns (45m)',
+          tags: ['Pop Time', 'Footwork'],
+          note: 'Transfer to ear is super clean—dropped pop time to 1.88s! Keep hips low on the throwdown to 2B.',
+          videoTitle: '2B Throwdown 1.88s Slow-Mo (0:09)',
+          videoImg: 'assets/images/fastpitch-recovery.jpg',
+          videoUrl: null,
+          sentTo: 'Tricia Vance (SMS + App)',
+          sentAt: 'Nov 15 • 6:05 PM'
+        }
+      ],
+
       videos: [
         {
           id: 'vid-1', athleteId: 'ath-1', athleteName: 'Chloe Miller', title: 'Fastball Side Angle — Bullpen Clip', uploadedAt: 'Yesterday • 0:14', status: 'Reviewed', img: 'assets/images/fastpitch-pitcher.jpg',
@@ -932,10 +988,38 @@
               `).join('') : `<p class="text-xs text-[var(--text-muted)]">No live sessions booked yet.</p>`}
             </div>
 
-            <div class="card-mist rounded-[28px] p-5 space-y-2">
-              <div class="text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Coach Gina’s Latest Note</div>
-              <p class="text-xs leading-relaxed font-medium">${ath.notes[0]?.text || ''}</p>
-            </div>
+            ${(() => {
+              const recaps = state.sessionRecaps.filter(r => r.athleteId === ath.id);
+              const latest = recaps[0];
+              if (!latest) return '';
+              return `
+                <div class="card-mist rounded-[28px] overflow-hidden">
+                  <div class="p-5 space-y-3">
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Latest Session Recap</div>
+                      <span class="px-2.5 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">${latest.date}</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">
+                      ${latest.tags.map(t => `<span class="px-2 py-0.5 rounded-full surface-soft text-[10px] font-extrabold">${t}</span>`).join('')}
+                    </div>
+                    <p class="text-xs leading-relaxed font-medium">${latest.note}</p>
+                    <button onclick="openRecapViewerModal('${latest.id}')" class="w-full surface-soft rounded-2xl p-2.5 flex items-center gap-3 text-left cursor-pointer hover:border-[#010101] transition">
+                      <div class="relative w-14 h-12 rounded-xl overflow-hidden shrink-0">
+                        <img src="${latest.videoImg}" class="w-full h-full object-cover" />
+                        <div class="absolute inset-0 bg-[#010101]/40 flex items-center justify-center text-[#D5FF5F] text-xs">▶</div>
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <div class="text-xs font-extrabold truncate">${latest.videoTitle}</div>
+                        <div class="text-[11px] text-[var(--text-muted)]">Tap to watch session clip + notes</div>
+                      </div>
+                    </button>
+                    <button onclick="setTab('video')" class="w-full text-center text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer pt-1">
+                      View all ${recaps.length} session recaps →
+                    </button>
+                  </div>
+                </div>
+              `;
+            })()}
           </div>
         </div>
       `;
@@ -1509,28 +1593,46 @@
 
     function renderParentVideo() {
       const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
-      const vids = state.videos.filter(v => v.athleteId === ath.id);
+      const recaps = state.sessionRecaps.filter(r => r.athleteId === ath.id);
       return `
         ${renderSiblingBar()}
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h1 class="text-2xl font-extrabold tracking-tight">Session Recaps &amp; Video</h1>
+            <p class="text-xs text-[var(--text-muted)]">Every lesson note &amp; video clip from Coach Gina saved in one organized timeline</p>
+          </div>
+        </div>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div class="card-mist rounded-[28px] p-5 space-y-3">
-            <h2 class="text-sm font-extrabold">Upload Practice Clip</h2>
-            <p class="text-xs text-[var(--text-muted)]">Send a slow-mo clip to Coach Gina for frame-by-frame cues.</p>
+          <div class="card-mist rounded-[28px] p-5 space-y-3 h-fit">
+            <h2 class="text-sm font-extrabold">Send Practice Clip to Gina</h2>
+            <p class="text-xs text-[var(--text-muted)]">Upload a home bullpen or swing clip for Coach Gina’s review.</p>
             <form onsubmit="uploadParentVideo(event,'${ath.id}')" class="space-y-2.5">
               <input name="title" class="w-full px-3.5 py-2.5 rounded-2xl card-white text-xs" placeholder="e.g., Changeup Bullpen (Side View)" required />
               <button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Upload to Coach Gina</button>
             </form>
           </div>
           <div class="lg:col-span-2 space-y-4">
-            ${vids.map(v => `
+            ${recaps.length ? recaps.map(r => `
               <div class="card-white rounded-[28px] overflow-hidden">
-                <div class="relative h-44"><img src="${v.img}" class="w-full h-full object-cover" /><div class="absolute inset-0 bg-[#010101]/45 flex items-center justify-center"><div class="w-12 h-12 rounded-full bg-[#D5FF5F] text-[#010101] flex items-center justify-center shadow-lg">▶</div></div><span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white text-[#010101] text-[10px] font-extrabold">${v.status}</span></div>
-                <div class="p-5 space-y-2.5">
-                  <div class="font-extrabold text-sm">${v.title}</div>
-                  ${v.cues.map(c => `<div class="surface-soft rounded-2xl p-3 flex items-start gap-2.5 text-xs"><span class="px-2 py-0.5 rounded-lg bg-[#010101] text-[#D5FF5F] font-mono font-extrabold">${c.time}</span><span>${c.note}</span></div>`).join('')}
+                <div onclick="openRecapViewerModal('${r.id}')" class="relative h-48 cursor-pointer group">
+                  <img src="${r.videoImg}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                  <div class="absolute inset-0 bg-[#010101]/45 flex items-center justify-center">
+                    <div class="w-12 h-12 rounded-full bg-[#D5FF5F] text-[#010101] flex items-center justify-center shadow-lg text-base">▶</div>
+                  </div>
+                  <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#010101]/80 text-[#D5FF5F] text-[10px] font-extrabold">${r.date}</span>
+                  <span class="absolute bottom-3 left-3 right-3 text-white text-xs font-extrabold truncate">${r.videoTitle}</span>
+                </div>
+                <div class="p-5 space-y-3">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="font-extrabold text-sm">${r.sessionTitle}</div>
+                    <div class="flex flex-wrap gap-1">
+                      ${r.tags.map(t => `<span class="px-2.5 py-0.5 rounded-full surface-soft text-[10px] font-extrabold">${t}</span>`).join('')}
+                    </div>
+                  </div>
+                  <p class="text-xs leading-relaxed">${r.note}</p>
                 </div>
               </div>
-            `).join('')}
+            `).join('') : `<div class="card-white rounded-[28px] p-6 text-xs text-[var(--text-muted)]">No session recaps yet.</div>`}
           </div>
         </div>
       `;
@@ -1628,10 +1730,11 @@
                     <div class="text-xs text-[var(--text-muted)] truncate">${s.athletes.join(', ')} • ${s.payment}</div>
                   </div>
                 </div>
-                <div class="flex items-center gap-2 shrink-0">
+                <div class="flex flex-wrap items-center gap-2 shrink-0">
+                  <button onclick="openSessionRecapModal('${s.athleteId || 'ath-1'}', '${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">📝 Log Recap &amp; Send</button>
                   ${s.status !== 'Completed' && s.status !== 'Canceled'
-                    ? `<button onclick="completeSession('${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Check In</button>`
-                    : `<span class="px-3 py-1.5 rounded-xl bg-[#D6DFE2] text-[#010101] text-xs font-extrabold">${s.status}</span>`
+                    ? `<button onclick="completeSession('${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">Check In</button>`
+                    : `<span class="px-2.5 py-1.5 rounded-xl bg-[#D6DFE2] text-[#010101] text-[11px] font-extrabold">${s.status}</span>`
                   }
                   ${s.athleteId ? `<button onclick="jumpToAthlete('${s.athleteId}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">Profile</button>` : ''}
                 </div>
@@ -1655,6 +1758,7 @@
 
     function renderCoachAthletes() {
       const sel = state.athletes.find(a => a.id === state.selectedAthleteId) || state.athletes[0];
+      const recaps = state.sessionRecaps.filter(r => r.athleteId === sel.id);
       return `
         <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
           ${state.athletes.map(a => {
@@ -1669,47 +1773,270 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          <div class="lg:col-span-5 card-mist rounded-[28px] p-6 space-y-4">
-            <div class="flex items-center justify-between">
-              <span class="px-3 py-1 rounded-full bg-white text-[#010101] text-xs font-extrabold">${sel.ageGroup} • Class of ${sel.gradYear}</span>
-              <span class="text-xs font-extrabold">${sel.waiverSigned ? 'Waiver ✓' : 'Waiver Pending'}</span>
-            </div>
-            <div>
-              <div class="text-2xl font-extrabold">${sel.name}</div>
-              <div class="text-xs text-[var(--text-muted)]">${sel.position} • B/T: ${sel.batsThrows}</div>
-            </div>
-            <div class="p-4 rounded-2xl bg-white dark:bg-[#15191E] flex items-end justify-between">
-              <div>
-                <div class="text-[11px] text-[var(--text-muted)] font-bold">${sel.primaryMetricLabel}</div>
-                <div class="text-3xl font-extrabold tabular-nums mt-0.5">${sel.primaryMetricValue} <span class="text-xs">${sel.primaryMetricUnit}</span></div>
+          <!-- Left: Athlete Card + PR + Safety -->
+          <div class="lg:col-span-5 space-y-4">
+            <div class="card-mist rounded-[28px] p-6 space-y-4">
+              <div class="flex items-center justify-between">
+                <span class="px-3 py-1 rounded-full bg-white text-[#010101] text-xs font-extrabold">${sel.ageGroup} • Class of ${sel.gradYear}</span>
+                <span class="text-xs font-extrabold">${sel.waiverSigned ? 'Waiver ✓' : 'Waiver Pending'}</span>
               </div>
-              <button onclick="openAddMetricModal('${sel.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Log PR</button>
+              <div>
+                <div class="text-2xl font-extrabold">${sel.name}</div>
+                <div class="text-xs text-[var(--text-muted)]">${sel.position} • B/T: ${sel.batsThrows} • Parent: ${sel.parentName}</div>
+              </div>
+              <div class="p-4 rounded-2xl bg-white dark:bg-[#15191E] flex items-end justify-between">
+                <div>
+                  <div class="text-[11px] text-[var(--text-muted)] font-bold">${sel.primaryMetricLabel}</div>
+                  <div class="text-3xl font-extrabold tabular-nums mt-0.5">${sel.primaryMetricValue} <span class="text-xs">${sel.primaryMetricUnit}</span></div>
+                </div>
+                <button onclick="openAddMetricModal('${sel.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Log PR</button>
+              </div>
+              <div class="text-xs space-y-1">
+                <div><span class="text-[var(--text-muted)]">Emergency:</span> <strong>${sel.emergencyContact}</strong></div>
+                <div><span class="text-[var(--text-muted)]">Medical:</span> <strong>${sel.medicalNotes}</strong></div>
+              </div>
             </div>
-            <div class="text-xs space-y-1">
-              <div><span class="text-[var(--text-muted)]">Emergency:</span> <strong>${sel.emergencyContact}</strong></div>
-              <div><span class="text-[var(--text-muted)]">Medical:</span> <strong>${sel.medicalNotes}</strong></div>
+
+            <!-- Assigned Homework Drills -->
+            <div class="card-white rounded-[28px] p-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <h2 class="text-sm font-extrabold">Homework Drills</h2>
+                <button onclick="openAddDrillModal('${sel.id}')" class="px-3 py-1.5 rounded-xl surface-soft text-xs font-extrabold cursor-pointer">+ Drill</button>
+              </div>
+              <div class="space-y-2">
+                ${sel.drills.map(d => `
+                  <label class="surface-soft rounded-2xl p-3 flex items-center justify-between gap-2 cursor-pointer">
+                    <div class="flex items-center gap-2.5">
+                      <input type="checkbox" ${d.done ? 'checked' : ''} onchange="toggleDrill('${sel.id}','${d.id}')" class="w-4 h-4 accent-[#010101]" />
+                      <div><div class="text-xs font-bold ${d.done ? 'line-through text-[var(--text-muted)]' : ''}">${d.title}</div><div class="text-[11px] text-[var(--text-muted)]">${d.focus}</div></div>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full bg-[#D6DFE2] text-[#010101] text-[10px] font-extrabold shrink-0">${d.reps}</span>
+                  </label>
+                `).join('')}
+              </div>
             </div>
           </div>
 
+          <!-- Right: Session Notes & Video History (Replaces Apple Notes + Manual Texting!) -->
           <div class="lg:col-span-7 card-white rounded-[28px] p-5 space-y-4">
-            <div class="flex items-center justify-between">
-              <h2 class="text-sm font-extrabold">Assigned Homework Drills</h2>
-              <button onclick="openAddDrillModal('${sel.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Assign Drill</button>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 class="text-base font-extrabold tracking-tight">Session Notes &amp; Videos</h2>
+                <p class="text-xs text-[var(--text-muted)]">Replaces Apple Notes — log notes + attach video &amp; send straight to ${sel.parentName}</p>
+              </div>
+              <button onclick="openSessionRecapModal('${sel.id}', null)" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm">
+                📝 + New Recap &amp; Send
+              </button>
             </div>
-            <div class="space-y-2.5">
-              ${sel.drills.map(d => `
-                <label class="surface-soft rounded-2xl p-3.5 flex items-center justify-between gap-3 cursor-pointer">
-                  <div class="flex items-center gap-3">
-                    <input type="checkbox" ${d.done ? 'checked' : ''} onchange="toggleDrill('${sel.id}','${d.id}')" class="w-4 h-4 accent-[#010101]" />
-                    <div><div class="text-sm font-bold ${d.done ? 'line-through text-[var(--text-muted)]' : ''}">${d.title}</div><div class="text-xs text-[var(--text-muted)]">${d.focus}</div></div>
+
+            <div class="space-y-3">
+              ${recaps.length ? recaps.map(r => `
+                <div class="surface-soft rounded-[24px] p-4 space-y-3">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div class="text-xs font-extrabold">${r.date} • ${r.sessionTitle}</div>
+                      <div class="text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-semibold">✓ Sent to ${r.sentTo} (${r.sentAt})</div>
+                    </div>
+                    <div class="flex flex-wrap gap-1">
+                      ${r.tags.map(t => `<span class="px-2 py-0.5 rounded-full card-white text-[10px] font-extrabold">${t}</span>`).join('')}
+                    </div>
                   </div>
-                  <span class="px-2.5 py-1 rounded-full bg-[#D6DFE2] text-[#010101] text-xs font-extrabold">${d.reps}</span>
-                </label>
-              `).join('')}
+                  <p class="text-xs leading-relaxed">${r.note}</p>
+                  <button onclick="openRecapViewerModal('${r.id}')" class="w-full card-white rounded-2xl p-2.5 flex items-center gap-3 text-left cursor-pointer hover:border-[#010101] transition">
+                    <div class="relative w-16 h-12 rounded-xl overflow-hidden shrink-0">
+                      <img src="${r.videoImg}" class="w-full h-full object-cover" />
+                      <div class="absolute inset-0 bg-[#010101]/40 flex items-center justify-center text-[#D5FF5F] text-xs">▶</div>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="text-xs font-extrabold truncate">${r.videoTitle}</div>
+                      <div class="text-[11px] text-[var(--text-muted)]">Attached session video • Tap to preview</div>
+                    </div>
+                  </button>
+                </div>
+              `).join('') : `<div class="p-6 text-center text-xs text-[var(--text-muted)] surface-soft rounded-2xl">No session notes yet. Tap "+ New Recap &amp; Send" after today’s lesson!</div>`}
             </div>
           </div>
         </div>
       `;
+    }
+
+    // =========================================================================
+    // POST-SESSION RECAP COMPOSER (Replaces Apple Notes + Camera Roll + Texting)
+    // =========================================================================
+    let _recapDraftTags = ['Drive Leg', 'Brush Contact'];
+    let _recapDraftVideoUrl = null;
+    let _recapDraftVideoName = null;
+
+    function openSessionRecapModal(athId, sessionId) {
+      const ath = state.athletes.find(a => a.id === athId) || state.athletes[0];
+      const ses = sessionId ? state.sessions.find(s => s.id === sessionId) : null;
+      _recapDraftTags = ath.position.includes('Pitcher') ? ['Drive Leg', 'Brush Contact'] : ['Barrel Path', 'Timing'];
+      _recapDraftVideoUrl = null;
+      _recapDraftVideoName = null;
+      renderRecapComposerModal(ath, ses);
+    }
+
+    function toggleRecapTag(tag, athId, sessionId) {
+      if (_recapDraftTags.includes(tag)) _recapDraftTags = _recapDraftTags.filter(t => t !== tag);
+      else _recapDraftTags.push(tag);
+      const ath = state.athletes.find(a => a.id === athId) || state.athletes[0];
+      const ses = sessionId ? state.sessions.find(s => s.id === sessionId) : null;
+      const existingNote = document.getElementById('recap-note-input')?.value || '';
+      const existingDrill = document.getElementById('recap-drill-input')?.value || '';
+      renderRecapComposerModal(ath, ses, existingNote, existingDrill);
+    }
+
+    function handleRecapVideoFile(input) {
+      const file = input.files?.[0];
+      if (!file) return;
+      _recapDraftVideoUrl = URL.createObjectURL(file);
+      _recapDraftVideoName = file.name;
+      const label = document.getElementById('recap-video-status');
+      if (label) label.textContent = `✓ Attached: ${file.name}`;
+    }
+
+    function renderRecapComposerModal(ath, ses, noteVal = '', drillVal = '') {
+      const allTags = ['Drive Leg', 'Brush Contact', 'Changeup Grip', 'Spin Axis', 'Barrel Path', 'Timing', 'Pop Time', 'Arm Care'];
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Post-Session Recap</div>
+            <h3 class="font-extrabold text-base mt-0.5">${ath.name} (${ath.ageGroup})</h3>
+          </div>
+          <button onclick="closeModal()" class="w-8 h-8 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+
+        <form onsubmit="submitSessionRecap(event, '${ath.id}', '${ses ? ses.id : ''}')" class="space-y-3.5 text-xs">
+          <!-- 1-Tap Focus Tags -->
+          <div>
+            <label class="block text-[var(--text-muted)] font-bold mb-1.5">Quick Focus Tags (Tap to toggle)</label>
+            <div class="flex flex-wrap gap-1.5">
+              ${allTags.map(t => {
+                const on = _recapDraftTags.includes(t);
+                return `<button type="button" onclick="toggleRecapTag('${t}','${ath.id}','${ses ? ses.id : ''}')" class="px-2.5 py-1 rounded-full text-[11px] font-extrabold cursor-pointer transition ${on ? 'bg-[#010101] text-[#D5FF5F]' : 'surface-soft text-[var(--text-muted)]'}">${t}</button>`;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- Session Notes (Apple Notes Replacement) -->
+          <div>
+            <label class="block text-[var(--text-muted)] font-bold mb-1">Session Notes *</label>
+            <textarea id="recap-note-input" name="note" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft leading-relaxed" placeholder="What went well today & what to practice before next lesson..." required>${noteVal}</textarea>
+          </div>
+
+          <!-- Attach Session Video from Camera Roll -->
+          <div class="surface-soft rounded-2xl p-3.5 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-extrabold">🎥 Attach Session Video</span>
+              <span id="recap-video-status" class="text-[11px] font-bold text-[#4E6075] dark:text-[#9AC0D6]">${_recapDraftVideoName ? `✓ ${_recapDraftVideoName}` : 'Demo clip ready'}</span>
+            </div>
+            <label class="block w-full py-2 px-3 rounded-xl card-white text-center font-bold cursor-pointer hover:border-[#010101]">
+              Choose Video from Phone / Computer
+              <input type="file" accept="video/*" onchange="handleRecapVideoFile(this)" class="hidden" />
+            </label>
+          </div>
+
+          <!-- Optional Homework Drill -->
+          <div>
+            <label class="block text-[var(--text-muted)] font-bold mb-1">Add Homework Drill (Optional)</label>
+            <input id="recap-drill-input" name="drill" value="${drillVal}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., 9 o'clock Brush Whip (25 reps)" />
+          </div>
+
+          <!-- Auto-Send to Player & Parent Toggle -->
+          <label class="flex items-center justify-between gap-3 p-3 rounded-2xl card-mist cursor-pointer">
+            <div>
+              <div class="font-extrabold">Message Player &amp; Parent Automatically</div>
+              <div class="text-[11px] text-[var(--text-muted)]">Sends note + video to ${ath.parentName} (${ath.parentPhone})</div>
+            </div>
+            <input type="checkbox" name="sendNow" checked class="w-5 h-5 accent-[#010101]" />
+          </label>
+
+          <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
+            Save Recap &amp; Send to Player →
+          </button>
+        </form>
+      `);
+    }
+
+    function submitSessionRecap(e, athId, sessionId) {
+      e.preventDefault();
+      const ath = state.athletes.find(a => a.id === athId) || state.athletes[0];
+      const ses = sessionId ? state.sessions.find(s => s.id === sessionId) : null;
+      const note = e.target.note.value.trim();
+      const drill = e.target.drill.value.trim();
+      const sendNow = e.target.sendNow.checked;
+      const vidTitle = _recapDraftVideoName || `${ath.name.split(' ')[0]} Session Clip — Today (0:14)`;
+      const vidImg = ath.position.includes('Pitcher') ? 'assets/images/fastpitch-pitcher.jpg' : 'assets/images/fastpitch-hitter.jpg';
+
+      // 1. Save permanently in Session Recaps timeline (replaces Apple Notes!)
+      state.sessionRecaps.unshift({
+        id: 'rec-' + Date.now(),
+        athleteId: ath.id,
+        date: 'Today',
+        sessionTitle: ses ? ses.focus : '1-on-1 Training Session',
+        tags: [..._recapDraftTags],
+        note,
+        videoTitle: vidTitle,
+        videoImg: vidImg,
+        videoUrl: _recapDraftVideoUrl,
+        sentTo: sendNow ? `${ath.parentName} (SMS + App)` : 'Saved Private (Draft)',
+        sentAt: 'Just now'
+      });
+
+      // 2. Also update athlete notes & optional homework drill
+      ath.notes.unshift({ date: 'Today', text: note });
+      if (drill) {
+        ath.drills.unshift({ id: 'd-' + Date.now(), title: drill, reps: '25 reps', focus: _recapDraftTags[0] || 'Session Focus', done: false, img: vidImg });
+      }
+
+      // 3. Mark session completed if launched from a session
+      if (ses) ses.status = 'Completed';
+
+      // 4. Automatically message the parent thread with the recap + video!
+      if (sendNow) {
+        let thread = state.threads.find(t => t.parent === ath.parentName);
+        if (!thread) {
+          thread = { id: 'msg-' + Date.now(), parent: ath.parentName, athletes: ath.name, unread: 0, messages: [] };
+          state.threads.unshift(thread);
+        }
+        thread.messages.push({
+          from: 'coach',
+          time: 'Just now',
+          text: `📝 Session Recap for ${ath.name.split(' ')[0]}: "${note}" 🎥 Video attached: ${vidTitle}`
+        });
+      }
+
+      closeModal();
+      render();
+      showToast(sendNow ? `Recap + Video saved & sent to ${ath.parentName}!` : 'Recap saved to athlete history!');
+    }
+
+    function openRecapViewerModal(recapId) {
+      const r = state.sessionRecaps.find(x => x.id === recapId);
+      if (!r) return;
+      openModal(`
+        <div>
+          <div class="relative bg-[#010101]">
+            ${r.videoUrl
+              ? `<video src="${r.videoUrl}" controls autoplay playsinline class="w-full max-h-64 object-contain"></video>`
+              : `<div class="relative h-52"><img src="${r.videoImg}" class="w-full h-full object-cover" /><div class="absolute inset-0 bg-[#010101]/40 flex flex-col items-center justify-center gap-1.5 text-white"><div class="w-14 h-14 rounded-full bg-[#D5FF5F] text-[#010101] flex items-center justify-center text-lg shadow-xl">▶</div><span class="text-xs font-extrabold">${r.videoTitle}</span></div></div>`
+            }
+            <button onclick="closeModal()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-[#010101]/70 text-white text-xs font-bold cursor-pointer">✕</button>
+          </div>
+          <div class="p-6 space-y-3 bg-[var(--bg-card)]">
+            <div class="flex items-center justify-between gap-2">
+              <span class="px-2.5 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">${r.date}</span>
+              <span class="text-[11px] text-[var(--text-muted)] font-semibold">${r.sentTo}</span>
+            </div>
+            <div class="font-extrabold text-base">${r.sessionTitle}</div>
+            <div class="flex flex-wrap gap-1.5">
+              ${r.tags.map(t => `<span class="px-2.5 py-0.5 rounded-full surface-soft text-[10px] font-extrabold">${t}</span>`).join('')}
+            </div>
+            <p class="text-xs leading-relaxed">${r.note}</p>
+            <button onclick="closeModal()" class="w-full py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Done</button>
+          </div>
+        </div>
+      `, true);
     }
 
     function renderCoachVideo() {
