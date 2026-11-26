@@ -1,0 +1,23 @@
+{
+  "name": "Gina Fuchs Elite Fastpitch",
+  "short_name": "Elite Fastpitch",
+  "description": "Fastpitch softball training app for Gina Fuchs Elite Fastpitch.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#010101",
+  "theme_color": "#010101",
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
