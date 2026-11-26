@@ -386,6 +386,9 @@
       coachScheduleMode: 'bookings', // 'bookings' | 'blocks' | 'classes'
       selectedDay: 'Thu 26',
       selectedAthleteId: 'ath-1',
+      rosterView: 'list', // 'list' | 'detail'
+      rosterSearch: '',
+      rosterFilter: 'all', // 'all' | 'today' | '10U' | '12U' | '14U' | '16U' | '18U' | 'waiver' | 'drafts'
       activeSiblingId: 'ath-1',
       selectedVideoId: 'vid-1',
       videoSpeed: '0.25x',
@@ -876,6 +879,96 @@
         { id: 'msg-2', parent: 'Tricia Vance', athletes: 'Brooklyn', unread: 0, messages: [{ from: 'parent', time: 'Yesterday', text: 'Booking Brooklyn for Thursday & Saturday next week!' }] }
       ]
     };
+
+    // Seed 48 additional realistic Pittsburgh fastpitch athletes (total 52) to reflect Gina's 50+ roster
+    (function seedLargeRoster() {
+      const rosterSeed = [
+        ['Addison Clark', '14U', 2029, 'SS / 2B', 'R / R', 'Pittsburgh Spirit 14U', 'Rachel Clark'],
+        ['Alaina Novak', '12U', 2031, 'OF / Slapper', 'L / L', 'Steel City Cyclones 12U', 'Greg Novak'],
+        ['Alexa Kowalski', '16U', 2027, 'Catcher / 1B', 'R / R', 'Pittsburgh Passion 16U', 'Jen Kowalski'],
+        ['Aubrey Russo', '14U', 2029, '3B / Hitter', 'R / R', 'PA Outlaws 14U', 'Marco Russo'],
+        ['Bella Santoro', '10U', 2033, 'SS / Utility', 'R / R', 'South Hills Storm 10U', 'Lisa Santoro'],
+        ['Brielle Foster', '18U', 2026, 'OF / Hitter', 'L / R', 'Pittsburgh Power 18U', 'Tanya Foster'],
+        ['Camryn Hayes', '14U', 2028, 'Catcher / 3B', 'R / R', 'PA Strikers 14U', 'Brett Hayes'],
+        ['Claire Donovan', '12U', 2030, '2B / Slapper', 'L / R', 'Pittsburgh Riot 12U', 'Megan Donovan'],
+        ['Delaney Brooks', '16U', 2027, 'SS / Hitter', 'R / R', 'Pittsburgh Passion 16U', 'Kelly Brooks'],
+        ['Elena Rossi', '14U', 2029, '1B / Power Hitter', 'R / R', 'Steel City Select 14U', 'Dante Rossi'],
+        ['Ellie Gallagher', '10U', 2033, 'OF / Utility', 'R / R', 'North Allegheny 10U', 'Erin Gallagher'],
+        ['Emerson Price', '16U', 2028, 'OF / Slapper', 'L / L', 'Pittsburgh Spirit 16U', 'Stacy Price'],
+        ['Faith Zimmerman', '12U', 2031, 'Catcher / 2B', 'R / R', 'PA Chaos 12U', 'Amy Zimmerman'],
+        ['Gabriella Conti', '18U', 2026, '3B / 1B', 'R / R', 'Pittsburgh Passion 18U', 'Tina Conti'],
+        ['Gianna DeLuca', '14U', 2029, 'SS / Hitter', 'R / R', 'South Hills Fastpitch 14U', 'Vince DeLuca'],
+        ['Grace Callahan', '12U', 2030, 'OF / Hitter', 'R / R', 'Pittsburgh Power 12U', 'Kate Callahan'],
+        ['Hailey Mercer', '16U', 2027, '2B / Slapper', 'L / R', 'PA Outlaws 16U', 'Dawn Mercer'],
+        ['Hannah Kowal', '14U', 2028, 'Catcher / OF', 'R / R', 'Pittsburgh Riot 14U', 'Chris Kowal'],
+        ['Harper Brooks', '12U', 2031, 'SS / 3B', 'R / R', 'Pittsburgh Passion 12U', 'Kelly Brooks'],
+        ['Isabella Marino', '18U', 2026, '1B / Hitter', 'L / L', 'Pittsburgh Spirit 18U', 'Paula Marino'],
+        ['Jada Washington', '14U', 2029, 'OF / Slapper', 'L / R', 'Steel City Cyclones 14U', 'Monique Washington'],
+        ['Jenna Snyder', '16U', 2027, '3B / SS', 'R / R', 'Pittsburgh Passion 16U', 'Karen Snyder'],
+        ['Jordyn Walsh', '10U', 2032, '2B / Hitter', 'R / R', 'Pine-Richland 10U', 'Sarah Walsh'],
+        ['Kaitlyn Bell', '14U', 2028, 'OF / Hitter', 'R / R', 'PA Strikers 14U', 'Tracy Bell'],
+        ['Kendall Morris', '12U', 2031, 'SS / Utility', 'R / R', 'Pittsburgh Power 12U', 'Jill Morris'],
+        ['Kennedy Shaw', '16U', 2028, 'Catcher / 3B', 'R / R', 'Pittsburgh Spirit 16U', 'Heather Shaw'],
+        ['Kylie Morgan', '14U', 2029, 'SS / 3B', 'R / R', 'Pittsburgh Passion 14U', 'Amanda Morgan'],
+        ['Lainey Cooper', '12U', 2030, 'OF / Slapper', 'L / L', 'PA Chaos 12U', 'Nicole Cooper'],
+        ['Lauren Hoffman', '18U', 2026, '2B / SS', 'R / R', 'Pittsburgh Passion 18U', 'Beth Hoffman'],
+        ['Lexi Patterson', '14U', 2029, '1B / 3B', 'R / R', 'Steel City Select 14U', 'Kim Patterson'],
+        ['Lila Brennan', '10U', 2033, 'Catcher / Utility', 'R / R', 'Mt. Lebanon 10U', 'Julie Brennan'],
+        ['Mackenzie Reed', '16U', 2027, 'OF / Hitter', 'R / R', 'PA Outlaws 16U', 'Carrie Reed'],
+        ['Madelyn Perry', '14U', 2028, 'SS / Slapper', 'L / R', 'Pittsburgh Riot 14U', 'Tara Perry'],
+        ['Makayla Grant', '12U', 2031, '3B / Hitter', 'R / R', 'Pittsburgh Spirit 12U', 'Renee Grant'],
+        ['Mia Lombardi', '16U', 2027, 'Catcher / 1B', 'R / R', 'Pittsburgh Passion 16U', 'Carla Lombardi'],
+        ['Morgan Bennett', '18U', 2026, 'OF / Slapper', 'L / L', 'Pittsburgh Power 18U', 'Wendy Bennett'],
+        ['Natalie Kline', '14U', 2029, '2B / Hitter', 'R / R', 'PA Strikers 14U', 'Denise Kline'],
+        ['Olivia Caruso', '12U', 2030, 'SS / 3B', 'R / R', 'South Hills Storm 12U', 'Angela Caruso'],
+        ['Paige Henderson', '16U', 2028, '1B / Power Hitter', 'R / R', 'Pittsburgh Spirit 16U', 'Michelle Henderson'],
+        ['Peyton Shaffer', '14U', 2029, 'OF / Hitter', 'R / R', 'Pittsburgh Passion 14U', 'Lauren Shaffer'],
+        ['Quinn Gallagher', '10U', 2032, 'SS / 2B', 'R / R', 'North Allegheny 10U', 'Erin Gallagher'],
+        ['Reagan Bauer', '16U', 2027, '3B / Hitter', 'R / R', 'PA Outlaws 16U', 'Kristen Bauer'],
+        ['Riley McCarthy', '12U', 2031, 'OF / Slapper', 'L / R', 'Pittsburgh Riot 12U', 'Shannon McCarthy'],
+        ['Savannah Cole', '14U', 2028, 'Catcher / 3B', 'R / R', 'Steel City Cyclones 14U', 'Melissa Cole'],
+        ['Sienna Ortiz', '14U', 2029, 'OF / Hitter', 'R / R', 'Pittsburgh Passion 14U', 'Lori Ortiz'],
+        ['Sophia Greco', '18U', 2026, 'SS / Hitter', 'R / R', 'Pittsburgh Spirit 18U', 'Maria Greco'],
+        ['Sydney Weaver', '12U', 2030, '1B / 3B', 'R / R', 'PA Chaos 12U', 'Becky Weaver'],
+        ['Zoe Campbell', '16U', 2027, '2B / OF', 'L / R', 'Pittsburgh Power 16U', 'Dana Campbell']
+      ];
+      rosterSeed.forEach((row, i) => {
+        const [name, ageGroup, gradYear, position, batsThrows, team, parentName] = row;
+        const parts = name.split(' ');
+        const initials = (parts[0][0] + parts[1][0]).toUpperCase();
+        const isCatcher = position.toLowerCase().includes('catcher');
+        const isSlapper = position.toLowerCase().includes('slap');
+        const waiverSigned = i % 11 !== 4;
+        state.athletes.push({
+          id: `ath-seed-${i + 5}`,
+          initials,
+          name,
+          familyId: `fam-seed-${i + 5}`,
+          parentName,
+          parentPhone: `(412) 555-${String(1200 + i * 17).slice(0, 4)}`,
+          ageGroup,
+          gradYear,
+          position,
+          batsThrows,
+          team,
+          height: ageGroup === '10U' ? '4\'10"' : ageGroup === '12U' ? '5\'1"' : ageGroup === '14U' ? '5\'5"' : '5\'7"',
+          streakDays: (i % 9) + 1,
+          weeklyReps: 90 + (i % 7) * 25,
+          weeklyDuration: `${1 + (i % 2)}:${String(10 + (i % 4) * 12).padStart(2, '0')} hours`,
+          waiverSigned,
+          waiverDate: waiverSigned ? 'Oct 14, 2026' : null,
+          emergencyContact: `${parentName} — (412) 555-${String(1200 + i * 17).slice(0, 4)}`,
+          medicalNotes: 'None reported',
+          primaryMetricLabel: isCatcher ? 'Pop Time PR' : isSlapper ? 'Home-to-1st' : 'Exit Velo PR',
+          primaryMetricValue: isCatcher ? (1.84 + (i % 5) * 0.04).toFixed(2) : isSlapper ? (2.82 + (i % 5) * 0.05).toFixed(2) : (56 + (i % 13) * 1.1).toFixed(1),
+          primaryMetricUnit: isCatcher || isSlapper ? 'SEC' : 'MPH',
+          primaryMetricDelta: isCatcher ? '-0.05s this fall' : isSlapper ? '-0.06s faster' : `+${(1.5 + (i % 4) * 0.8).toFixed(1)} mph this fall`,
+          pitches: [],
+          notes: [{ date: 'Nov 14', text: 'Great barrel consistency & athletic balance through contact.' }],
+          drills: [{ id: `d-seed-${i}`, title: 'Extensions 3/3/3 & Step Back Tee', reps: '1 bucket • 2-3x/wk', focus: 'Barrel Control', done: i % 2 === 0, img: 'assets/images/fastpitch-hitter.jpg' }]
+        });
+      });
+    })();
 
     const icons = {
       calendar: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
@@ -2852,6 +2945,7 @@
       state.athletes.push(newAth);
       if (state.role === 'coach') {
         state.selectedAthleteId = id;
+        state.rosterView = 'detail';
       } else {
         state.activeSiblingId = id;
       }
@@ -2899,6 +2993,7 @@
       if (state.selectedAthleteId === athId) {
         state.selectedAthleteId = state.athletes[0].id;
       }
+      state.rosterView = 'list';
       if (state.activeSiblingId === athId) {
         const nextFam = state.athletes.find(a => a.familyId === 'fam-1') || state.athletes[0];
         state.activeSiblingId = nextFam.id;
@@ -3044,24 +3139,190 @@
       showToast(`Added ${focus} on ${dayNice} at ${timeNice} to ${ath.name.split(' ')[0]}’s profile!`);
     }
 
+    function getFilteredRosterAthletes() {
+      const q = (state.rosterSearch || '').trim().toLowerCase();
+      const f = state.rosterFilter || 'all';
+      const todayNames = new Set(
+        state.sessions.filter(s => s.dayKey === 'Thu 26' || s.day.includes('Today')).flatMap(s => s.athletes || [])
+      );
+      const todayIds = new Set(
+        state.sessions.filter(s => s.dayKey === 'Thu 26' || s.day.includes('Today')).map(s => s.athleteId).filter(Boolean)
+      );
+      const draftIds = new Set(state.sessionRecaps.filter(r => r.isDraft).map(r => r.athleteId));
+
+      return state.athletes
+        .filter(a => {
+          if (f === 'today' && !(todayIds.has(a.id) || todayNames.has(a.name))) return false;
+          if (f === 'waiver' && a.waiverSigned) return false;
+          if (f === 'drafts' && !draftIds.has(a.id)) return false;
+          if (['10U', '12U', '14U', '16U', '18U'].includes(f) && a.ageGroup !== f) return false;
+          if (q) {
+            const hay = `${a.name} ${a.parentName} ${a.position} ${a.ageGroup} ${a.team || ''}`.toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    function renderRosterRowsHtml() {
+      const list = getFilteredRosterAthletes();
+      if (!list.length) {
+        return `
+          <div class="card-white rounded-[28px] p-8 text-center space-y-2">
+            <div class="text-sm font-extrabold">No athletes match "${state.rosterSearch || state.rosterFilter}"</div>
+            <p class="text-xs text-[var(--text-muted)]">Try clearing your search or switching age group filters.</p>
+            <button onclick="state.rosterSearch=''; state.rosterFilter='all'; render();" class="mt-1 px-4 py-2 rounded-full bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Show All ${state.athletes.length} Athletes</button>
+          </div>
+        `;
+      }
+
+      const draftIds = new Set(state.sessionRecaps.filter(r => r.isDraft).map(r => r.athleteId));
+      // Group alphabetically by first letter
+      const groups = {};
+      list.forEach(a => {
+        const ltr = (a.name[0] || '#').toUpperCase();
+        if (!groups[ltr]) groups[ltr] = [];
+        groups[ltr].push(a);
+      });
+      const letters = Object.keys(groups).sort();
+
+      return `
+        <div class="space-y-4">
+          ${letters.map(ltr => `
+            <div class="space-y-2">
+              <div class="flex items-center gap-2 px-1">
+                <span class="w-6 h-6 rounded-lg bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold inline-flex items-center justify-center">${ltr}</span>
+                <div class="h-px flex-1 bg-[var(--border-subtle)]"></div>
+                <span class="text-[11px] font-bold text-[var(--text-muted)]">${groups[ltr].length}</span>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                ${groups[ltr].map(a => {
+                  const hasDraft = draftIds.has(a.id);
+                  return `
+                    <div onclick="openCoachAthleteDetail('${a.id}')" class="card-white rounded-[22px] p-3.5 flex items-center justify-between gap-2.5 cursor-pointer hover:border-[#010101] transition">
+                      <div class="flex items-center gap-3 min-w-0">
+                        <div class="relative w-10 h-10 rounded-2xl bg-[#010101] text-[#D5FF5F] font-extrabold text-xs flex items-center justify-center shrink-0">
+                          ${a.initials}
+                          ${!a.waiverSigned ? `<span title="Waiver pending" class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 ring-2 ring-white dark:ring-[#15191E]"></span>` : ''}
+                        </div>
+                        <div class="min-w-0">
+                          <div class="flex items-center gap-1.5">
+                            <span class="font-extrabold text-sm truncate">${a.name}</span>
+                            <span class="px-1.5 py-0.5 rounded-md surface-soft text-[10px] font-extrabold shrink-0">${a.ageGroup}</span>
+                            ${hasDraft ? `<span class="px-1.5 py-0.5 rounded-md bg-[#D5FF5F] text-[#010101] text-[9px] font-extrabold shrink-0">DRAFT</span>` : ''}
+                          </div>
+                          <div class="text-xs text-[var(--text-muted)] truncate">${a.position} • ${a.parentName}</div>
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
+                        <span class="hidden sm:inline-block px-2 py-1 rounded-lg surface-soft text-[10px] font-extrabold tabular-nums">${a.primaryMetricValue} ${a.primaryMetricUnit}</span>
+                        <button onclick="openSessionRecapModal('${a.id}', null)" title="Session Notes" class="px-2.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer">Notes</button>
+                        <button onclick="openAddSessionForAthleteModal('${a.id}')" title="Add Session" aria-label="Add session for ${a.name}" class="w-8 h-8 rounded-xl surface-soft text-xs font-extrabold flex items-center justify-center cursor-pointer">+</button>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function updateRosterSearch(val) {
+      state.rosterSearch = val;
+      const box = document.getElementById('roster-list-container');
+      const countEl = document.getElementById('roster-match-count');
+      if (box) box.innerHTML = renderRosterRowsHtml();
+      if (countEl) countEl.textContent = `${getFilteredRosterAthletes().length} of ${state.athletes.length}`;
+    }
+
+    function setRosterFilter(f) {
+      state.rosterFilter = f;
+      render();
+    }
+
+    function openCoachAthleteDetail(id) {
+      state.selectedAthleteId = id;
+      state.rosterView = 'detail';
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     function renderCoachAthletes() {
       const sel = state.athletes.find(a => a.id === state.selectedAthleteId) || state.athletes[0];
+
+      // DIRECTORY MODE (Built for 50+ Athletes!)
+      if (state.rosterView !== 'detail') {
+        const waiverPendingCount = state.athletes.filter(a => !a.waiverSigned).length;
+        const draftCount = new Set(state.sessionRecaps.filter(r => r.isDraft).map(r => r.athleteId)).size;
+        const filters = [
+          { id: 'all', label: `All (${state.athletes.length})` },
+          { id: 'today', label: 'Today' },
+          { id: '10U', label: '10U' },
+          { id: '12U', label: '12U' },
+          { id: '14U', label: '14U' },
+          { id: '16U', label: '16U' },
+          { id: '18U', label: '18U' },
+          { id: 'waiver', label: `Waiver Pending (${waiverPendingCount})` },
+          ...(draftCount ? [{ id: 'drafts', label: `Drafts (${draftCount})` }] : [])
+        ];
+        const filteredCount = getFilteredRosterAthletes().length;
+
+        return `
+          <div class="space-y-4">
+            <!-- Roster Header -->
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h1 class="text-2xl font-extrabold tracking-tight">Athlete Roster</h1>
+                <p class="text-xs text-[var(--text-muted)]"><span id="roster-match-count">${filteredCount} of ${state.athletes.length}</span> active players • Tap any athlete for full profile, PRs &amp; notes</p>
+              </div>
+              <button onclick="openAddAthleteModal(null)" class="px-4 py-2.5 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition">
+                + Add Athlete
+              </button>
+            </div>
+
+            <!-- Instant Search + Filter Pills -->
+            <div class="card-mist rounded-[26px] p-3.5 space-y-3">
+              <div class="relative">
+                <svg class="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M20 20l-3.5-3.5"/></svg>
+                <input
+                  type="search"
+                  value="${(state.rosterSearch || '').replace(/"/g, '&quot;')}"
+                  oninput="updateRosterSearch(this.value)"
+                  placeholder="Search ${state.athletes.length} athletes by name, parent, position, or team…"
+                  class="w-full pl-10 pr-4 py-2.5 rounded-2xl card-white text-[16px] sm:text-sm font-medium"
+                />
+              </div>
+              <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                ${filters.map(f => {
+                  const on = state.rosterFilter === f.id;
+                  return `<button onclick="setRosterFilter('${f.id}')" class="px-3 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap shrink-0 cursor-pointer transition ${on ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'card-white text-[var(--text-muted)]'}">${f.label}</button>`;
+                }).join('')}
+              </div>
+            </div>
+
+            <!-- A-Z Grouped Roster List -->
+            <div id="roster-list-container">
+              ${renderRosterRowsHtml()}
+            </div>
+          </div>
+        `;
+      }
+
+      // PLAYER DETAIL MODE
       const recaps = state.sessionRecaps.filter(r => r.athleteId === sel.id);
       const athSessions = state.sessions.filter(s => s.athleteId === sel.id || (s.athletes && s.athletes.includes(sel.name)));
       return `
-        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-          <button onclick="openAddAthleteModal(null)" class="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold shrink-0 cursor-pointer shadow-sm hover:brightness-95 transition">
-            <span>+ Add Athlete</span>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <button onclick="state.rosterView='list'; render();" class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-full card-white text-xs font-extrabold cursor-pointer">
+            ← All Athletes (${state.athletes.length})
           </button>
-          ${state.athletes.map(a => {
-            const active = a.id === sel.id;
-            return `
-              <button onclick="state.selectedAthleteId='${a.id}'; render();" class="flex items-center gap-2.5 px-4 py-2.5 rounded-full border shrink-0 cursor-pointer transition ${active ? 'bg-[#010101] text-[#D5FF5F] border-[#010101]' : 'card-white'}">
-                <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold ${active ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#D6DFE2] text-[#010101]'}">${a.initials}</span>
-                <span class="text-xs font-extrabold">${a.name}</span>
-              </button>
-            `;
-          }).join('')}
+          <div class="flex items-center gap-2">
+            <button onclick="openAddSessionForAthleteModal('${sel.id}')" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer">+ Add Session</button>
+            <button onclick="openSessionRecapModal('${sel.id}', null)" class="px-3.5 py-2 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm">${uiIcon('note')} New Notes</button>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
@@ -3973,7 +4234,7 @@
     function completeSession(id) { const s = state.sessions.find(x => x.id === id); if (s) s.status = 'Completed'; render(); showToast('Session checked in!'); }
     function cancelSessionParent(id) { const s = state.sessions.find(x => x.id === id); if (s) s.status = 'Canceled'; state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits += 1); render(); showToast('Session canceled (>24h notice — no fee).'); }
     function notifyWaitlist(id) { state.waitlist.find(x => x.id === id).status = 'Notified'; render(); showToast('Waitlist SMS sent!'); }
-    function jumpToAthlete(id) { state.selectedAthleteId = id; state.coachTab = 'athletes'; render(); }
+    function jumpToAthlete(id) { state.selectedAthleteId = id; state.rosterView = 'detail'; state.coachTab = 'athletes'; render(); }
     function toggleDrill(a, d) { const dr = state.athletes.find(x => x.id === a).drills.find(x => x.id === d); dr.done = !dr.done; render(); showToast(dr.done ? 'Drill completed!' : 'Drill unchecked.'); }
     function markVideoReviewed(id) { state.videos.find(x => x.id === id).status = 'Reviewed'; render(); showToast('Marked reviewed & notified parent!'); }
     function addVideoCue(e, id) { e.preventDefault(); state.videos.find(x => x.id === id).cues.push({ time: e.target.time.value, pct: 60, note: e.target.note.value }); render(); showToast('Cue added!'); }
