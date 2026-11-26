@@ -275,6 +275,82 @@
       activeThreadId: 'msg-1',
       repPickerVal: 20,
 
+      // Cal.com-Style Booking Engine State
+      cal: {
+        step: 'calendar', // 'calendar' | 'details' | 'confirmed'
+        eventTypeId: 'evt-pitch',
+        year: 2026,
+        month: 10, // 0-indexed: 10 = Nov 2026, 11 = Dec 2026
+        selectedDate: '2026-11-27',
+        selectedTime: null,
+        timeFormat: '12h',
+        timezone: 'America/Los_Angeles',
+        payMode: 'credit',
+        lastBooking: null,
+        bookedSlots: ['2026-11-26@16:00', '2026-11-26@17:00', '2026-11-27@16:30'],
+        availability: {
+          days: [1, 2, 3, 4, 5, 6], // Mon-Sat open, Sun off
+          bufferMin: 15,
+          minNoticeHours: 24,
+          weekdaySlots: ['15:30', '16:30', '17:30', '18:30', '19:30'],
+          saturdaySlots: ['09:00', '10:00', '11:00', '13:00', '14:00']
+        },
+        eventTypes: [
+          {
+            id: 'evt-pitch',
+            slug: 'pitching-45',
+            type: '1-on-1 Private',
+            title: '1-on-1 Pitching Private',
+            duration: 45,
+            durationLabel: '45m',
+            price: 75,
+            allowCredit: true,
+            location: 'Gina Fuchs Elite Facility • Cage 1',
+            desc: 'Windmill mechanics, spin axis, changeup & velocity progression with video cues.',
+            img: 'assets/images/fastpitch-pitcher.jpg'
+          },
+          {
+            id: 'evt-hit',
+            slug: 'hitting-45',
+            type: '1-on-1 Private',
+            title: '1-on-1 Hitting / Catching',
+            duration: 45,
+            durationLabel: '45m',
+            price: 75,
+            allowCredit: true,
+            location: 'Gina Fuchs Elite Facility • Cage 1',
+            desc: 'Swing path, exit velo, slapping footwork or catcher pop-time & framing.',
+            img: 'assets/images/fastpitch-hitter.jpg'
+          },
+          {
+            id: 'evt-group',
+            slug: 'small-group-60',
+            type: 'Small Group',
+            title: 'Small Group Lab (2–6 Players)',
+            duration: 60,
+            durationLabel: '60m',
+            price: 45,
+            allowCredit: false,
+            location: 'Gina Fuchs Elite Facility • Turf Cage',
+            desc: 'High-energy competitive reps capped at 6 players per session.',
+            img: 'assets/images/fastpitch-hitter.jpg'
+          },
+          {
+            id: 'evt-clinic',
+            slug: 'winter-clinic',
+            type: 'Camp / Clinic',
+            title: 'Winter Velocity & Spin Clinic',
+            duration: 180,
+            durationLabel: '3h',
+            price: 95,
+            allowCredit: false,
+            location: 'Gina Fuchs Elite Facility • Main Indoor',
+            desc: 'Intensive 3-hour weekend workshop covering velocity, spin & arm care.',
+            img: 'assets/images/fastpitch-recovery.jpg'
+          }
+        ]
+      },
+
       weekDays: [
         { key: 'Thu 26', dow: 'THU', num: '26', dot: true },
         { key: 'Fri 27', dow: 'FRI', num: '27', dot: true },
@@ -947,51 +1023,455 @@
       `, true);
     }
 
+    // =========================================================================
+    // CAL.COM-STYLE BOOKING ENGINE (3-Column Calendar + Slots + Details + .ICS)
+    // =========================================================================
+    function calFormatTime(hhmm) {
+      if (state.cal.timeFormat === '24h') return hhmm;
+      const [hStr, m] = hhmm.split(':');
+      const h = parseInt(hStr, 10);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const h12 = h % 12 === 0 ? 12 : h % 12;
+      return `${h12}:${m} ${ampm}`;
+    }
+
+    function calDateLabel(iso) {
+      const [y, m, d] = iso.split('-').map(Number);
+      const dt = new Date(y, m - 1, d);
+      return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+
+    function calGetSlotsForDate(iso) {
+      const [y, m, d] = iso.split('-').map(Number);
+      const dt = new Date(y, m - 1, d);
+      const dow = dt.getDay(); // 0=Sun..6=Sat
+      if (!state.cal.availability.days.includes(dow)) return [];
+      const evt = state.cal.eventTypes.find(e => e.id === state.cal.eventTypeId) || state.cal.eventTypes[0];
+      if (evt.id === 'evt-clinic') {
+        return dow === 6 ? ['09:00'] : [];
+      }
+      const base = dow === 6 ? state.cal.availability.saturdaySlots : state.cal.availability.weekdaySlots;
+      return base.filter(t => !state.cal.bookedSlots.includes(`${iso}@${t}`));
+    }
+
+    function calChangeMonth(delta) {
+      state.cal.month += delta;
+      if (state.cal.month > 11) { state.cal.month = 0; state.cal.year += 1; }
+      if (state.cal.month < 0) { state.cal.month = 11; state.cal.year -= 1; }
+      render();
+    }
+
+    function calSelectEvent(id) {
+      state.cal.eventTypeId = id;
+      state.cal.step = 'calendar';
+      state.cal.selectedTime = null;
+      const evt = state.cal.eventTypes.find(e => e.id === id);
+      const ath = state.athletes.find(a => a.id === state.activeSiblingId);
+      state.cal.payMode = (evt?.allowCredit && ath?.credits > 0) ? 'credit' : 'card';
+      if (id === 'evt-clinic') state.cal.selectedDate = '2026-11-28';
+      render();
+    }
+
+    function calSelectDate(iso) {
+      state.cal.selectedDate = iso;
+      state.cal.selectedTime = null;
+      render();
+    }
+
+    function calConfirmBooking(e) {
+      e.preventDefault();
+      const evt = state.cal.eventTypes.find(x => x.id === state.cal.eventTypeId);
+      const ath = state.athletes.find(x => x.id === state.activeSiblingId);
+      const focusNote = e.target.notes.value.trim();
+      const payMode = state.cal.payMode;
+      const iso = state.cal.selectedDate;
+      const time24 = state.cal.selectedTime;
+      const timeDisplay = calFormatTime(time24);
+      const dayNice = calDateLabel(iso);
+
+      // Conflict protection: mark slot booked so it cannot be double-booked
+      state.cal.bookedSlots.push(`${iso}@${time24}`);
+
+      if (payMode === 'credit' && evt.allowCredit && ath.credits > 0) {
+        state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits = Math.max(0, a.credits - 1));
+      } else {
+        state.payments.unshift({
+          id: 'pay-' + Date.now(),
+          date: 'Today',
+          family: 'Miller Family',
+          item: `${evt.title} (${dayNice})`,
+          amount: evt.price,
+          method: 'Stripe • Apple Pay'
+        });
+      }
+
+      const dayParts = dayNice.split(', ');
+      const shortDayKey = dayParts[0] + ' ' + iso.split('-')[2].replace(/^0/, '');
+      state.sessions.unshift({
+        id: 'ses-' + Date.now(),
+        dayKey: shortDayKey,
+        day: dayNice,
+        time: timeDisplay,
+        duration: evt.durationLabel.toUpperCase(),
+        type: evt.type,
+        focus: focusNote ? `${evt.title} — ${focusNote}` : evt.title,
+        athletes: [ath.name],
+        athleteId: ath.id,
+        spotsMax: evt.type === '1-on-1 Private' ? 1 : 6,
+        status: 'Confirmed',
+        payment: payMode === 'credit' && evt.allowCredit ? '1 Credit' : `Stripe Paid ($${evt.price})`,
+        price: evt.price,
+        img: evt.img
+      });
+
+      state.cal.lastBooking = {
+        evt,
+        athName: ath.name,
+        parentName: e.target.parentName.value,
+        email: e.target.email.value,
+        phone: e.target.phone.value,
+        notes: focusNote,
+        iso,
+        dayNice,
+        time24,
+        timeDisplay,
+        payLabel: payMode === 'credit' && evt.allowCredit ? '1 Package Credit' : `$${evt.price} (Stripe)`
+      };
+      state.cal.step = 'confirmed';
+      render();
+      showToast(`Confirmed ${evt.title} for ${dayNice} at ${timeDisplay}!`);
+    }
+
+    function downloadIcs() {
+      const b = state.cal.lastBooking;
+      if (!b) return;
+      const dtStart = b.iso.replace(/-/g, '') + 'T' + b.time24.replace(':', '') + '00';
+      const [h, m] = b.time24.split(':').map(Number);
+      const endMins = h * 60 + m + b.evt.duration;
+      const eh = String(Math.floor(endMins / 60)).padStart(2, '0');
+      const em = String(endMins % 60).padStart(2, '0');
+      const dtEnd = b.iso.replace(/-/g, '') + 'T' + eh + em + '00';
+      const ics = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Gina Fuchs Elite Fastpitch//Booking//EN',
+        'BEGIN:VEVENT',
+        `DTSTART:${dtStart}`,
+        `DTEND:${dtEnd}`,
+        `SUMMARY:${b.evt.title} — ${b.athName} w/ Coach Gina`,
+        `LOCATION:${b.evt.location}`,
+        `DESCRIPTION:Athlete: ${b.athName}\\nNotes: ${b.notes || 'Fastpitch training session'}\\n24-hour cancellation policy applies.`,
+        'END:VEVENT',
+        'END:VCALENDAR'
+      ].join('\r\n');
+      const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gina-fuchs-${b.evt.slug}-${b.iso}.ics`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast('Calendar invite (.ics) downloaded!');
+    }
+
+    function copyCalLink(slug = '') {
+      const url = `https://mikebianchini.github.io/Gfuchselite/#book/${slug}`;
+      if (navigator.clipboard) navigator.clipboard.writeText(url).catch(() => {});
+      showToast(`Copied booking link: ${url}`);
+    }
+
     function renderParentBook() {
       const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
-      const filters = ['all', '1-on-1 Private', 'Small Group', 'Camp / Clinic'];
-      const slots = state.openSlots.filter(s => state.bookingFilter === 'all' || s.type === state.bookingFilter);
+      const evt = state.cal.eventTypes.find(e => e.id === state.cal.eventTypeId) || state.cal.eventTypes[0];
+
+      // STEP 3: CONFIRMED SCREEN (Cal.com style)
+      if (state.cal.step === 'confirmed' && state.cal.lastBooking) {
+        const b = state.cal.lastBooking;
+        return `
+          ${renderSiblingBar()}
+          <div class="card-white rounded-[32px] p-6 sm:p-8 max-w-xl mx-auto text-center space-y-5">
+            <div class="w-16 h-16 rounded-full bg-[#D5FF5F] text-[#010101] mx-auto flex items-center justify-center text-2xl font-extrabold shadow-lg">✓</div>
+            <div class="space-y-1">
+              <h1 class="text-2xl font-extrabold tracking-tight">This session is scheduled!</h1>
+              <p class="text-xs text-[var(--text-muted)]">Confirmation &amp; 24-hour SMS reminder sent to <strong>${b.phone}</strong> &amp; <strong>${b.email}</strong>.</p>
+            </div>
+            <div class="surface-soft rounded-3xl p-5 text-left space-y-2.5 text-xs">
+              <div class="flex justify-between gap-2"><span class="text-[var(--text-muted)] font-semibold">What</span><span class="font-extrabold text-right">${b.evt.title}</span></div>
+              <div class="flex justify-between gap-2"><span class="text-[var(--text-muted)] font-semibold">When</span><span class="font-extrabold text-right">${b.dayNice} • ${b.timeDisplay} (${b.evt.durationLabel})</span></div>
+              <div class="flex justify-between gap-2"><span class="text-[var(--text-muted)] font-semibold">Athlete</span><span class="font-extrabold text-right">${b.athName}</span></div>
+              <div class="flex justify-between gap-2"><span class="text-[var(--text-muted)] font-semibold">Where</span><span class="font-extrabold text-right">${b.evt.location}</span></div>
+              <div class="flex justify-between gap-2"><span class="text-[var(--text-muted)] font-semibold">Payment</span><span class="font-extrabold text-right">${b.payLabel}</span></div>
+              ${b.notes ? `<div class="pt-2 border-t border-[var(--border-subtle)]"><span class="text-[var(--text-muted)] font-semibold">Focus Notes:</span> <span class="font-medium">${b.notes}</span></div>` : ''}
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <button onclick="downloadIcs()" class="py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">📅 Add to Calendar (.ics)</button>
+              <button onclick="state.cal.step='calendar'; state.cal.selectedTime=null; render();" class="py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Book Another Session</button>
+            </div>
+            <button onclick="setTab('home')" class="text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">← Back to Training Hub</button>
+          </div>
+        `;
+      }
+
+      // Event Type Pill Strip (Cal.com Event Types)
+      const eventStrip = `
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          ${state.cal.eventTypes.map(t => {
+            const active = t.id === evt.id;
+            return `
+              <button onclick="calSelectEvent('${t.id}')" class="text-left p-4 rounded-[24px] transition cursor-pointer ${active ? 'bg-[#010101] text-white shadow-xl' : 'card-white hover:-translate-y-0.5'}">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${active ? 'bg-[#D5FF5F] text-[#010101]' : 'surface-soft'}">${t.durationLabel}</span>
+                  <span class="text-xs font-extrabold tabular-nums">${t.allowCredit ? `$${t.price} / 1 cr` : `$${t.price}`}</span>
+                </div>
+                <div class="font-extrabold text-sm mt-2">${t.title}</div>
+                <div class="text-[11px] mt-0.5 ${active ? 'text-[#D6DFE2]' : 'text-[var(--text-muted)]'}">${t.type}</div>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      `;
+
+      // STEP 2: DETAILS & PAYMENT FORM
+      if (state.cal.step === 'details' && state.cal.selectedTime) {
+        const canCredit = evt.allowCredit && ath.credits > 0;
+        return `
+          ${renderSiblingBar()}
+          <div class="card-white rounded-[32px] overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+            <!-- Left Summary -->
+            <div class="lg:col-span-5 card-mist p-6 space-y-4">
+              <button onclick="state.cal.step='calendar'; render();" class="text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">← Change Date / Time</button>
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-[#010101] text-[#D5FF5F] font-extrabold text-xs flex items-center justify-center">GF</div>
+                <div><div class="text-xs text-[var(--text-muted)] font-bold">Gina Fuchs</div><div class="font-extrabold text-base">${evt.title}</div></div>
+              </div>
+              <div class="space-y-2 text-xs font-semibold">
+                <div class="flex items-center gap-2"><span>📅</span><span>${calDateLabel(state.cal.selectedDate)} • ${calFormatTime(state.cal.selectedTime)}</span></div>
+                <div class="flex items-center gap-2"><span>⏱️</span><span>${evt.duration} minutes</span></div>
+                <div class="flex items-center gap-2"><span>📍</span><span>${evt.location}</span></div>
+                <div class="flex items-center gap-2"><span>🌎</span><span>${state.cal.timezone.replace('_', ' ')}</span></div>
+              </div>
+              <div class="p-3.5 rounded-2xl surface-soft text-[11px] text-[var(--text-muted)] leading-relaxed">
+                <strong>24-Hour Cancellation Policy:</strong> Cancel or reschedule 24+ hours ahead to automatically return your credit.
+              </div>
+            </div>
+
+            <!-- Right Form -->
+            <form onsubmit="calConfirmBooking(event)" class="lg:col-span-7 p-6 space-y-4 text-xs">
+              <h2 class="text-lg font-extrabold tracking-tight">Confirm your booking</h2>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[var(--text-muted)] font-bold mb-1">Parent / Guardian Name *</label>
+                  <input name="parentName" value="${ath.parentName}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
+                </div>
+                <div>
+                  <label class="block text-[var(--text-muted)] font-bold mb-1">Athlete</label>
+                  <input value="${ath.name} (${ath.ageGroup})" readonly class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold opacity-80" />
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[var(--text-muted)] font-bold mb-1">Email for Calendar Invite *</label>
+                  <input name="email" type="email" value="sarah.miller@example.com" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
+                </div>
+                <div>
+                  <label class="block text-[var(--text-muted)] font-bold mb-1">Mobile Phone (SMS Reminders) *</label>
+                  <input name="phone" value="${ath.parentPhone}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
+                </div>
+              </div>
+              <div>
+                <label class="block text-[var(--text-muted)] font-bold mb-1">What should Coach Gina focus on? (Optional)</label>
+                <textarea name="notes" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., Flip changeup grip, inside pitch mechanics, pre-tournament tune-up..."></textarea>
+              </div>
+              <div>
+                <label class="block text-[var(--text-muted)] font-bold mb-1.5">Payment Method</label>
+                <div class="grid grid-cols-2 gap-2.5">
+                  ${canCredit ? `
+                    <button type="button" onclick="state.cal.payMode='credit'; render();" class="p-3 rounded-2xl border text-left cursor-pointer transition ${state.cal.payMode === 'credit' ? 'bg-[#010101] text-[#D5FF5F] border-[#010101]' : 'surface-soft'}">
+                      <div class="font-extrabold">Use 1 Credit</div>
+                      <div class="text-[11px] opacity-80">${ath.credits} credits available</div>
+                    </button>
+                  ` : ''}
+                  <button type="button" onclick="state.cal.payMode='card'; render();" class="p-3 rounded-2xl border text-left cursor-pointer transition ${state.cal.payMode === 'card' || !canCredit ? 'bg-[#010101] text-[#D5FF5F] border-[#010101]' : 'surface-soft'}">
+                    <div class="font-extrabold">Pay $${evt.price}</div>
+                    <div class="text-[11px] opacity-80">Stripe • Card / Apple Pay</div>
+                  </button>
+                </div>
+              </div>
+              <label class="flex items-center gap-2 cursor-pointer pt-1">
+                <input type="checkbox" checked required class="w-4 h-4 accent-[#010101]" />
+                <span class="text-[11px] text-[var(--text-muted)]">I agree to the 24-hour reschedule &amp; cancellation policy.</span>
+              </label>
+              <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
+                Confirm Booking →
+              </button>
+            </form>
+          </div>
+        `;
+      }
+
+      // STEP 1: CLASSIC CAL.COM 3-COLUMN SCHEDULER
+      const year = state.cal.year;
+      const month = state.cal.month;
+      const monthName = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const firstDow = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const availableSlots = calGetSlotsForDate(state.cal.selectedDate);
+
+      let calendarCells = '';
+      for (let i = 0; i < firstDow; i++) calendarCells += `<div></div>`;
+      for (let day = 1; day <= daysInMonth; day++) {
+        const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const isPast = (year === 2026 && month === 10 && day < 26);
+        const slots = isPast ? [] : calGetSlotsForDate(iso);
+        const hasSlots = slots.length > 0;
+        const isSelected = iso === state.cal.selectedDate;
+        calendarCells += `
+          <button ${!hasSlots ? 'disabled' : `onclick="calSelectDate('${iso}')"`} class="aspect-square rounded-2xl flex flex-col items-center justify-center text-xs font-extrabold transition ${
+            isSelected
+              ? 'bg-[#010101] text-[#D5FF5F] shadow-md cursor-pointer'
+              : hasSlots
+                ? 'surface-soft hover:bg-[#D5FF5F] hover:text-[#010101] cursor-pointer'
+                : 'opacity-30 cursor-not-allowed'
+          }">
+            <span>${day}</span>
+            ${hasSlots ? `<span class="w-1 h-1 rounded-full mt-0.5 ${isSelected ? 'bg-[#D5FF5F]' : 'bg-[#4E6075] dark:bg-[#9AC0D6]'}"></span>` : ''}
+          </button>
+        `;
+      }
 
       return `
         ${renderSiblingBar()}
-        <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h1 class="text-2xl font-extrabold tracking-tight">Book Live Sessions &amp; Clinics</h1>
-            <p class="text-xs text-[var(--text-muted)]">Use package credits or reserve with Card / Apple Pay</p>
+            <h1 class="text-2xl font-extrabold tracking-tight">Book a Session</h1>
+            <p class="text-xs text-[var(--text-muted)]">Pick a training type, choose an open date &amp; time, and lock in your cage slot</p>
           </div>
-          <div class="flex flex-wrap gap-1.5">
-            ${filters.map(f => `
-              <button onclick="state.bookingFilter='${f}'; render();" class="px-3.5 py-2 rounded-full text-xs font-extrabold cursor-pointer transition ${state.bookingFilter === f ? 'bg-[#010101] text-[#D5FF5F]' : 'card-white text-[var(--text-muted)]'}">
-                ${f === 'all' ? 'All' : f}
-              </button>
-            `).join('')}
-          </div>
+          <button onclick="copyCalLink('${evt.slug}')" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer">🔗 Copy Booking Link</button>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-          ${slots.map(s => `
-            <div class="card-white rounded-[28px] overflow-hidden flex flex-col justify-between">
-              <div class="relative h-44">
-                <img src="${s.img}" alt="${s.focus}" class="w-full h-full object-cover" />
-                <div class="absolute inset-0 bg-gradient-to-t from-[#010101]/80 via-[#010101]/20 to-transparent"></div>
-                <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#010101]/80 text-[#D5FF5F] text-[10px] font-extrabold">${s.duration} • ${s.type}</span>
-                <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white text-[#010101] text-[10px] font-extrabold">${s.spotsLeft} ${s.spotsLeft === 1 ? 'spot' : 'spots'} left</span>
-                <div class="absolute bottom-3 left-4 right-4 text-white">
-                  <div class="font-extrabold text-base">${s.focus}</div>
-                  <div class="text-xs text-[#D6DFE2]">${s.day} • ${s.time}</div>
+        ${eventStrip}
+
+        <!-- Cal.com 3-Column Liquid Glass Booking Card -->
+        <div class="card-white rounded-[32px] overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+          <!-- Col 1: Event Details & Timezone -->
+          <div class="lg:col-span-4 card-mist p-5 sm:p-6 flex flex-col justify-between gap-5">
+            <div class="space-y-4">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-[#010101] text-[#D5FF5F] font-extrabold text-xs flex items-center justify-center shrink-0">GF</div>
+                <div>
+                  <div class="text-xs text-[var(--text-muted)] font-bold">Gina Fuchs</div>
+                  <div class="font-extrabold text-base leading-tight">${evt.title}</div>
                 </div>
               </div>
-              <div class="p-4 flex items-center justify-between gap-2">
-                <div class="text-base font-extrabold tabular-nums">$${s.price}</div>
-                <div class="flex items-center gap-2">
-                  ${s.type === '1-on-1 Private' && ath.credits > 0 ? `<button onclick="bookSlot('${s.id}','credit')" class="px-4 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Use 1 Credit</button>` : ''}
-                  <button onclick="bookSlot('${s.id}','card')" class="px-4 py-2 rounded-xl bg-[#010101] text-white text-xs font-extrabold cursor-pointer">Pay $${s.price}</button>
-                </div>
+              <p class="text-xs text-[var(--text-muted)] leading-relaxed">${evt.desc}</p>
+              <div class="space-y-2 text-xs font-semibold">
+                <div class="flex items-center gap-2"><span>⏱️</span><span>${evt.durationLabel} (${evt.duration} min)</span></div>
+                <div class="flex items-center gap-2"><span>📍</span><span>${evt.location}</span></div>
+                <div class="flex items-center gap-2"><span>💳</span><span>$${evt.price} ${evt.allowCredit ? 'or 1 Package Credit' : 'Flat Fee'}</span></div>
               </div>
             </div>
-          `).join('')}
+            <div>
+              <label class="block text-[11px] font-bold text-[var(--text-muted)] mb-1">Timezone</label>
+              <select onchange="state.cal.timezone=this.value; render();" class="w-full px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">
+                <option value="America/Los_Angeles" ${state.cal.timezone === 'America/Los_Angeles' ? 'selected' : ''}>🌎 America/Los Angeles (PST)</option>
+                <option value="America/Denver" ${state.cal.timezone === 'America/Denver' ? 'selected' : ''}>🌎 America/Denver (MST)</option>
+                <option value="America/Chicago" ${state.cal.timezone === 'America/Chicago' ? 'selected' : ''}>🌎 America/Chicago (CST)</option>
+                <option value="America/New_York" ${state.cal.timezone === 'America/New_York' ? 'selected' : ''}>🌎 America/New York (EST)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Col 2: Interactive Month Calendar -->
+          <div class="lg:col-span-5 p-5 sm:p-6 border-b lg:border-b-0 lg:border-r border-[var(--border-subtle)] space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="font-extrabold text-sm">${monthName}</h2>
+              <div class="flex items-center gap-1.5">
+                <button onclick="calChangeMonth(-1)" class="w-8 h-8 rounded-full surface-soft font-bold text-xs cursor-pointer">‹</button>
+                <button onclick="calChangeMonth(1)" class="w-8 h-8 rounded-full surface-soft font-bold text-xs cursor-pointer">›</button>
+              </div>
+            </div>
+            <div class="grid grid-cols-7 gap-1.5 text-center text-[10px] font-extrabold text-[var(--text-muted)] uppercase">
+              <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+            </div>
+            <div class="grid grid-cols-7 gap-1.5">
+              ${calendarCells}
+            </div>
+          </div>
+
+          <!-- Col 3: Time Slots + 12h/24h Toggle -->
+          <div class="lg:col-span-3 p-5 sm:p-6 space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <div class="font-extrabold text-sm">${calDateLabel(state.cal.selectedDate)}</div>
+              <div class="flex p-0.5 rounded-full surface-soft text-[10px] font-extrabold">
+                <button onclick="state.cal.timeFormat='12h'; render();" class="px-2 py-0.5 rounded-full cursor-pointer ${state.cal.timeFormat === '12h' ? 'bg-[#010101] text-[#D5FF5F]' : 'text-[var(--text-muted)]'}">12h</button>
+                <button onclick="state.cal.timeFormat='24h'; render();" class="px-2 py-0.5 rounded-full cursor-pointer ${state.cal.timeFormat === '24h' ? 'bg-[#010101] text-[#D5FF5F]' : 'text-[var(--text-muted)]'}">24h</button>
+              </div>
+            </div>
+            <div class="space-y-2 max-h-72 overflow-y-auto no-scrollbar pr-0.5">
+              ${availableSlots.length ? availableSlots.map(t => {
+                const selected = state.cal.selectedTime === t;
+                return selected ? `
+                  <div class="grid grid-cols-2 gap-1.5">
+                    <button onclick="state.cal.selectedTime=null; render();" class="py-2.5 rounded-2xl bg-[#010101] text-white text-xs font-extrabold cursor-pointer">${calFormatTime(t)}</button>
+                    <button onclick="state.cal.step='details'; render();" class="py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Next →</button>
+                  </div>
+                ` : `
+                  <button onclick="state.cal.selectedTime='${t}'; render();" class="w-full py-2.5 px-3 rounded-2xl surface-soft hover:border-[#010101] text-xs font-extrabold flex items-center justify-center gap-2 cursor-pointer transition">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#22c55e]"></span>
+                    <span>${calFormatTime(t)}</span>
+                  </button>
+                `;
+              }).join('') : `<div class="p-4 rounded-2xl surface-soft text-xs text-[var(--text-muted)] text-center">No open slots on this date. Pick another highlighted day!</div>`}
+            </div>
+          </div>
         </div>
       `;
+    }
+
+    function openAvailabilityModal() {
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      openModal(`
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="font-extrabold text-sm">Coach Gina’s Cal.com Availability</h3>
+            <p class="text-[11px] text-[var(--text-muted)]">Changes update the Athlete Booking Calendar live</p>
+          </div>
+          <button onclick="closeModal()" class="text-xs font-bold cursor-pointer">✕</button>
+        </div>
+        <div class="space-y-4 text-xs">
+          <div>
+            <div class="font-bold text-[var(--text-muted)] mb-2">Open Coaching Days</div>
+            <div class="grid grid-cols-7 gap-1">
+              ${dayNames.map((name, idx) => {
+                const on = state.cal.availability.days.includes(idx);
+                return `<button type="button" onclick="toggleAvailDay(${idx})" class="py-2 rounded-xl font-extrabold cursor-pointer ${on ? 'bg-[#D5FF5F] text-[#010101]' : 'surface-soft text-[var(--text-muted)]'}">${name}</button>`;
+              }).join('')}
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="surface-soft rounded-2xl p-3">
+              <div class="text-[11px] text-[var(--text-muted)]">Buffer Between Lessons</div>
+              <div class="font-extrabold text-sm mt-0.5">${state.cal.availability.bufferMin} min</div>
+            </div>
+            <div class="surface-soft rounded-2xl p-3">
+              <div class="text-[11px] text-[var(--text-muted)]">Minimum Notice</div>
+              <div class="font-extrabold text-sm mt-0.5">${state.cal.availability.minNoticeHours} hours</div>
+            </div>
+          </div>
+          <button onclick="copyCalLink('pitching-45')" class="w-full py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] font-extrabold cursor-pointer">🔗 Copy Shareable Booking Link</button>
+        </div>
+      `);
+    }
+
+    function toggleAvailDay(idx) {
+      const d = state.cal.availability.days;
+      if (d.includes(idx)) state.cal.availability.days = d.filter(x => x !== idx);
+      else state.cal.availability.days.push(idx);
+      openAvailabilityModal();
+      render();
+      showToast('Availability updated on live booking calendar!');
     }
 
     function renderParentPackages() {
@@ -1093,9 +1573,10 @@
               <p class="text-xs font-semibold text-[var(--text-muted)] mt-1">Single facility • 24h cancellation rule active</p>
               <div class="mt-3">${performanceAreaChart()}</div>
             </div>
-            <div class="flex gap-2">
-              <button onclick="openAddSessionModal()" class="flex-1 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ New Session</button>
-              <button onclick="openWeatherModal()" class="flex-1 py-2.5 rounded-2xl bg-[#010101] text-white text-xs font-extrabold cursor-pointer">SMS Blast</button>
+            <div class="grid grid-cols-3 gap-2">
+              <button onclick="openAddSessionModal()" class="py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Session</button>
+              <button onclick="openAvailabilityModal()" class="py-2.5 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Availability</button>
+              <button onclick="openWeatherModal()" class="py-2.5 rounded-2xl bg-[#010101] text-white text-xs font-extrabold cursor-pointer">SMS Blast</button>
             </div>
           </div>
 
