@@ -960,23 +960,15 @@
     // ATHLETE / PARENT PORTAL (PELOTON + FITSTREAK EXPERIENCE)
     // =========================================================================
     function renderSiblingBar() {
-      const siblings = state.athletes.filter(a => a.familyId === 'fam-1');
+      const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
       const isProfile = state.parentTab === 'profile';
       return `
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <div class="flex flex-wrap items-center gap-2">
-            ${siblings.map(s => {
-              const active = s.id === state.activeSiblingId;
-              return `
-                <button onclick="${active ? `openProfileFromName('${s.id}')` : `state.activeSiblingId='${s.id}'; render();`}" title="Tap to view ${s.name}'s profile" class="flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-extrabold transition cursor-pointer ${active ? 'bg-[#010101] text-[#D5FF5F] shadow-md' : 'card-white text-[var(--text-muted)]'}">
-                  <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${active ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#D6DFE2] text-[#010101]'}">${s.initials}</span>
-                  <span>${s.name.split(' ')[0]} (${s.ageGroup})</span>
-                  ${active && !isProfile ? `<span class="ml-0.5 px-1.5 py-0.5 rounded-full bg-white/15 text-[10px] font-bold text-white">Profile ›</span>` : ''}
-                </button>
-              `;
-            }).join('')}
-            <button onclick="openAddAthleteModal('fam-1')" class="px-3 py-2 rounded-full surface-soft text-xs font-extrabold text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer transition">+ Add Athlete</button>
-          </div>
+          <button onclick="openProfileFromName('${ath.id}')" title="Tap to view ${ath.name}'s profile" class="flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-extrabold transition cursor-pointer bg-[#010101] text-[#D5FF5F] shadow-md">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-[#D5FF5F] text-[#010101]">${ath.initials}</span>
+            <span>${ath.name} (${ath.ageGroup})</span>
+            ${!isProfile ? `<span class="ml-0.5 px-1.5 py-0.5 rounded-full bg-white/15 text-[10px] font-bold text-white">Profile ›</span>` : ''}
+          </button>
           <button onclick="setTab('book'); if(state.cal.cart.length){ state.cal.step='details'; render(); }" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer">
             ${state.cal.cart.length > 0 ? `🛒 Cart (<span class="text-[#010101] bg-[#D5FF5F] px-1.5 py-0.5 rounded-md">${state.cal.cart.length}</span>)` : '+ Book Session'}
           </button>
@@ -2076,16 +2068,9 @@
                   <p class="text-xs sm:text-sm text-[#D6DFE2] font-medium">${ath.position} • B/T: ${ath.batsThrows} • ${ath.height} • ${ath.team}</p>
                 </div>
               </div>
-              <div class="flex items-center gap-2">
-                <button onclick="openEditBioModal('${ath.id}')" class="glass-pill-hero px-4 py-2 rounded-full text-[#010101] text-xs font-extrabold cursor-pointer">
-                  Edit Profile
-                </button>
-                ${state.athletes.filter(a => a.familyId === 'fam-1').length > 1 ? `
-                  <button onclick="openRemoveAthleteModal('${ath.id}')" class="px-3.5 py-2 rounded-full bg-[#010101]/55 hover:bg-red-600/90 backdrop-blur border border-white/20 text-white text-xs font-extrabold cursor-pointer transition">
-                    Remove
-                  </button>
-                ` : ''}
-              </div>
+              <button onclick="openEditBioModal('${ath.id}')" class="glass-pill-hero px-4 py-2 rounded-full text-[#010101] text-xs font-extrabold cursor-pointer">
+                Edit Profile
+              </button>
             </div>
 
             <!-- Hero Quick Stats Bar -->
@@ -2213,29 +2198,26 @@
 
     function renderParentWaiver() {
       const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
-      const siblings = state.athletes.filter(a => a.familyId === 'fam-1');
       return `
         ${renderSiblingBar()}
         <div>
           <h1 class="text-2xl font-extrabold tracking-tight">Waivers &amp; Safety</h1>
-          <p class="text-xs text-[var(--text-muted)]">Digital liability waivers, emergency contacts &amp; medical/allergy info for Gina Fuchs Elite Fastpitch</p>
+          <p class="text-xs text-[var(--text-muted)]">Digital liability waiver, emergency contact &amp; medical/allergy info for ${ath.name}</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          <!-- Family Waiver Status Overview -->
+          <!-- Athlete Waiver Status Overview -->
           <div class="lg:col-span-5 card-mist rounded-[28px] p-5 space-y-3 h-fit">
-            <h2 class="text-sm font-extrabold">Family Waiver Status</h2>
-            ${siblings.map(s => `
-              <div class="surface-soft rounded-2xl p-3.5 flex items-center justify-between gap-2">
-                <div>
-                  <div class="font-extrabold text-xs">${s.name} (${s.ageGroup})</div>
-                  <div class="text-[11px] text-[var(--text-muted)]">${s.waiverSigned ? `Signed ${s.waiverDate}` : 'Signature required'}</div>
-                </div>
-                <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold ${s.waiverSigned ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-red-500/20 text-red-500'}">
-                  ${s.waiverSigned ? 'Signed ✓' : 'Pending'}
-                </span>
+            <h2 class="text-sm font-extrabold">Waiver Status</h2>
+            <div class="surface-soft rounded-2xl p-3.5 flex items-center justify-between gap-2">
+              <div>
+                <div class="font-extrabold text-xs">${ath.name} (${ath.ageGroup})</div>
+                <div class="text-[11px] text-[var(--text-muted)]">${ath.waiverSigned ? `Signed ${ath.waiverDate}` : 'Signature required'}</div>
               </div>
-            `).join('')}
+              <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold ${ath.waiverSigned ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-red-500/20 text-red-500'}">
+                ${ath.waiverSigned ? 'Signed ✓' : 'Pending'}
+              </span>
+            </div>
             <button onclick="showToast('Downloaded signed PDF waiver for ${ath.name}!')" class="w-full py-2.5 rounded-2xl card-white text-xs font-extrabold cursor-pointer">📄 Download Signed Waiver PDF</button>
           </div>
 
@@ -2883,13 +2865,16 @@
                 <div><span class="text-[var(--text-muted)]">Emergency:</span> <strong>${sel.emergencyContact}</strong></div>
                 <div><span class="text-[var(--text-muted)]">Medical:</span> <strong>${sel.medicalNotes}</strong></div>
               </div>
-              ${state.athletes.length > 1 ? `
-                <div class="pt-2 border-t border-[#010101]/10 flex justify-end">
+              <div class="pt-2 border-t border-[#010101]/10 flex items-center justify-between gap-2">
+                <button onclick="state.activeSiblingId='${sel.id}'; state.role='parent'; state.parentTab='home'; render(); showToast('Viewing ${sel.name}’s Athlete Page');" class="px-3 py-1.5 rounded-xl bg-white/80 dark:bg-white/10 text-[11px] font-extrabold cursor-pointer hover:bg-white transition">
+                  👁️ View Athlete Page
+                </button>
+                ${state.athletes.length > 1 ? `
                   <button onclick="openRemoveAthleteModal('${sel.id}')" class="px-3 py-1.5 rounded-xl text-[11px] font-extrabold text-red-600 dark:text-red-400 hover:bg-red-500/10 cursor-pointer transition">
                     Remove Athlete
                   </button>
-                </div>
-              ` : ''}
+                ` : ''}
+              </div>
             </div>
 
             <!-- Assigned Homework Drills -->
