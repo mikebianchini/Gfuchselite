@@ -607,7 +607,7 @@
     };
 
     function getActiveAthlete() {
-      return getActiveAthlete() || GUEST_ATHLETE;
+      return state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0] || GUEST_ATHLETE;
     }
 
     const icons = {
