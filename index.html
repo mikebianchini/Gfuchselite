@@ -687,7 +687,13 @@
           date: 'Nov 19, 2026',
           sessionTitle: '1-on-1 Hitting Private (45m)',
           tags: ['Barrel Path', 'Hip Separation', 'Exit Velo'],
-          note: 'Explosive lower-half rotation today—hit 66.5 mph exit velo! Keep hands inside the ball on tight pitches and stay through the middle of the field.',
+          warmup: 'Walking PVC swings, recoils, PVC rotations\nMed ball - staggered, scoop, step back 5 each (4lbs)',
+          focus: 'Explosive hip-to-hand separation & keeping barrel slightly up through the zone on inside pitches (hit 66.5 mph exit velo!).',
+          tee: 'Walk-through swing timing (15)\nInside-out high tee drill — stay compact through the zone (15)',
+          ft: 'Inside-corner front toss — driving gap-to-gap without pulling off',
+          machine: '48–52 mph fastballs middle-in — timing load early & staying tall',
+          homework: 'At least 1 bucket of each drill 2-3x a week!',
+          note: 'Explosive hip-to-hand separation today—hit 66.5 mph exit velo! Keep hands inside the ball on tight pitches and stay through the middle of the field.',
           videoTitle: 'Front Toss Side Angle — 66.5 mph (0:14)',
           videoImg: 'assets/images/fastpitch-hitter.jpg',
           videoUrl: null,
@@ -700,6 +706,12 @@
           date: 'Nov 12, 2026',
           sessionTitle: '1-on-1 Infield Defense (45m)',
           tags: ['Footwork', 'Glove Transfer'],
+          warmup: 'Band shoulder activation, wrist flips & short-hop glove work',
+          focus: 'Low athletic posture attacking short hops & right-left momentum through the throw to 1B.',
+          tee: 'Quick-hands barehand & glove-to-ear transfer reps (25)',
+          ft: 'Short-hop & backhand fungo series from SS/3B angles',
+          machine: 'Hard-hit grounders off hack-attack — playing through the hop',
+          homework: 'At least 1 bucket of each drill 2-3x a week!',
           note: 'Great low athletic posture attacking short hops! Work right-left through the ball so your momentum carries cleanly into the throw to 1B.',
           videoTitle: 'Short-Hop Footwork Slow-Mo (0:11)',
           videoImg: 'assets/images/fastpitch-fielding.jpg',
@@ -713,6 +725,12 @@
           date: 'Nov 18, 2026',
           sessionTitle: '1-on-1 Hitting Private (45m)',
           tags: ['Barrel Path', 'Opposite Field'],
+          warmup: 'Walking PVC swings, recoils, PVC rotations\nMed ball - staggered, scoop, step back 5 each (4lbs)',
+          focus: 'Keeping front shoulder closed on outside pitches & staying through the middle of the field.',
+          tee: 'Opposite-field high tee — letting ball travel deep (20)\nStride & freeze balance drill (15)',
+          ft: 'Outer-half front toss — driving line drives to LF/LCF',
+          machine: 'Outside corner reps — tracking barrel all the way through contact',
+          homework: 'At least 1 bucket of each drill 2-3x a week!',
           note: 'Staying through the middle of the field much better! Watch front shoulder flying open on outside pitch—keep chest over the plate.',
           videoTitle: 'Front Toss — Outside Pitch Swing (0:11)',
           videoImg: 'assets/images/fastpitch-slapper.jpg',
@@ -726,6 +744,12 @@
           date: 'Nov 15, 2026',
           sessionTitle: '1-on-1 Catching & Throwdowns (45m)',
           tags: ['Pop Time', 'Footwork'],
+          warmup: 'Hip mobility openers, band arm care & quiet-glove framing reps',
+          focus: 'Rapid glove-to-ear exchange & staying low on throwdowns to 2B (dropped pop time to 1.88s!).',
+          tee: 'Rapid exchange wall drill — feet & hands synced (30)',
+          ft: 'Low-zone framing & dirt-ball blocking reads',
+          machine: 'Live throwdowns to 2B off machine — 1.88s PR',
+          homework: 'At least 1 bucket of each drill 2-3x a week!',
           note: 'Transfer to ear is super clean—dropped pop time to 1.88s! Keep hips low on the throwdown to 2B.',
           videoTitle: '2B Throwdown 1.88s Slow-Mo (0:09)',
           videoImg: 'assets/images/fastpitch-catcher.jpg',
@@ -1899,7 +1923,7 @@
                       ${r.tags.map(t => `<span class="px-2.5 py-0.5 rounded-full surface-soft text-[10px] font-extrabold">${t}</span>`).join('')}
                     </div>
                   </div>
-                  <p class="text-xs leading-relaxed">${r.note}</p>
+                  ${renderRecapTemplateBody(r)}
                 </div>
               </div>
             `).join('') : `<div class="card-white rounded-[28px] p-6 text-xs text-[var(--text-muted)]">No session recaps yet.</div>`}
@@ -2680,17 +2704,20 @@
                       ${r.tags.map(t => `<span class="px-2 py-0.5 rounded-full card-white text-[10px] font-extrabold">${t}</span>`).join('')}
                     </div>
                   </div>
-                  <p class="text-xs leading-relaxed">${r.note}</p>
-                  <button onclick="openRecapViewerModal('${r.id}')" class="w-full card-white rounded-2xl p-2.5 flex items-center gap-3 text-left cursor-pointer hover:border-[#010101] transition">
-                    <div class="relative w-16 h-12 rounded-xl overflow-hidden shrink-0">
-                      <img src="${r.videoImg}" class="w-full h-full object-cover" />
-                      <div class="absolute inset-0 bg-[#010101]/40 flex items-center justify-center text-[#D5FF5F] text-xs">▶</div>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                      <div class="text-xs font-extrabold truncate">${r.videoTitle}</div>
-                      <div class="text-[11px] text-[var(--text-muted)]">Attached session video • Tap to preview</div>
-                    </div>
-                  </button>
+                  ${renderRecapTemplateBody(r, true)}
+                  <div class="flex items-center gap-2">
+                    <button onclick="openRecapViewerModal('${r.id}')" class="flex-1 card-white rounded-2xl p-2.5 flex items-center gap-3 text-left cursor-pointer hover:border-[#010101] transition">
+                      <div class="relative w-16 h-12 rounded-xl overflow-hidden shrink-0">
+                        <img src="${r.videoImg}" class="w-full h-full object-cover" />
+                        <div class="absolute inset-0 bg-[#010101]/40 flex items-center justify-center text-[#D5FF5F] text-xs">▶</div>
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <div class="text-xs font-extrabold truncate">${r.videoTitle}</div>
+                        <div class="text-[11px] text-[var(--text-muted)]">Attached session video • Tap to preview</div>
+                      </div>
+                    </button>
+                    <button onclick="copyRecapNote('${r.id}')" title="Copy formatted note" class="px-3 py-3 rounded-2xl card-white text-xs font-extrabold cursor-pointer hover:border-[#010101] shrink-0">📋</button>
+                  </div>
                 </div>
               `).join('') : `<div class="p-6 text-center text-xs text-[var(--text-muted)] surface-soft rounded-2xl">No session notes yet. Tap "+ New Recap &amp; Send" after today’s lesson!</div>`}
             </div>
@@ -2700,19 +2727,131 @@
     }
 
     // =========================================================================
-    // POST-SESSION RECAP COMPOSER (Replaces Apple Notes + Camera Roll + Texting)
+    // POST-SESSION RECAP COMPOSER — GINA'S EXACT SESSION NOTES TEMPLATE
     // =========================================================================
+    const GINA_WARMUP_DEFAULT = `walking pvc swings, recoils, pvc rotations\nMed ball - staggered, scoop, step back 5 each (4lbs)`;
+    const GINA_HOMEWORK_DEFAULT = `At least 1 bucket of each drill 2-3x a week!`;
+
     let _recapDraftTags = ['Barrel Path', 'Timing'];
     let _recapDraftVideoUrl = null;
     let _recapDraftVideoName = null;
 
+    function formatBulletLines(text) {
+      if (!text || !text.trim()) return '';
+      return text.split('\n').map(l => l.trim().replace(/^[•\-*]\s*/, '')).filter(Boolean)
+        .map(l => `<li class="flex items-start gap-1.5"><span class="text-[#4E6075] dark:text-[#D5FF5F] font-extrabold">•</span><span>${l}</span></li>`).join('');
+    }
+
+    function formatRecapPlainText(r) {
+      const lines = [];
+      if (r.warmup) {
+        lines.push(`• Hitter’s Warm up routine`);
+        lines.push(r.warmup);
+        lines.push('');
+      }
+      lines.push(`What’s new/focus for lesson:`);
+      lines.push(r.focus || r.note || '');
+      lines.push('');
+      lines.push(`What we did today:`);
+      lines.push('');
+      lines.push(`Tee:`);
+      (r.tee || '').split('\n').map(x => x.trim()).filter(Boolean).forEach(x => lines.push(`  • ${x.replace(/^[•\-*]\s*/, '')}`));
+      lines.push(`FT:`);
+      (r.ft || '').split('\n').map(x => x.trim()).filter(Boolean).forEach(x => lines.push(`  • ${x.replace(/^[•\-*]\s*/, '')}`));
+      lines.push(`Machine:`);
+      (r.machine || '').split('\n').map(x => x.trim()).filter(Boolean).forEach(x => lines.push(`  • ${x.replace(/^[•\-*]\s*/, '')}`));
+      lines.push('');
+      lines.push(`Homework - ${r.homework || GINA_HOMEWORK_DEFAULT}`);
+      return lines.join('\n');
+    }
+
+    function copyRecapNote(recapId) {
+      const r = state.sessionRecaps.find(x => x.id === recapId);
+      if (!r) return;
+      const txt = formatRecapPlainText(r);
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(txt).then(() => showToast('Session note copied to clipboard!')).catch(() => showToast('Note ready to share!'));
+      } else {
+        showToast('Session note copied!');
+      }
+    }
+
+    function renderRecapTemplateBody(r, compact = false) {
+      if (!r.focus && !r.tee && !r.ft && !r.machine && !r.warmup) {
+        return `<p class="text-xs leading-relaxed">${r.note}</p>`;
+      }
+      const boxCls = compact ? 'card-white' : 'surface-soft';
+      return `
+        <div class="space-y-2.5 text-xs">
+          ${r.warmup ? `
+            <div class="${boxCls} rounded-2xl p-3 space-y-1">
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">• Hitter’s Warm Up Routine</div>
+              <div class="text-[11px] leading-relaxed whitespace-pre-line text-[var(--text-muted)]">${r.warmup}</div>
+            </div>
+          ` : ''}
+
+          ${r.focus ? `
+            <div class="space-y-0.5">
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">What’s New / Focus for Lesson</div>
+              <p class="text-xs font-semibold leading-relaxed">${r.focus}</p>
+            </div>
+          ` : ''}
+
+          ${(r.tee || r.ft || r.machine) ? `
+            <div class="space-y-1.5">
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">What We Did Today</div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                ${r.tee ? `
+                  <div class="${boxCls} rounded-2xl p-2.5 space-y-1">
+                    <div class="text-[10px] font-extrabold uppercase tracking-wider">Tee</div>
+                    <ul class="space-y-1 text-[11px] leading-snug">${formatBulletLines(r.tee)}</ul>
+                  </div>
+                ` : ''}
+                ${r.ft ? `
+                  <div class="${boxCls} rounded-2xl p-2.5 space-y-1">
+                    <div class="text-[10px] font-extrabold uppercase tracking-wider">FT (Front Toss)</div>
+                    <ul class="space-y-1 text-[11px] leading-snug">${formatBulletLines(r.ft)}</ul>
+                  </div>
+                ` : ''}
+                ${r.machine ? `
+                  <div class="${boxCls} rounded-2xl p-2.5 space-y-1">
+                    <div class="text-[10px] font-extrabold uppercase tracking-wider">Machine</div>
+                    <ul class="space-y-1 text-[11px] leading-snug">${formatBulletLines(r.machine)}</ul>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          ` : ''}
+
+          ${r.homework ? `
+            <div class="rounded-2xl px-3 py-2 bg-[#D5FF5F]/25 dark:bg-[#D5FF5F]/15 border border-[#D5FF5F]/60 flex items-start gap-2">
+              <span class="text-xs">🥎</span>
+              <div class="text-[11px] leading-snug"><span class="font-extrabold">Homework:</span> ${r.homework}</div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
     function openSessionRecapModal(athId, sessionId) {
       const ath = state.athletes.find(a => a.id === athId) || state.athletes[0];
       const ses = sessionId ? state.sessions.find(s => s.id === sessionId) : null;
-      _recapDraftTags = false ? ['Barrel Path', 'Timing'] : ['Barrel Path', 'Timing'];
+      _recapDraftTags = ['Barrel Path', 'Timing'];
       _recapDraftVideoUrl = null;
       _recapDraftVideoName = null;
       renderRecapComposerModal(ath, ses);
+    }
+
+    function readRecapComposerDraft() {
+      return {
+        includeWarmup: document.getElementById('recap-include-warmup')?.checked ?? true,
+        warmup: document.getElementById('recap-warmup-input')?.value ?? GINA_WARMUP_DEFAULT,
+        focus: document.getElementById('recap-focus-input')?.value ?? '',
+        tee: document.getElementById('recap-tee-input')?.value ?? '',
+        ft: document.getElementById('recap-ft-input')?.value ?? '',
+        machine: document.getElementById('recap-machine-input')?.value ?? '',
+        homework: document.getElementById('recap-homework-input')?.value ?? GINA_HOMEWORK_DEFAULT
+      };
     }
 
     function toggleRecapTag(tag, athId, sessionId) {
@@ -2720,9 +2859,7 @@
       else _recapDraftTags.push(tag);
       const ath = state.athletes.find(a => a.id === athId) || state.athletes[0];
       const ses = sessionId ? state.sessions.find(s => s.id === sessionId) : null;
-      const existingNote = document.getElementById('recap-note-input')?.value || '';
-      const existingDrill = document.getElementById('recap-drill-input')?.value || '';
-      renderRecapComposerModal(ath, ses, existingNote, existingDrill);
+      renderRecapComposerModal(ath, ses, readRecapComposerDraft());
     }
 
     function handleRecapVideoFile(input) {
@@ -2734,21 +2871,30 @@
       if (label) label.textContent = `✓ Attached: ${file.name}`;
     }
 
-    function renderRecapComposerModal(ath, ses, noteVal = '', drillVal = '') {
+    function renderRecapComposerModal(ath, ses, draft = null) {
+      const d = draft || {
+        includeWarmup: true,
+        warmup: GINA_WARMUP_DEFAULT,
+        focus: '',
+        tee: '',
+        ft: '',
+        machine: '',
+        homework: GINA_HOMEWORK_DEFAULT
+      };
       const allTags = ['Barrel Path', 'Exit Velo', 'Timing', 'Slapping', 'Footwork', 'Glove Transfer', 'Pop Time', 'Arm Care'];
       openModal(`
         <div class="flex items-start justify-between gap-2">
           <div>
-            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Post-Session Recap</div>
+            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Gina’s Session Notes Template</div>
             <h3 class="font-extrabold text-base mt-0.5">${ath.name} (${ath.ageGroup})</h3>
           </div>
           <button onclick="closeModal()" class="w-8 h-8 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
         </div>
 
-        <form onsubmit="submitSessionRecap(event, '${ath.id}', '${ses ? ses.id : ''}')" class="space-y-3.5 text-xs">
+        <form onsubmit="submitSessionRecap(event, '${ath.id}', '${ses ? ses.id : ''}')" class="space-y-3 text-xs">
           <!-- 1-Tap Focus Tags -->
           <div>
-            <label class="block text-[var(--text-muted)] font-bold mb-1.5">Quick Focus Tags (Tap to toggle)</label>
+            <label class="block text-[var(--text-muted)] font-bold mb-1.5">Quick Focus Tags</label>
             <div class="flex flex-wrap gap-1.5">
               ${allTags.map(t => {
                 const on = _recapDraftTags.includes(t);
@@ -2757,14 +2903,46 @@
             </div>
           </div>
 
-          <!-- Session Notes (Apple Notes Replacement) -->
+          <!-- 1. Hitter's Warm up routine (Pre-filled from Gina's template) -->
+          <div class="surface-soft rounded-2xl p-3 space-y-1.5">
+            <label class="flex items-center justify-between gap-2 cursor-pointer">
+              <span class="font-extrabold text-[11px]">• Hitter’s Warm up routine</span>
+              <input id="recap-include-warmup" type="checkbox" name="includeWarmup" ${d.includeWarmup ? 'checked' : ''} class="w-4 h-4 accent-[#010101]" />
+            </label>
+            <textarea id="recap-warmup-input" name="warmup" rows="2" class="w-full px-3 py-2 rounded-xl card-white text-[11px] leading-relaxed">${d.warmup}</textarea>
+          </div>
+
+          <!-- 2. What's new / focus for lesson -->
           <div>
-            <label class="block text-[var(--text-muted)] font-bold mb-1">Session Notes *</label>
-            <textarea id="recap-note-input" name="note" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft leading-relaxed" placeholder="What went well today & what to practice before next lesson..." required>${noteVal}</textarea>
+            <label class="block font-extrabold mb-1">What’s new / focus for lesson: *</label>
+            <textarea id="recap-focus-input" name="focus" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft leading-relaxed" placeholder="e.g., Staying compact on inside pitch & explosive lower-half load..." required>${d.focus}</textarea>
+          </div>
+
+          <!-- 3. What we did today: Tee / FT / Machine -->
+          <div class="surface-soft rounded-2xl p-3 space-y-2.5">
+            <div class="font-extrabold text-[11px] uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">What we did today</div>
+            <div>
+              <label class="block font-bold mb-1">Tee:</label>
+              <textarea id="recap-tee-input" name="tee" rows="2" class="w-full px-3 py-2 rounded-xl card-white leading-snug" placeholder="• High tee inside-out&#10;• Walk-through swing timing">${d.tee}</textarea>
+            </div>
+            <div>
+              <label class="block font-bold mb-1">FT (Front Toss):</label>
+              <textarea id="recap-ft-input" name="ft" rows="2" class="w-full px-3 py-2 rounded-xl card-white leading-snug" placeholder="• Opposite-field front toss&#10;• Inside corner quick hands">${d.ft}</textarea>
+            </div>
+            <div>
+              <label class="block font-bold mb-1">Machine:</label>
+              <textarea id="recap-machine-input" name="machine" rows="2" class="w-full px-3 py-2 rounded-xl card-white leading-snug" placeholder="• Fastball timing reps (middle-in)">${d.machine}</textarea>
+            </div>
+          </div>
+
+          <!-- 4. Homework (Pre-filled from Gina's template) -->
+          <div>
+            <label class="block font-extrabold mb-1">Homework:</label>
+            <input id="recap-homework-input" name="homework" value="${d.homework.replace(/"/g, '&quot;')}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" />
           </div>
 
           <!-- Attach Session Video from Camera Roll -->
-          <div class="surface-soft rounded-2xl p-3.5 space-y-2">
+          <div class="surface-soft rounded-2xl p-3 space-y-2">
             <div class="flex items-center justify-between">
               <span class="font-extrabold">🎥 Attach Session Video</span>
               <span id="recap-video-status" class="text-[11px] font-bold text-[#4E6075] dark:text-[#9AC0D6]">${_recapDraftVideoName ? `✓ ${_recapDraftVideoName}` : 'Demo clip ready'}</span>
@@ -2775,17 +2953,11 @@
             </label>
           </div>
 
-          <!-- Optional Homework Drill -->
-          <div>
-            <label class="block text-[var(--text-muted)] font-bold mb-1">Add Homework Drill (Optional)</label>
-            <input id="recap-drill-input" name="drill" value="${drillVal}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., Opposite-Field High Tee (3x15)" />
-          </div>
-
           <!-- Auto-Send to Player & Parent Toggle -->
           <label class="flex items-center justify-between gap-3 p-3 rounded-2xl card-mist cursor-pointer">
             <div>
               <div class="font-extrabold">Message Player &amp; Parent Automatically</div>
-              <div class="text-[11px] text-[var(--text-muted)]">Sends note + video to ${ath.parentName} (${ath.parentPhone})</div>
+              <div class="text-[11px] text-[var(--text-muted)]">Sends formatted note + video to ${ath.parentName} (${ath.parentPhone})</div>
             </div>
             <input type="checkbox" name="sendNow" checked class="w-5 h-5 accent-[#010101]" />
           </label>
@@ -2801,37 +2973,51 @@
       e.preventDefault();
       const ath = state.athletes.find(a => a.id === athId) || state.athletes[0];
       const ses = sessionId ? state.sessions.find(s => s.id === sessionId) : null;
-      const note = e.target.note.value.trim();
-      const drill = e.target.drill.value.trim();
+      const includeWarmup = e.target.includeWarmup.checked;
+      const warmup = includeWarmup ? e.target.warmup.value.trim() : '';
+      const focus = e.target.focus.value.trim();
+      const tee = e.target.tee.value.trim();
+      const ft = e.target.ft.value.trim();
+      const machine = e.target.machine.value.trim();
+      const homework = e.target.homework.value.trim() || GINA_HOMEWORK_DEFAULT;
       const sendNow = e.target.sendNow.checked;
       const vidTitle = _recapDraftVideoName || `${ath.name.split(' ')[0]} Session Clip — Today (0:14)`;
       const vidImg = getAthleteCoverImg(ath);
 
-      // 1. Save permanently in Session Recaps timeline (replaces Apple Notes!)
-      state.sessionRecaps.unshift({
+      const newRecap = {
         id: 'rec-' + Date.now(),
         athleteId: ath.id,
         date: 'Today',
         sessionTitle: ses ? ses.focus : '1-on-1 Training Session',
         tags: [..._recapDraftTags],
-        note,
+        warmup,
+        focus,
+        tee,
+        ft,
+        machine,
+        homework,
+        note: focus,
         videoTitle: vidTitle,
         videoImg: vidImg,
         videoUrl: _recapDraftVideoUrl,
         sentTo: sendNow ? `${ath.parentName} (SMS + App)` : 'Saved Private (Draft)',
         sentAt: 'Just now'
-      });
+      };
 
-      // 2. Also update athlete notes & optional homework drill
-      ath.notes.unshift({ date: 'Today', text: note });
-      if (drill) {
-        ath.drills.unshift({ id: 'd-' + Date.now(), title: drill, reps: '25 reps', focus: _recapDraftTags[0] || 'Session Focus', done: false, img: vidImg });
+      // 1. Save permanently in Session Recaps timeline (replaces Apple Notes!)
+      state.sessionRecaps.unshift(newRecap);
+
+      // 2. Also update athlete notes & sync first Tee/FT drill to weekly checklist
+      ath.notes.unshift({ date: 'Today', text: focus });
+      const firstDrillLine = (tee || ft || machine).split('\n').map(l => l.trim().replace(/^[•\-*]\s*/, '')).find(Boolean);
+      if (firstDrillLine) {
+        ath.drills.unshift({ id: 'd-' + Date.now(), title: firstDrillLine, reps: '1 bucket • 2-3x/wk', focus: _recapDraftTags[0] || 'Session Focus', done: false, img: vidImg });
       }
 
       // 3. Mark session completed if launched from a session
       if (ses) ses.status = 'Completed';
 
-      // 4. Automatically message the parent thread with the recap + video!
+      // 4. Automatically message the parent thread with the formatted template + video!
       if (sendNow) {
         let thread = state.threads.find(t => t.parent === ath.parentName);
         if (!thread) {
@@ -2841,13 +3027,13 @@
         thread.messages.push({
           from: 'coach',
           time: 'Just now',
-          text: `📝 Session Recap for ${ath.name.split(' ')[0]}: "${note}" 🎥 Video attached: ${vidTitle}`
+          text: `📝 Session Notes for ${ath.name.split(' ')[0]}:\n${formatRecapPlainText(newRecap)}\n🎥 Video attached: ${vidTitle}`
         });
       }
 
       closeModal();
       render();
-      showToast(sendNow ? `Recap + Video saved & sent to ${ath.parentName}!` : 'Recap saved to athlete history!');
+      showToast(sendNow ? `Session notes + video saved & sent to ${ath.parentName}!` : 'Session notes saved to athlete history!');
     }
 
     function openRecapViewerModal(recapId) {
@@ -2858,11 +3044,11 @@
           <div class="relative bg-[#010101]">
             ${r.videoUrl
               ? `<video src="${r.videoUrl}" controls autoplay playsinline class="w-full max-h-64 object-contain"></video>`
-              : `<div class="relative h-52"><img src="${r.videoImg}" class="w-full h-full object-cover" /><div class="absolute inset-0 bg-[#010101]/40 flex flex-col items-center justify-center gap-1.5 text-white"><div class="w-14 h-14 rounded-full bg-[#D5FF5F] text-[#010101] flex items-center justify-center text-lg shadow-xl">▶</div><span class="text-xs font-extrabold">${r.videoTitle}</span></div></div>`
+              : `<div class="relative h-48"><img src="${r.videoImg}" class="w-full h-full object-cover" /><div class="absolute inset-0 bg-[#010101]/40 flex flex-col items-center justify-center gap-1.5 text-white"><div class="w-14 h-14 rounded-full bg-[#D5FF5F] text-[#010101] flex items-center justify-center text-lg shadow-xl">▶</div><span class="text-xs font-extrabold">${r.videoTitle}</span></div></div>`
             }
             <button onclick="closeModal()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-[#010101]/70 text-white text-xs font-bold cursor-pointer">✕</button>
           </div>
-          <div class="p-6 space-y-3 bg-[var(--bg-card)]">
+          <div class="p-5 space-y-3 bg-[var(--bg-card)]">
             <div class="flex items-center justify-between gap-2">
               <span class="px-2.5 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">${r.date}</span>
               <span class="text-[11px] text-[var(--text-muted)] font-semibold">${r.sentTo}</span>
@@ -2871,8 +3057,11 @@
             <div class="flex flex-wrap gap-1.5">
               ${r.tags.map(t => `<span class="px-2.5 py-0.5 rounded-full surface-soft text-[10px] font-extrabold">${t}</span>`).join('')}
             </div>
-            <p class="text-xs leading-relaxed">${r.note}</p>
-            <button onclick="closeModal()" class="w-full py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Done</button>
+            ${renderRecapTemplateBody(r)}
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button onclick="copyRecapNote('${r.id}')" class="py-2.5 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">📋 Copy Note</button>
+              <button onclick="closeModal()" class="py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Done</button>
+            </div>
           </div>
         </div>
       `, true);
@@ -2974,7 +3163,7 @@
             </div>
           </div>
           <div class="lg:col-span-2 card-white rounded-[28px] p-5 space-y-4">
-            <div class="space-y-2.5">${thread.messages.map(m => `<div class="flex ${m.from === 'coach' ? 'justify-end' : 'justify-start'}"><div class="max-w-md px-4 py-3 rounded-2xl text-xs ${m.from === 'coach' ? 'bg-[#D5FF5F] text-[#010101] font-bold' : 'surface-soft'}">${m.text}</div></div>`).join('')}</div>
+            <div class="space-y-2.5">${thread.messages.map(m => `<div class="flex ${m.from === 'coach' ? 'justify-end' : 'justify-start'}"><div class="max-w-md px-4 py-3 rounded-2xl text-xs whitespace-pre-line ${m.from === 'coach' ? 'bg-[#D5FF5F] text-[#010101] font-bold' : 'surface-soft'}">${m.text}</div></div>`).join('')}</div>
             <form onsubmit="sendCoachReply(event,'${thread.id}')" class="flex gap-2"><input name="text" class="flex-1 px-4 py-2.5 rounded-2xl surface-soft text-xs" placeholder="Reply to ${thread.parent}..." required /><button type="submit" class="px-5 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Send</button></form>
           </div>
         </div>
