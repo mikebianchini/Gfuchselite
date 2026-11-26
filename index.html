@@ -324,6 +324,7 @@
         timeFormat: '12h',
         timezone: 'America/Los_Angeles',
         payMode: 'credit',
+        cart: [],
         lastBooking: null,
         bookedSlots: ['2026-11-26@16:00', '2026-11-26@17:00', '2026-11-27@16:30'],
         availability: {
@@ -1253,102 +1254,189 @@
       render();
     }
 
+    function calCartTotals() {
+      const ath = state.athletes.find(a => a.familyId === 'fam-1') || state.athletes[0];
+      const availCredits = ath.credits;
+      let creditsUsed = 0;
+      let cardTotal = 0;
+      state.cal.cart.forEach(item => {
+        if (item.payMode === 'credit' && item.evt.allowCredit && creditsUsed < availCredits) {
+          creditsUsed += 1;
+        } else {
+          cardTotal += item.evt.price;
+        }
+      });
+      return { creditsUsed, cardTotal, availCredits };
+    }
+
+    function calAddToCart(time24, goToCheckout = false) {
+      const evt = state.cal.eventTypes.find(x => x.id === state.cal.eventTypeId) || state.cal.eventTypes[0];
+      const ath = state.athletes.find(x => x.id === state.activeSiblingId) || state.athletes[0];
+      const iso = state.cal.selectedDate;
+      const slotKey = `${iso}@${time24}`;
+      if (state.cal.cart.some(i => i.slotKey === slotKey)) {
+        if (goToCheckout) { state.cal.step = 'details'; render(); }
+        else showToast('This time slot is already in your cart!');
+        return;
+      }
+      const { creditsUsed, availCredits } = calCartTotals();
+      const defaultPay = (evt.allowCredit && creditsUsed < availCredits) ? 'credit' : 'card';
+      state.cal.cart.push({
+        id: 'ci-' + Date.now() + Math.random().toString(36).slice(2, 5),
+        slotKey,
+        iso,
+        dayNice: calDateLabel(iso),
+        time24,
+        timeDisplay: calFormatTime(time24),
+        evt: { ...evt },
+        athleteId: ath.id,
+        athleteName: ath.name,
+        athleteAge: ath.ageGroup,
+        payMode: defaultPay
+      });
+      state.cal.selectedTime = null;
+      if (goToCheckout) {
+        state.cal.step = 'details';
+      } else {
+        showToast(`🛒 Added ${evt.title} (${calDateLabel(iso)} • ${calFormatTime(time24)}) to cart!`);
+      }
+      render();
+    }
+
+    function calRemoveFromCart(itemId) {
+      state.cal.cart = state.cal.cart.filter(i => i.id !== itemId);
+      if (state.cal.cart.length === 0 && state.cal.step === 'details') {
+        state.cal.step = 'calendar';
+      }
+      render();
+      showToast('Removed session from cart.');
+    }
+
+    function calToggleCartItemPay(itemId) {
+      const item = state.cal.cart.find(i => i.id === itemId);
+      if (!item || !item.evt.allowCredit) return;
+      if (item.payMode === 'credit') {
+        item.payMode = 'card';
+      } else {
+        const { creditsUsed, availCredits } = calCartTotals();
+        if (creditsUsed >= availCredits) {
+          showToast(`All ${availCredits} available credits are already applied in your cart.`);
+          return;
+        }
+        item.payMode = 'credit';
+      }
+      render();
+    }
+
     function calConfirmBooking(e) {
       e.preventDefault();
-      const evt = state.cal.eventTypes.find(x => x.id === state.cal.eventTypeId);
-      const ath = state.athletes.find(x => x.id === state.activeSiblingId);
+      if (!state.cal.cart.length) return;
       const focusNote = e.target.notes.value.trim();
-      const payMode = state.cal.payMode;
-      const iso = state.cal.selectedDate;
-      const time24 = state.cal.selectedTime;
-      const timeDisplay = calFormatTime(time24);
-      const dayNice = calDateLabel(iso);
+      const parentName = e.target.parentName.value;
+      const email = e.target.email.value;
+      const phone = e.target.phone.value;
+      const { creditsUsed, cardTotal } = calCartTotals();
 
-      // Conflict protection: mark slot booked so it cannot be double-booked
-      state.cal.bookedSlots.push(`${iso}@${time24}`);
+      const confirmedItems = [];
+      let creditsRemainingToDeduct = creditsUsed;
 
-      if (payMode === 'credit' && evt.allowCredit && ath.credits > 0) {
-        state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits = Math.max(0, a.credits - 1));
-      } else {
+      state.cal.cart.forEach(item => {
+        const useCred = item.payMode === 'credit' && item.evt.allowCredit && creditsRemainingToDeduct > 0;
+        if (useCred) creditsRemainingToDeduct -= 1;
+
+        // Prevent double-booking
+        state.cal.bookedSlots.push(item.slotKey);
+
+        const dayParts = item.dayNice.split(', ');
+        const shortDayKey = dayParts[0] + ' ' + item.iso.split('-')[2].replace(/^0/, '');
+        state.sessions.unshift({
+          id: 'ses-' + Date.now() + Math.random().toString(36).slice(2, 5),
+          dayKey: shortDayKey,
+          day: item.dayNice,
+          time: item.timeDisplay,
+          duration: item.evt.durationLabel.toUpperCase(),
+          type: item.evt.type,
+          focus: focusNote ? `${item.evt.title} — ${focusNote}` : item.evt.title,
+          athletes: [item.athleteName],
+          athleteId: item.athleteId,
+          spotsMax: item.evt.type === '1-on-1 Private' ? 1 : 6,
+          status: 'Confirmed',
+          payment: useCred ? '1 Credit' : `Stripe Paid ($${item.evt.price})`,
+          price: item.evt.price,
+          img: item.evt.img
+        });
+
+        confirmedItems.push({
+          ...item,
+          payLabel: useCred ? '1 Credit' : `$${item.evt.price}`
+        });
+      });
+
+      if (creditsUsed > 0) {
+        state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits = Math.max(0, a.credits - creditsUsed));
+      }
+      if (cardTotal > 0) {
         state.payments.unshift({
           id: 'pay-' + Date.now(),
           date: 'Today',
           family: 'Miller Family',
-          item: `${evt.title} (${dayNice})`,
-          amount: evt.price,
+          item: confirmedItems.length === 1 ? `${confirmedItems[0].evt.title} (${confirmedItems[0].dayNice})` : `Multi-Session Booking (${confirmedItems.length} sessions)`,
+          amount: cardTotal,
           method: 'Stripe • Apple Pay'
         });
       }
 
-      const dayParts = dayNice.split(', ');
-      const shortDayKey = dayParts[0] + ' ' + iso.split('-')[2].replace(/^0/, '');
-      state.sessions.unshift({
-        id: 'ses-' + Date.now(),
-        dayKey: shortDayKey,
-        day: dayNice,
-        time: timeDisplay,
-        duration: evt.durationLabel.toUpperCase(),
-        type: evt.type,
-        focus: focusNote ? `${evt.title} — ${focusNote}` : evt.title,
-        athletes: [ath.name],
-        athleteId: ath.id,
-        spotsMax: evt.type === '1-on-1 Private' ? 1 : 6,
-        status: 'Confirmed',
-        payment: payMode === 'credit' && evt.allowCredit ? '1 Credit' : `Stripe Paid ($${evt.price})`,
-        price: evt.price,
-        img: evt.img
-      });
-
       state.cal.lastBooking = {
-        evt,
-        athName: ath.name,
-        parentName: e.target.parentName.value,
-        email: e.target.email.value,
-        phone: e.target.phone.value,
-        notes: focusNote,
-        iso,
-        dayNice,
-        time24,
-        timeDisplay,
-        payLabel: payMode === 'credit' && evt.allowCredit ? '1 Package Credit' : `$${evt.price} (Stripe)`
+        items: confirmedItems,
+        creditsUsed,
+        cardTotal,
+        parentName,
+        email,
+        phone,
+        notes: focusNote
       };
+      state.cal.cart = [];
       state.cal.step = 'confirmed';
       render();
-      showToast(`Confirmed ${evt.title} for ${dayNice} at ${timeDisplay}!`);
+      showToast(`Confirmed ${confirmedItems.length} ${confirmedItems.length === 1 ? 'session' : 'sessions'}!`);
     }
 
     function downloadIcs() {
       const b = state.cal.lastBooking;
-      if (!b) return;
-      const dtStart = b.iso.replace(/-/g, '') + 'T' + b.time24.replace(':', '') + '00';
-      const [h, m] = b.time24.split(':').map(Number);
-      const endMins = h * 60 + m + b.evt.duration;
-      const eh = String(Math.floor(endMins / 60)).padStart(2, '0');
-      const em = String(endMins % 60).padStart(2, '0');
-      const dtEnd = b.iso.replace(/-/g, '') + 'T' + eh + em + '00';
-      const ics = [
+      if (!b || !b.items?.length) return;
+      const lines = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
-        'PRODID:-//Gina Fuchs Elite Fastpitch//Booking//EN',
-        'BEGIN:VEVENT',
-        `DTSTART:${dtStart}`,
-        `DTEND:${dtEnd}`,
-        `SUMMARY:${b.evt.title} — ${b.athName} w/ Coach Gina`,
-        `LOCATION:${b.evt.location}`,
-        `DESCRIPTION:Athlete: ${b.athName}\\nNotes: ${b.notes || 'Fastpitch training session'}\\n24-hour cancellation policy applies.`,
-        'END:VEVENT',
-        'END:VCALENDAR'
-      ].join('\r\n');
-      const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+        'PRODID:-//Gina Fuchs Elite Fastpitch//Booking//EN'
+      ];
+      b.items.forEach(item => {
+        const dtStart = item.iso.replace(/-/g, '') + 'T' + item.time24.replace(':', '') + '00';
+        const [h, m] = item.time24.split(':').map(Number);
+        const endMins = h * 60 + m + item.evt.duration;
+        const eh = String(Math.floor(endMins / 60)).padStart(2, '0');
+        const em = String(endMins % 60).padStart(2, '0');
+        const dtEnd = item.iso.replace(/-/g, '') + 'T' + eh + em + '00';
+        lines.push(
+          'BEGIN:VEVENT',
+          `DTSTART:${dtStart}`,
+          `DTEND:${dtEnd}`,
+          `SUMMARY:${item.evt.title} — ${item.athleteName} w/ Coach Gina`,
+          `LOCATION:${item.evt.location}`,
+          `DESCRIPTION:Athlete: ${item.athleteName}\\nNotes: ${b.notes || 'Fastpitch training session'}\\n24-hour cancellation policy applies.`,
+          'END:VEVENT'
+        );
+      });
+      lines.push('END:VCALENDAR');
+      const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `gina-fuchs-${b.evt.slug}-${b.iso}.ics`;
+      a.download = `gina-fuchs-sessions-${b.items.length}.ics`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      showToast('Calendar invite (.ics) downloaded!');
+      showToast(`Calendar invite (.ics) for ${b.items.length} ${b.items.length === 1 ? 'session' : 'sessions'} downloaded!`);
     }
 
     function copyCalLink(slug = '') {
@@ -1360,8 +1448,9 @@
     function renderParentBook() {
       const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
       const evt = state.cal.eventTypes.find(e => e.id === state.cal.eventTypeId) || state.cal.eventTypes[0];
+      const { creditsUsed, cardTotal, availCredits } = calCartTotals();
 
-      // STEP 3: CONFIRMED SCREEN (Cal.com style)
+      // STEP 3: MULTI-SESSION CONFIRMED SCREEN
       if (state.cal.step === 'confirmed' && state.cal.lastBooking) {
         const b = state.cal.lastBooking;
         return `
@@ -1369,27 +1458,108 @@
           <div class="card-white rounded-[32px] p-6 sm:p-8 max-w-xl mx-auto text-center space-y-5">
             <div class="w-16 h-16 rounded-full bg-[#D5FF5F] text-[#010101] mx-auto flex items-center justify-center text-2xl font-extrabold shadow-lg">✓</div>
             <div class="space-y-1">
-              <h1 class="text-2xl font-extrabold tracking-tight">This session is scheduled!</h1>
-              <p class="text-xs text-[var(--text-muted)]">Confirmation &amp; 24-hour SMS reminder sent to <strong>${b.phone}</strong> &amp; <strong>${b.email}</strong>.</p>
+              <h1 class="text-2xl font-extrabold tracking-tight">${b.items.length === 1 ? 'Session Scheduled!' : `${b.items.length} Sessions Scheduled!`}</h1>
+              <p class="text-xs text-[var(--text-muted)]">Confirmation &amp; 24-hour SMS reminders sent to <strong>${b.phone}</strong> &amp; <strong>${b.email}</strong>.</p>
             </div>
-            <div class="surface-soft rounded-3xl p-5 text-left space-y-2.5 text-xs">
-              <div class="flex justify-between gap-2"><span class="text-[var(--text-muted)] font-semibold">What</span><span class="font-extrabold text-right">${b.evt.title}</span></div>
-              <div class="flex justify-between gap-2"><span class="text-[var(--text-muted)] font-semibold">When</span><span class="font-extrabold text-right">${b.dayNice} • ${b.timeDisplay} (${b.evt.durationLabel})</span></div>
-              <div class="flex justify-between gap-2"><span class="text-[var(--text-muted)] font-semibold">Athlete</span><span class="font-extrabold text-right">${b.athName}</span></div>
-              <div class="flex justify-between gap-2"><span class="text-[var(--text-muted)] font-semibold">Where</span><span class="font-extrabold text-right">${b.evt.location}</span></div>
-              <div class="flex justify-between gap-2"><span class="text-[var(--text-muted)] font-semibold">Payment</span><span class="font-extrabold text-right">${b.payLabel}</span></div>
-              ${b.notes ? `<div class="pt-2 border-t border-[var(--border-subtle)]"><span class="text-[var(--text-muted)] font-semibold">Focus Notes:</span> <span class="font-medium">${b.notes}</span></div>` : ''}
+            <div class="space-y-2 text-left">
+              ${b.items.map(item => `
+                <div class="surface-soft rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs">
+                  <div>
+                    <div class="font-extrabold">${item.evt.title} <span class="font-semibold text-[#4E6075] dark:text-[#9AC0D6]">(${item.athleteName.split(' ')[0]})</span></div>
+                    <div class="text-[var(--text-muted)] mt-0.5">${item.dayNice} • ${item.timeDisplay} (${item.evt.durationLabel})</div>
+                  </div>
+                  <span class="px-2.5 py-1 rounded-full card-white font-extrabold shrink-0">${item.payLabel}</span>
+                </div>
+              `).join('')}
+            </div>
+            <div class="surface-soft rounded-2xl p-3.5 flex items-center justify-between text-xs font-extrabold">
+              <span class="text-[var(--text-muted)]">Total Applied</span>
+              <span>${b.creditsUsed ? `${b.creditsUsed} ${b.creditsUsed === 1 ? 'Credit' : 'Credits'}` : ''}${b.creditsUsed && b.cardTotal ? ' + ' : ''}${b.cardTotal ? `$${b.cardTotal} Card` : (b.creditsUsed ? '' : '$0')}</span>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <button onclick="downloadIcs()" class="py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">📅 Add to Calendar (.ics)</button>
-              <button onclick="state.cal.step='calendar'; state.cal.selectedTime=null; render();" class="py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Book Another Session</button>
+              <button onclick="downloadIcs()" class="py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">📅 Add All to Calendar (.ics)</button>
+              <button onclick="state.cal.step='calendar'; state.cal.selectedTime=null; render();" class="py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Book More Sessions</button>
             </div>
             <button onclick="setTab('home')" class="text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">← Back to Training Hub</button>
           </div>
         `;
       }
 
-      // Event Type Pill Strip (Cal.com Event Types)
+      // STEP 2: MULTI-SESSION CART CHECKOUT
+      if (state.cal.step === 'details' && state.cal.cart.length > 0) {
+        return `
+          ${renderSiblingBar()}
+          <div class="card-white rounded-[32px] overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+            <!-- Left: Shopping Cart Review -->
+            <div class="lg:col-span-5 card-mist p-6 space-y-4">
+              <div class="flex items-center justify-between">
+                <button onclick="state.cal.step='calendar'; render();" class="text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">← Add More Sessions</button>
+                <span class="px-2.5 py-0.5 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold">🛒 ${state.cal.cart.length} IN CART</span>
+              </div>
+              <h2 class="text-lg font-extrabold tracking-tight">Your Booking Cart</h2>
+              <div class="space-y-2.5 max-h-80 overflow-y-auto no-scrollbar">
+                ${state.cal.cart.map(item => `
+                  <div class="surface-soft rounded-2xl p-3.5 space-y-2 text-xs">
+                    <div class="flex items-start justify-between gap-2">
+                      <div>
+                        <div class="font-extrabold">${item.evt.title}</div>
+                        <div class="text-[11px] text-[var(--text-muted)]">${item.athleteName} (${item.athleteAge}) • ${item.dayNice} • ${item.timeDisplay}</div>
+                      </div>
+                      <button type="button" onclick="calRemoveFromCart('${item.id}')" class="text-[var(--text-muted)] hover:text-red-500 font-bold cursor-pointer">✕</button>
+                    </div>
+                    <div class="flex items-center justify-between pt-1.5 border-t border-[var(--border-subtle)]">
+                      <span class="text-[11px] font-bold text-[var(--text-muted)]">${item.evt.durationLabel} • ${item.evt.location.split('•')[1] || 'Cage 1'}</span>
+                      ${item.evt.allowCredit ? `
+                        <button type="button" onclick="calToggleCartItemPay('${item.id}')" class="px-2.5 py-1 rounded-full text-[10px] font-extrabold cursor-pointer ${item.payMode === 'credit' ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#010101] text-white'}">
+                          ${item.payMode === 'credit' ? '1 Credit ✓ (Switch)' : `$${item.evt.price} Card (Use Credit)`}
+                        </button>
+                      ` : `<span class="font-extrabold">$${item.evt.price}</span>`}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+
+              <!-- Cart Totals Summary -->
+              <div class="card-white rounded-2xl p-4 space-y-1.5 text-xs">
+                <div class="flex justify-between"><span class="text-[var(--text-muted)] font-semibold">Credits Applied (${availCredits} avail)</span><span class="font-extrabold">${creditsUsed} ${creditsUsed === 1 ? 'Credit' : 'Credits'}</span></div>
+                <div class="flex justify-between text-sm pt-1 border-t border-[var(--border-subtle)]"><span class="font-extrabold">Due Today (Stripe / Apple Pay)</span><span class="font-extrabold tabular-nums">$${cardTotal}</span></div>
+              </div>
+            </div>
+
+            <!-- Right: Single Checkout Form -->
+            <form onsubmit="calConfirmBooking(event)" class="lg:col-span-7 p-6 space-y-4 text-xs">
+              <h2 class="text-lg font-extrabold tracking-tight">Complete Checkout</h2>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[var(--text-muted)] font-bold mb-1">Parent / Guardian Name *</label>
+                  <input name="parentName" value="${ath.parentName}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
+                </div>
+                <div>
+                  <label class="block text-[var(--text-muted)] font-bold mb-1">Email for Calendar Invites *</label>
+                  <input name="email" type="email" value="sarah.miller@example.com" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
+                </div>
+              </div>
+              <div>
+                <label class="block text-[var(--text-muted)] font-bold mb-1">Mobile Phone (24h SMS Reminders) *</label>
+                <input name="phone" value="${ath.parentPhone}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
+              </div>
+              <div>
+                <label class="block text-[var(--text-muted)] font-bold mb-1">Focus Notes for Coach Gina (Optional)</label>
+                <textarea name="notes" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., Inside pitch barrel path, slapping footwork, infield transfers, pre-tournament tune-up..."></textarea>
+              </div>
+              <label class="flex items-center gap-2 cursor-pointer pt-1">
+                <input type="checkbox" checked required class="w-4 h-4 accent-[#010101]" />
+                <span class="text-[11px] text-[var(--text-muted)]">I agree to the 24-hour reschedule &amp; cancellation policy for all sessions in my cart.</span>
+              </label>
+              <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
+                Confirm ${state.cal.cart.length} ${state.cal.cart.length === 1 ? 'Session' : 'Sessions'} ${cardTotal > 0 ? `• Pay $${cardTotal}` : `• Use ${creditsUsed} ${creditsUsed === 1 ? 'Credit' : 'Credits'}`} →
+              </button>
+            </form>
+          </div>
+        `;
+      }
+
+      // STEP 1: CAL.COM 3-COLUMN SCHEDULER + LIVE SHOPPING CART BAR
       const eventStrip = `
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           ${state.cal.eventTypes.map(t => {
@@ -1408,85 +1578,24 @@
         </div>
       `;
 
-      // STEP 2: DETAILS & PAYMENT FORM
-      if (state.cal.step === 'details' && state.cal.selectedTime) {
-        const canCredit = evt.allowCredit && ath.credits > 0;
-        return `
-          ${renderSiblingBar()}
-          <div class="card-white rounded-[32px] overflow-hidden grid grid-cols-1 lg:grid-cols-12">
-            <!-- Left Summary -->
-            <div class="lg:col-span-5 card-mist p-6 space-y-4">
-              <button onclick="state.cal.step='calendar'; render();" class="text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">← Change Date / Time</button>
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-[#010101] text-[#D5FF5F] font-extrabold text-xs flex items-center justify-center">GF</div>
-                <div><div class="text-xs text-[var(--text-muted)] font-bold">Gina Fuchs</div><div class="font-extrabold text-base">${evt.title}</div></div>
-              </div>
-              <div class="space-y-2 text-xs font-semibold">
-                <div class="flex items-center gap-2"><span>📅</span><span>${calDateLabel(state.cal.selectedDate)} • ${calFormatTime(state.cal.selectedTime)}</span></div>
-                <div class="flex items-center gap-2"><span>⏱️</span><span>${evt.duration} minutes</span></div>
-                <div class="flex items-center gap-2"><span>📍</span><span>${evt.location}</span></div>
-                <div class="flex items-center gap-2"><span>🌎</span><span>${state.cal.timezone.replace('_', ' ')}</span></div>
-              </div>
-              <div class="p-3.5 rounded-2xl surface-soft text-[11px] text-[var(--text-muted)] leading-relaxed">
-                <strong>24-Hour Cancellation Policy:</strong> Cancel or reschedule 24+ hours ahead to automatically return your credit.
+      const cartBanner = state.cal.cart.length > 0 ? `
+        <div class="glass-dock rounded-[26px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-2 border-[#010101] dark:border-[#D5FF5F]">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold text-sm flex items-center justify-center shrink-0">🛒</div>
+            <div class="min-w-0">
+              <div class="font-extrabold text-sm">${state.cal.cart.length} ${state.cal.cart.length === 1 ? 'Session' : 'Sessions'} in Booking Cart</div>
+              <div class="text-xs text-[var(--text-muted)] truncate">
+                ${state.cal.cart.map(i => `${i.athleteName.split(' ')[0]}: ${i.dayNice} ${i.timeDisplay}`).join(' • ')}
               </div>
             </div>
-
-            <!-- Right Form -->
-            <form onsubmit="calConfirmBooking(event)" class="lg:col-span-7 p-6 space-y-4 text-xs">
-              <h2 class="text-lg font-extrabold tracking-tight">Confirm your booking</h2>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-[var(--text-muted)] font-bold mb-1">Parent / Guardian Name *</label>
-                  <input name="parentName" value="${ath.parentName}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
-                </div>
-                <div>
-                  <label class="block text-[var(--text-muted)] font-bold mb-1">Athlete</label>
-                  <input value="${ath.name} (${ath.ageGroup})" readonly class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold opacity-80" />
-                </div>
-              </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-[var(--text-muted)] font-bold mb-1">Email for Calendar Invite *</label>
-                  <input name="email" type="email" value="sarah.miller@example.com" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
-                </div>
-                <div>
-                  <label class="block text-[var(--text-muted)] font-bold mb-1">Mobile Phone (SMS Reminders) *</label>
-                  <input name="phone" value="${ath.parentPhone}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
-                </div>
-              </div>
-              <div>
-                <label class="block text-[var(--text-muted)] font-bold mb-1">What should Coach Gina focus on? (Optional)</label>
-                <textarea name="notes" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., Inside pitch barrel path, slapping footwork, infield transfers, pre-tournament tune-up..."></textarea>
-              </div>
-              <div>
-                <label class="block text-[var(--text-muted)] font-bold mb-1.5">Payment Method</label>
-                <div class="grid grid-cols-2 gap-2.5">
-                  ${canCredit ? `
-                    <button type="button" onclick="state.cal.payMode='credit'; render();" class="p-3 rounded-2xl border text-left cursor-pointer transition ${state.cal.payMode === 'credit' ? 'bg-[#010101] text-[#D5FF5F] border-[#010101]' : 'surface-soft'}">
-                      <div class="font-extrabold">Use 1 Credit</div>
-                      <div class="text-[11px] opacity-80">${ath.credits} credits available</div>
-                    </button>
-                  ` : ''}
-                  <button type="button" onclick="state.cal.payMode='card'; render();" class="p-3 rounded-2xl border text-left cursor-pointer transition ${state.cal.payMode === 'card' || !canCredit ? 'bg-[#010101] text-[#D5FF5F] border-[#010101]' : 'surface-soft'}">
-                    <div class="font-extrabold">Pay $${evt.price}</div>
-                    <div class="text-[11px] opacity-80">Stripe • Card / Apple Pay</div>
-                  </button>
-                </div>
-              </div>
-              <label class="flex items-center gap-2 cursor-pointer pt-1">
-                <input type="checkbox" checked required class="w-4 h-4 accent-[#010101]" />
-                <span class="text-[11px] text-[var(--text-muted)]">I agree to the 24-hour reschedule &amp; cancellation policy.</span>
-              </label>
-              <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
-                Confirm Booking →
-              </button>
-            </form>
           </div>
-        `;
-      }
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="px-3 py-1.5 rounded-full surface-soft text-xs font-extrabold">${creditsUsed ? `${creditsUsed} cr` : ''}${creditsUsed && cardTotal ? ' + ' : ''}${cardTotal ? `$${cardTotal}` : ''}</span>
+            <button onclick="state.cal.step='details'; render();" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-md">Checkout (${state.cal.cart.length}) →</button>
+          </div>
+        </div>
+      ` : '';
 
-      // STEP 1: CLASSIC CAL.COM 3-COLUMN SCHEDULER
       const year = state.cal.year;
       const month = state.cal.month;
       const monthName = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -1502,6 +1611,7 @@
         const slots = isPast ? [] : calGetSlotsForDate(iso);
         const hasSlots = slots.length > 0;
         const isSelected = iso === state.cal.selectedDate;
+        const hasCartOnDay = state.cal.cart.some(i => i.iso === iso);
         calendarCells += `
           <button ${!hasSlots ? 'disabled' : `onclick="calSelectDate('${iso}')"`} class="aspect-square rounded-2xl flex flex-col items-center justify-center text-xs font-extrabold transition ${
             isSelected
@@ -1511,7 +1621,9 @@
                 : 'opacity-30 cursor-not-allowed'
           }">
             <span>${day}</span>
-            ${hasSlots ? `<span class="w-1 h-1 rounded-full mt-0.5 ${isSelected ? 'bg-[#D5FF5F]' : 'bg-[#4E6075] dark:bg-[#9AC0D6]'}"></span>` : ''}
+            ${hasCartOnDay
+              ? `<span class="w-1.5 h-1.5 rounded-full mt-0.5 bg-[#D5FF5F] ring-1 ring-[#010101]"></span>`
+              : hasSlots ? `<span class="w-1 h-1 rounded-full mt-0.5 ${isSelected ? 'bg-[#D5FF5F]' : 'bg-[#4E6075] dark:bg-[#9AC0D6]'}"></span>` : ''}
           </button>
         `;
       }
@@ -1520,12 +1632,16 @@
         ${renderSiblingBar()}
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h1 class="text-2xl font-extrabold tracking-tight">Book a Session</h1>
-            <p class="text-xs text-[var(--text-muted)]">Pick a training type, choose an open date &amp; time, and lock in your cage slot</p>
+            <h1 class="text-2xl font-extrabold tracking-tight">Book Sessions</h1>
+            <p class="text-xs text-[var(--text-muted)]">Add multiple dates, class types, or siblings to your cart &amp; check out in one step</p>
           </div>
-          <button onclick="copyCalLink('${evt.slug}')" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer">🔗 Copy Booking Link</button>
+          <div class="flex items-center gap-2">
+            ${state.cal.cart.length > 0 ? `<button onclick="state.cal.step='details'; render();" class="px-3.5 py-2 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">🛒 Cart (${state.cal.cart.length})</button>` : ''}
+            <button onclick="copyCalLink('${evt.slug}')" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer">🔗 Copy Link</button>
+          </div>
         </div>
 
+        ${cartBanner}
         ${eventStrip}
 
         <!-- Cal.com 3-Column Liquid Glass Booking Card -->
@@ -1536,7 +1652,7 @@
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-[#010101] text-[#D5FF5F] font-extrabold text-xs flex items-center justify-center shrink-0">GF</div>
                 <div>
-                  <div class="text-xs text-[var(--text-muted)] font-bold">Gina Fuchs</div>
+                  <div class="text-xs text-[var(--text-muted)] font-bold">Booking for ${ath.name.split(' ')[0]} (${ath.ageGroup})</div>
                   <div class="font-extrabold text-base leading-tight">${evt.title}</div>
                 </div>
               </div>
@@ -1575,7 +1691,7 @@
             </div>
           </div>
 
-          <!-- Col 3: Time Slots + 12h/24h Toggle -->
+          <!-- Col 3: Time Slots + Add to Cart / Book Now -->
           <div class="lg:col-span-3 p-5 sm:p-6 space-y-3">
             <div class="flex items-center justify-between gap-2">
               <div class="font-extrabold text-sm">${calDateLabel(state.cal.selectedDate)}</div>
@@ -1586,11 +1702,24 @@
             </div>
             <div class="space-y-2 max-h-72 overflow-y-auto no-scrollbar pr-0.5">
               ${availableSlots.length ? availableSlots.map(t => {
+                const slotKey = `${state.cal.selectedDate}@${t}`;
+                const inCartItem = state.cal.cart.find(i => i.slotKey === slotKey);
+                if (inCartItem) {
+                  return `
+                    <div class="p-2.5 rounded-2xl bg-[#D5FF5F]/25 border border-[#010101]/20 flex items-center justify-between text-xs font-extrabold">
+                      <span>✓ ${calFormatTime(t)}</span>
+                      <button onclick="calRemoveFromCart('${inCartItem.id}')" class="text-[11px] underline cursor-pointer">Remove</button>
+                    </div>
+                  `;
+                }
                 const selected = state.cal.selectedTime === t;
                 return selected ? `
-                  <div class="grid grid-cols-2 gap-1.5">
-                    <button onclick="state.cal.selectedTime=null; render();" class="py-2.5 rounded-2xl bg-[#010101] text-white text-xs font-extrabold cursor-pointer">${calFormatTime(t)}</button>
-                    <button onclick="state.cal.step='details'; render();" class="py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Next →</button>
+                  <div class="space-y-1.5 p-2 rounded-2xl surface-soft">
+                    <div class="text-center text-xs font-extrabold">${calFormatTime(t)}</div>
+                    <div class="grid grid-cols-2 gap-1.5">
+                      <button onclick="calAddToCart('${t}', false)" class="py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold cursor-pointer">+ Add Cart</button>
+                      <button onclick="calAddToCart('${t}', true)" class="py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer">Book Now →</button>
+                    </div>
                   </div>
                 ` : `
                   <button onclick="state.cal.selectedTime='${t}'; render();" class="w-full py-2.5 px-3 rounded-2xl surface-soft hover:border-[#010101] text-xs font-extrabold flex items-center justify-center gap-2 cursor-pointer transition">
