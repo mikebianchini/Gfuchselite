@@ -703,21 +703,25 @@
         {
           id: 'rec-2',
           athleteId: 'ath-1',
-          date: 'Nov 12, 2026',
-          sessionTitle: '1-on-1 Infield Defense (45m)',
-          tags: ['Footwork', 'Glove Transfer'],
-          warmup: 'Band shoulder activation, wrist flips & short-hop glove work',
-          focus: 'Low athletic posture attacking short hops & right-left momentum through the throw to 1B.',
-          tee: 'Quick-hands barehand & glove-to-ear transfer reps (25)',
-          ft: 'Short-hop & backhand fungo series from SS/3B angles',
-          machine: 'Hard-hit grounders off hack-attack — playing through the hop',
-          homework: 'At least 1 bucket of each drill 2-3x a week!',
-          note: 'Great low athletic posture attacking short hops! Work right-left through the ball so your momentum carries cleanly into the throw to 1B.',
-          videoTitle: 'Short-Hop Footwork Slow-Mo (0:11)',
-          videoImg: 'assets/images/fastpitch-fielding.jpg',
+          date: '11/9/26',
+          sessionTitle: '1-on-1 Hitting Private (45m)',
+          tags: ['Approach', 'Extensions 3/3/3', 'At-Bats'],
+          warmup: 'walking pvc swings, recoils, pvc rotations\nMed ball - staggered, scoop, step back 5 each (4lbs)',
+          focus: 'Wrestling. Just started practicing/no matches yet.\nPlaying in 14u tourney this weekend',
+          tee: 'Extensions 3/3/3\nSwing 3/3/3',
+          ft: 'Worked on at bats and having a good plan — attacking the pitches you are hunting!!',
+          machine: '',
+          homework: 'At least 1 bucket of each drill 2-3x a week!\n• Extensions in mid out\n• Step back drill to stay in legs.\n• Outside pitches',
+          note: 'Worked on at bats and having a good plan — attacking the pitches you are hunting!!',
+          videoTitle: '11/9 FT Clip #1 — Hunting Pitch Plan (0:12)',
+          videoImg: 'assets/images/fastpitch-hitter.jpg',
           videoUrl: null,
+          clips: [
+            { title: 'FT Clip #1 — Attacking Pitch Plan (0:12)', img: 'assets/images/fastpitch-hitter.jpg', url: null },
+            { title: 'FT Clip #2 — Outside Pitch Extension (0:10)', img: 'assets/images/fastpitch-slapper.jpg', url: null }
+          ],
           sentTo: 'Sarah Miller (SMS + App)',
-          sentAt: 'Nov 12 • 4:58 PM'
+          sentAt: '11/9 • 4:58 PM'
         },
         {
           id: 'rec-3',
@@ -2852,9 +2856,28 @@
               ${hwBullets.length ? `<ul class="pl-5 space-y-0.5 text-[11px] leading-snug">${formatBulletLines(hwBullets.join('\n'))}</ul>` : ''}
             </div>
           ` : ''}
+
+          ${r.clips && r.clips.length > 1 ? `
+            <div class="space-y-1.5">
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">🎥 Attached Clips (${r.clips.length})</div>
+              <div class="grid grid-cols-2 gap-2">
+                ${r.clips.map(c => `
+                  <button type="button" onclick="openRecapViewerModal('${r.id}')" class="relative h-20 rounded-2xl overflow-hidden text-left group cursor-pointer">
+                    <img src="${c.img || r.videoImg}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#010101]/80 via-[#010101]/20 to-transparent flex flex-col justify-between p-2">
+                      <span class="w-6 h-6 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold flex items-center justify-center">▶</span>
+                      <span class="text-[10px] font-extrabold text-white truncate">${c.title}</span>
+                    </div>
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
         </div>
       `;
     }
+
+    let _recapDraftClips = [];
 
     function openSessionRecapModal(athId, sessionId) {
       const ath = state.athletes.find(a => a.id === athId) || state.athletes[0];
@@ -2862,6 +2885,7 @@
       _recapDraftTags = ['Barrel Control', 'Variability'];
       _recapDraftVideoUrl = null;
       _recapDraftVideoName = null;
+      _recapDraftClips = [];
       renderRecapComposerModal(ath, ses);
     }
 
@@ -2886,12 +2910,16 @@
     }
 
     function handleRecapVideoFile(input) {
-      const file = input.files?.[0];
-      if (!file) return;
-      _recapDraftVideoUrl = URL.createObjectURL(file);
-      _recapDraftVideoName = file.name;
+      const files = Array.from(input.files || []);
+      if (!files.length) return;
+      files.forEach(file => {
+        const url = URL.createObjectURL(file);
+        _recapDraftClips.push({ title: file.name, url, img: 'assets/images/fastpitch-hitter.jpg' });
+      });
+      _recapDraftVideoUrl = _recapDraftClips[0].url;
+      _recapDraftVideoName = _recapDraftClips.length === 1 ? _recapDraftClips[0].title : `${_recapDraftClips.length} clips attached`;
       const label = document.getElementById('recap-video-status');
-      if (label) label.textContent = `✓ Attached: ${file.name}`;
+      if (label) label.textContent = `✓ ${_recapDraftVideoName}`;
     }
 
     function renderRecapComposerModal(ath, ses, draft = null) {
@@ -2904,9 +2932,10 @@
         machine: '',
         homework: GINA_HOMEWORK_DEFAULT
       };
-      const allTags = ['Barrel Control', 'Variability', 'Exit Velo', 'Timing', 'Slapping', 'Footwork', 'Pop Time', 'Arm Care'];
+      const allTags = ['Barrel Control', 'Variability', 'Approach', 'Exit Velo', 'Timing', 'Slapping', 'Footwork', 'Pop Time'];
+      const teeQuick = ['Extensions 3/3/3', 'Swing 3/3/3'];
       const ftQuick = ['Shorty baseballs', 'Baseball bat baseballs', 'Regular bat softballs'];
-      const hwQuick = ['Extensions', 'Step back', 'Outside pitch extension'];
+      const hwQuick = ['Extensions in mid out', 'Step back drill to stay in legs', 'Outside pitches'];
       openModal(`
         <div class="flex items-start justify-between gap-2">
           <div>
@@ -2940,15 +2969,20 @@
           <!-- 2. What's new / focus for lesson -->
           <div>
             <label class="block font-extrabold mb-1">What’s new / focus for lesson: *</label>
-            <textarea id="recap-focus-input" name="focus" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft leading-relaxed" placeholder="e.g., Barrel control w diff bats. Variability training. New ghost unlimited." required>${d.focus}</textarea>
+            <textarea id="recap-focus-input" name="focus" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft leading-relaxed" placeholder="e.g., Playing in 14u tourney this weekend • Barrel control w diff bats..." required>${d.focus}</textarea>
           </div>
 
           <!-- 3. What we did today: Tee / FT / Machine -->
           <div class="surface-soft rounded-2xl p-3 space-y-2.5">
             <div class="font-extrabold text-[11px] uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">What we did today</div>
             <div>
-              <label class="block font-bold mb-1">Tee:</label>
-              <textarea id="recap-tee-input" name="tee" rows="2" class="w-full px-3 py-2 rounded-xl card-white leading-snug" placeholder="• Extensions, step back, outside pitch extension">${d.tee}</textarea>
+              <div class="flex flex-wrap items-center justify-between gap-1 mb-1">
+                <label class="font-bold">Tee:</label>
+                <div class="flex flex-wrap gap-1">
+                  ${teeQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-tee-input','${q}')" class="px-2 py-0.5 rounded-full card-white text-[10px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+                </div>
+              </div>
+              <textarea id="recap-tee-input" name="tee" rows="2" class="w-full px-3 py-2 rounded-xl card-white leading-snug" placeholder="• Extensions 3/3/3&#10;• Swing 3/3/3">${d.tee}</textarea>
             </div>
             <div>
               <div class="flex flex-wrap items-center justify-between gap-1 mb-1">
@@ -2957,7 +2991,7 @@
                   ${ftQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-ft-input','${q}')" class="px-2 py-0.5 rounded-full card-white text-[10px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
                 </div>
               </div>
-              <textarea id="recap-ft-input" name="ft" rows="3" class="w-full px-3 py-2 rounded-xl card-white leading-snug" placeholder="• Shorty baseballs&#10;• Baseball bat baseballs&#10;• Regular bat softballs">${d.ft}</textarea>
+              <textarea id="recap-ft-input" name="ft" rows="3" class="w-full px-3 py-2 rounded-xl card-white leading-snug" placeholder="• Shorty baseballs&#10;• Worked on at bats & attacking pitches you are hunting!!">${d.ft}</textarea>
             </div>
             <div>
               <label class="block font-bold mb-1">Machine:</label>
@@ -2973,18 +3007,18 @@
                 ${hwQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-homework-input','${q}')" class="px-2 py-0.5 rounded-full surface-soft text-[10px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
               </div>
             </div>
-            <textarea id="recap-homework-input" name="homework" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft leading-snug font-semibold" placeholder="At least 1 bucket of each drill 2-3x a week!&#10;• Work on drills we’ve been doing off the tee.&#10;• Extensions, step back, outside pitch extension">${d.homework}</textarea>
+            <textarea id="recap-homework-input" name="homework" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft leading-snug font-semibold" placeholder="At least 1 bucket of each drill 2-3x a week!&#10;• Extensions in mid out&#10;• Step back drill to stay in legs.">${d.homework}</textarea>
           </div>
 
-          <!-- Attach Session Video / Photo from Camera Roll -->
+          <!-- Attach Session Videos / Photos from Camera Roll (Supports Multiple Clips!) -->
           <div class="surface-soft rounded-2xl p-3 space-y-2">
             <div class="flex items-center justify-between">
-              <span class="font-extrabold">🎥 Attach Session Video / Clip</span>
-              <span id="recap-video-status" class="text-[11px] font-bold text-[#4E6075] dark:text-[#9AC0D6]">${_recapDraftVideoName ? `✓ ${_recapDraftVideoName}` : 'Demo clip ready'}</span>
+              <span class="font-extrabold">🎥 Attach Session Videos / Clips</span>
+              <span id="recap-video-status" class="text-[11px] font-bold text-[#4E6075] dark:text-[#9AC0D6]">${_recapDraftVideoName ? `✓ ${_recapDraftVideoName}` : '1 or more clips'}</span>
             </div>
             <label class="block w-full py-2 px-3 rounded-xl card-white text-center font-bold cursor-pointer hover:border-[#010101]">
-              Choose Video or Photo from Phone / Computer
-              <input type="file" accept="video/*,image/*" onchange="handleRecapVideoFile(this)" class="hidden" />
+              Choose Videos or Photos from Phone / Computer
+              <input type="file" accept="video/*,image/*" multiple onchange="handleRecapVideoFile(this)" class="hidden" />
             </label>
           </div>
 
@@ -2992,7 +3026,7 @@
           <label class="flex items-center justify-between gap-3 p-3 rounded-2xl card-mist cursor-pointer">
             <div>
               <div class="font-extrabold">Message Player &amp; Parent Automatically</div>
-              <div class="text-[11px] text-[var(--text-muted)]">Sends formatted note + video to ${ath.parentName} (${ath.parentPhone})</div>
+              <div class="text-[11px] text-[var(--text-muted)]">Sends formatted note + clips to ${ath.parentName} (${ath.parentPhone})</div>
             </div>
             <input type="checkbox" name="sendNow" checked class="w-5 h-5 accent-[#010101]" />
           </label>
@@ -3018,11 +3052,12 @@
       const sendNow = e.target.sendNow.checked;
       const vidTitle = _recapDraftVideoName || `${ath.name.split(' ')[0]} Session Clip — Today (0:14)`;
       const vidImg = getAthleteCoverImg(ath);
+      const clips = _recapDraftClips.length ? _recapDraftClips.map(c => ({ ...c, img: vidImg })) : [{ title: vidTitle, img: vidImg, url: _recapDraftVideoUrl }];
 
       const newRecap = {
         id: 'rec-' + Date.now(),
         athleteId: ath.id,
-        date: 'Today',
+        date: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }),
         sessionTitle: ses ? ses.focus : '1-on-1 Training Session',
         tags: [..._recapDraftTags],
         warmup,
@@ -3035,6 +3070,7 @@
         videoTitle: vidTitle,
         videoImg: vidImg,
         videoUrl: _recapDraftVideoUrl,
+        clips,
         sentTo: sendNow ? `${ath.parentName} (SMS + App)` : 'Saved Private (Draft)',
         sentAt: 'Just now'
       };
