@@ -975,6 +975,7 @@
                 </button>
               `;
             }).join('')}
+            <button onclick="openAddAthleteModal('fam-1')" class="px-3 py-2 rounded-full surface-soft text-xs font-extrabold text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer transition">+ Add Athlete</button>
           </div>
           <button onclick="setTab('book'); if(state.cal.cart.length){ state.cal.step='details'; render(); }" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer">
             ${state.cal.cart.length > 0 ? `🛒 Cart (<span class="text-[#010101] bg-[#D5FF5F] px-1.5 py-0.5 rounded-md">${state.cal.cart.length}</span>)` : '+ Book Session'}
@@ -2623,11 +2624,176 @@
       `;
     }
 
+    function openAddAthleteModal(familyId = null) {
+      const isParentFlow = familyId === 'fam-1';
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${isParentFlow ? 'Family Account' : 'Coach Roster'}</div>
+            <h3 class="font-extrabold text-base mt-0.5">Add New Athlete</h3>
+          </div>
+          <button onclick="closeModal()" class="w-8 h-8 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+
+        <form onsubmit="submitAddAthlete(event, ${familyId ? `'${familyId}'` : 'null'})" class="space-y-3 text-xs">
+          <div>
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Athlete Full Name *</label>
+            <input name="name" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" placeholder="e.g., Kylie Morgan" required />
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Age Group</label>
+              <select name="ageGroup" class="w-full px-3 py-2.5 rounded-2xl surface-soft font-bold">
+                <option value="8U">8U</option>
+                <option value="10U">10U</option>
+                <option value="12U">12U</option>
+                <option value="14U" selected>14U</option>
+                <option value="16U">16U</option>
+                <option value="18U">18U</option>
+                <option value="College">College</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Grad Year</label>
+              <input name="gradYear" type="number" min="2025" max="2038" value="2030" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold" required />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Primary Position</label>
+              <select name="position" class="w-full px-3 py-2.5 rounded-2xl surface-soft font-bold">
+                <option value="SS / 3B">SS / 3B (Infield)</option>
+                <option value="Catcher / 3B">Catcher</option>
+                <option value="OF / Slapper">OF / Slapper</option>
+                <option value="1B / Hitter">1B / Power Hitter</option>
+                <option value="2B / Utility">2B / Utility</option>
+                <option value="OF / Hitter">Outfield / Hitter</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Bats / Throws</label>
+              <select name="batsThrows" class="w-full px-3 py-2.5 rounded-2xl surface-soft font-bold">
+                <option value="R / R">R / R</option>
+                <option value="L / R">L / R</option>
+                <option value="L / L">L / L</option>
+                <option value="S / R">Switch / R</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2.5">
+            <div class="col-span-2">
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Travel / School Team</label>
+              <input name="team" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., Pittsburgh Passion 14U" />
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Jersey #</label>
+              <input name="jersey" class="w-full px-3 py-2.5 rounded-2xl surface-soft" placeholder="#12" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Parent / Guardian *</label>
+              <input name="parentName" value="${isParentFlow ? 'Sarah Miller' : ''}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., Amanda Morgan" required />
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Parent Phone *</label>
+              <input name="parentPhone" value="${isParentFlow ? '(555) 234-8910' : ''}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="(412) 555-0199" required />
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Medical / Allergy Notes (Optional)</label>
+            <input name="medicalNotes" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="None reported" />
+          </div>
+
+          <label class="flex items-center justify-between gap-3 p-3 rounded-2xl card-mist cursor-pointer">
+            <div>
+              <div class="font-extrabold">Facility Waiver Signed</div>
+              <div class="text-[11px] text-[var(--text-muted)]">Leave unchecked to mark Waiver Pending</div>
+            </div>
+            <input type="checkbox" name="waiverSigned" ${isParentFlow ? 'checked' : ''} class="w-5 h-5 accent-[#010101]" />
+          </label>
+
+          <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
+            + Add Athlete to Roster
+          </button>
+        </form>
+      `);
+    }
+
+    function submitAddAthlete(e, familyId = null) {
+      e.preventDefault();
+      const f = e.target;
+      const name = f.name.value.trim();
+      const parts = name.split(/\s+/).filter(Boolean);
+      const initials = ((parts[0]?.[0] || 'A') + (parts[1]?.[0] || parts[0]?.[1] || 'F')).toUpperCase();
+      const position = f.position.value;
+      const posLow = position.toLowerCase();
+      const isCatcher = posLow.includes('catcher');
+      const isSlapper = posLow.includes('slap');
+      const id = 'ath-' + Date.now();
+      const newAth = {
+        id,
+        initials,
+        name,
+        familyId: familyId || ('fam-' + Date.now()),
+        parentName: f.parentName.value.trim(),
+        parentPhone: f.parentPhone.value.trim(),
+        ageGroup: f.ageGroup.value,
+        gradYear: Number(f.gradYear.value) || 2030,
+        position,
+        batsThrows: f.batsThrows.value,
+        team: f.team.value.trim() || 'Pittsburgh Fastpitch Travel',
+        jersey: f.jersey.value.trim() || '#10',
+        height: '5\'4"',
+        streakDays: 1,
+        weeklyReps: 0,
+        weeklyDuration: '0:00 hours',
+        waiverSigned: f.waiverSigned.checked,
+        waiverDate: f.waiverSigned.checked ? new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : null,
+        emergencyContact: `${f.parentName.value.trim()} — ${f.parentPhone.value.trim()}`,
+        medicalNotes: f.medicalNotes.value.trim() || 'None reported',
+        primaryMetricLabel: isCatcher ? 'Pop Time PR' : isSlapper ? 'Home-to-1st' : 'Exit Velo PR',
+        primaryMetricValue: isCatcher ? '1.95' : isSlapper ? '3.05' : '60.0',
+        primaryMetricUnit: isCatcher || isSlapper ? 'SEC' : 'MPH',
+        primaryMetricDelta: 'Baseline eval',
+        pitches: [],
+        notes: [{ date: 'Today', text: 'Athlete profile created — ready for baseline hitting & defense evaluation!' }],
+        drills: [
+          {
+            id: 'd-' + Date.now(),
+            title: 'Hitter’s Warmup: PVC Swings & 4lb Med Ball',
+            reps: '5 each',
+            focus: 'Pre-session routine',
+            done: false,
+            img: getAthleteCoverImg({ position, batsThrows: f.batsThrows.value })
+          }
+        ]
+      };
+
+      state.athletes.push(newAth);
+      if (state.role === 'coach') {
+        state.selectedAthleteId = id;
+      } else {
+        state.activeSiblingId = id;
+      }
+      closeModal();
+      render();
+      showToast(`${name} added to ${familyId === 'fam-1' ? 'your family hub' : 'Coach Gina’s roster'}!`);
+    }
+
     function renderCoachAthletes() {
       const sel = state.athletes.find(a => a.id === state.selectedAthleteId) || state.athletes[0];
       const recaps = state.sessionRecaps.filter(r => r.athleteId === sel.id);
       return `
         <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          <button onclick="openAddAthleteModal(null)" class="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold shrink-0 cursor-pointer shadow-sm hover:brightness-95 transition">
+            <span>+ Add Athlete</span>
+          </button>
           ${state.athletes.map(a => {
             const active = a.id === sel.id;
             return `
