@@ -984,13 +984,12 @@
 
     // Smooth FitStreak-style Volt Area Chart SVG
     function performanceAreaChart(ath = null) {
-      const val = parseFloat(ath?.primaryMetricValue) || 60;
-      const isTime = (ath?.primaryMetricUnit || '').toUpperCase() === 'SEC';
-      const topLbl = isTime ? (val - 0.05).toFixed(2) : Math.ceil(val + 1);
-      const midLbl = isTime ? (val + 0.05).toFixed(2) : Math.round(val - 3);
-      const botLbl = isTime ? (val + 0.15).toFixed(2) : Math.round(val - 7);
+      const reps = Number(ath?.weeklyReps) || 180;
+      const topLbl = Math.max(200, Math.ceil(reps / 50) * 50);
+      const midLbl = Math.round(topLbl * 0.6);
+      const botLbl = Math.round(topLbl * 0.25);
       return `
-        <svg viewBox="0 0 340 116" class="w-full h-28 overflow-visible" aria-label="Training Performance Chart">
+        <svg viewBox="0 0 340 116" class="w-full h-28 overflow-visible" aria-label="Weekly Training Reps Chart">
           <defs>
             <linearGradient id="voltGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stop-color="#D5FF5F" stop-opacity="0.92"/>
@@ -1175,9 +1174,9 @@
             <div>
               <div class="flex items-center justify-between gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight">Training</h1>
-                <span class="px-3 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-xs font-extrabold tabular-nums shrink-0">${ath.primaryMetricValue} ${ath.primaryMetricUnit} PR</span>
+                <span class="px-3 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-xs font-extrabold tabular-nums shrink-0">Day ${ath.streakDays} Streak</span>
               </div>
-              <p class="text-xs font-semibold text-[var(--text-muted)] mt-1">${ath.primaryMetricLabel} • ${ath.primaryMetricDelta}</p>
+              <p class="text-xs font-semibold text-[var(--text-muted)] mt-1">Weekly training activity • ${ath.weeklyReps} reps logged</p>
               <div class="mt-4">${performanceAreaChart(ath)}</div>
             </div>
             <div class="grid grid-cols-2 gap-3 pt-3 border-t border-[#010101]/10 dark:border-white/10">
@@ -2259,14 +2258,10 @@
             </div>
 
             <!-- Hero Quick Stats Bar -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <div class="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15">
-                <div class="text-[11px] text-[#D6DFE2] font-semibold">${ath.primaryMetricLabel}</div>
-                <div class="text-xl font-extrabold text-[#D5FF5F] tabular-nums mt-0.5">${ath.primaryMetricValue} <span class="text-xs text-white">${ath.primaryMetricUnit}</span></div>
-              </div>
+            <div class="grid grid-cols-3 gap-2.5">
               <div class="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15">
                 <div class="text-[11px] text-[#D6DFE2] font-semibold">Training Streak</div>
-                <div class="text-xl font-extrabold tabular-nums mt-0.5">${ath.streakDays} Days</div>
+                <div class="text-xl font-extrabold text-[#D5FF5F] tabular-nums mt-0.5">${ath.streakDays} Days</div>
               </div>
               <div class="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15">
                 <div class="text-[11px] text-[#D6DFE2] font-semibold">Weekly Reps</div>
@@ -2280,24 +2275,25 @@
           </div>
         </div>
 
-        <!-- Measurables & Skill Arsenal Row -->
+        <!-- Training Activity & Skill Arsenal Row -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          <!-- Personal Bests & Velocity Curve -->
+          <!-- Weekly Training Activity -->
           <div class="lg:col-span-6 card-mist rounded-[28px] p-6 space-y-4">
             <div class="flex items-center justify-between">
-              <h2 class="text-base font-extrabold tracking-tight">Measurables &amp; Personal Bests</h2>
-              <span class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold">VERIFIED BY GINA</span>
+              <h2 class="text-base font-extrabold tracking-tight">Training Consistency</h2>
+              <span class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold">${ath.weeklyDuration.toUpperCase()}</span>
             </div>
             <div class="grid grid-cols-2 gap-3">
-              ${ath.measurables.map(m => `
-                <div class="surface-soft rounded-2xl p-3.5">
-                  <div class="text-[11px] text-[var(--text-muted)] font-semibold">${m.label}</div>
-                  <div class="text-lg font-extrabold tabular-nums mt-0.5">${m.value}</div>
-                  <div class="text-[11px] font-bold text-[#4E6075] dark:text-[#9AC0D6] mt-0.5">${m.delta}</div>
-                </div>
-              `).join('')}
+              <div class="surface-soft rounded-2xl p-3.5">
+                <div class="text-[11px] text-[var(--text-muted)] font-semibold">Weekly Reps</div>
+                <div class="text-lg font-extrabold tabular-nums mt-0.5">${ath.weeklyReps} reps</div>
+              </div>
+              <div class="surface-soft rounded-2xl p-3.5">
+                <div class="text-[11px] text-[var(--text-muted)] font-semibold">Active Streak</div>
+                <div class="text-lg font-extrabold tabular-nums mt-0.5">${ath.streakDays} days</div>
+              </div>
             </div>
-            <div class="pt-1">${performanceAreaChart()}</div>
+            <div class="pt-1">${performanceAreaChart(ath)}</div>
           </div>
 
           <!-- Skill Ratings + Season Goals -->
@@ -3173,7 +3169,6 @@
         })
         .sort((a, b) => {
           if (col === 'age') return (parseInt(a.ageGroup, 10) - parseInt(b.ageGroup, 10)) * dir || a.name.localeCompare(b.name);
-          if (col === 'pr') return ((parseFloat(a.primaryMetricValue) || 0) - (parseFloat(b.primaryMetricValue) || 0)) * dir;
           if (col === 'waiver') return (Number(a.waiverSigned) - Number(b.waiverSigned)) * dir || a.name.localeCompare(b.name);
           return a.name.localeCompare(b.name) * dir;
         });
@@ -3209,9 +3204,6 @@
                   </th>
                   <th class="py-3 px-2 hidden md:table-cell">Position &amp; Team</th>
                   <th class="py-3 px-2 hidden sm:table-cell">Parent</th>
-                  <th class="py-3 px-2">
-                    <button type="button" onclick="setRosterSort('pr')" class="cursor-pointer hover:text-[var(--text-main)]">PR${arrow('pr')}</button>
-                  </th>
                   <th class="py-3 px-2 hidden lg:table-cell">
                     <button type="button" onclick="setRosterSort('waiver')" class="cursor-pointer hover:text-[var(--text-main)]">Waiver${arrow('waiver')}</button>
                   </th>
@@ -3248,10 +3240,6 @@
                       <td class="py-3 px-2 hidden sm:table-cell">
                         <div class="font-semibold truncate max-w-[140px]">${a.parentName}</div>
                         <div class="text-[11px] text-[var(--text-muted)] tabular-nums">${a.parentPhone}</div>
-                      </td>
-                      <td class="py-3 px-2 whitespace-nowrap">
-                        <span class="font-extrabold tabular-nums">${a.primaryMetricValue}</span>
-                        <span class="text-[10px] font-bold text-[var(--text-muted)] ml-0.5">${a.primaryMetricUnit}</span>
                       </td>
                       <td class="py-3 px-2 hidden lg:table-cell whitespace-nowrap">
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${a.waiverSigned ? 'bg-[#D5FF5F]/35 text-[#010101] dark:text-[#D5FF5F]' : 'bg-red-500/15 text-red-600 dark:text-red-400'}">
@@ -3320,7 +3308,7 @@
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h1 class="text-2xl font-extrabold tracking-tight">Athlete Roster</h1>
-                <p class="text-xs text-[var(--text-muted)]"><span id="roster-match-count">${filteredCount} of ${state.athletes.length}</span> active players • Tap any athlete for full profile, PRs &amp; notes</p>
+                <p class="text-xs text-[var(--text-muted)]"><span id="roster-match-count">${filteredCount} of ${state.athletes.length}</span> active players • Tap any row for full profile &amp; notes</p>
               </div>
               <button onclick="openAddAthleteModal(null)" class="px-4 py-2.5 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition">
                 + Add Athlete
@@ -3347,7 +3335,7 @@
               </div>
             </div>
 
-            <!-- A-Z Grouped Roster List -->
+            <!-- Sortable Roster Table -->
             <div id="roster-list-container">
               ${renderRosterRowsHtml()}
             </div>
@@ -3370,7 +3358,7 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          <!-- Left: Athlete Card + PR + Safety + Scheduled Sessions -->
+          <!-- Left: Athlete Card + Safety + Scheduled Sessions -->
           <div class="lg:col-span-5 space-y-4">
             <div class="card-mist rounded-[28px] p-6 space-y-4">
               <div class="flex items-center justify-between">
@@ -3381,12 +3369,15 @@
                 <div class="text-2xl font-extrabold">${sel.name}</div>
                 <div class="text-xs text-[var(--text-muted)]">${sel.position} • B/T: ${sel.batsThrows} • Parent: ${sel.parentName}</div>
               </div>
-              <div class="p-4 rounded-2xl bg-white dark:bg-[#15191E] flex items-end justify-between">
-                <div>
-                  <div class="text-[11px] text-[var(--text-muted)] font-bold">${sel.primaryMetricLabel}</div>
-                  <div class="text-3xl font-extrabold tabular-nums mt-0.5">${sel.primaryMetricValue} <span class="text-xs">${sel.primaryMetricUnit}</span></div>
+              <div class="grid grid-cols-2 gap-2.5">
+                <div class="p-3.5 rounded-2xl bg-white dark:bg-[#15191E]">
+                  <div class="text-[11px] text-[var(--text-muted)] font-bold">Training Streak</div>
+                  <div class="text-xl font-extrabold tabular-nums mt-0.5">${sel.streakDays} Days</div>
                 </div>
-                <button onclick="openAddMetricModal('${sel.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Log PR</button>
+                <div class="p-3.5 rounded-2xl bg-white dark:bg-[#15191E]">
+                  <div class="text-[11px] text-[var(--text-muted)] font-bold">Weekly Reps</div>
+                  <div class="text-xl font-extrabold tabular-nums mt-0.5">${sel.weeklyReps}</div>
+                </div>
               </div>
               <div class="text-xs space-y-1">
                 <div><span class="text-[var(--text-muted)]">Emergency:</span> <strong>${sel.emergencyContact}</strong></div>
