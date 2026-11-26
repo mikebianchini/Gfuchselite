@@ -3340,6 +3340,58 @@
       autoSaveRecapDraft(true);
     }
 
+    let _recapActiveStation = 'tee';
+
+    function switchRecapStation(station) {
+      _recapActiveStation = station;
+      ['tee', 'ft', 'machine'].forEach(st => {
+        const panel = document.getElementById(`recap-panel-${st}`);
+        const tab = document.getElementById(`recap-tab-${st}`);
+        if (panel) panel.classList.toggle('hidden', st !== station);
+        if (tab) {
+          tab.className = st === station
+            ? 'flex-1 py-2 px-3 rounded-xl text-xs font-extrabold cursor-pointer transition bg-[#010101] text-[#D5FF5F] shadow-sm flex items-center justify-center gap-1.5'
+            : 'flex-1 py-2 px-3 rounded-xl text-xs font-extrabold cursor-pointer transition text-[var(--text-muted)] hover:text-[var(--text-main)] flex items-center justify-center gap-1.5';
+        }
+      });
+    }
+
+    function updateStationDots() {
+      ['tee', 'ft', 'machine'].forEach(st => {
+        const dot = document.getElementById(`recap-dot-${st}`);
+        const val = document.getElementById(`recap-${st}-input`)?.value?.trim();
+        if (dot) dot.classList.toggle('hidden', !val);
+      });
+    }
+
+    function startRecapDictation(targetId, btnEl) {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        showToast('Use your iPhone keyboard mic to dictate!');
+        document.getElementById(targetId)?.focus();
+        return;
+      }
+      const rec = new SR();
+      rec.lang = 'en-US';
+      rec.interimResults = false;
+      const orig = btnEl.innerHTML;
+      btnEl.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Listening…`;
+      rec.onresult = (ev) => {
+        const spoken = ev.results?.[0]?.[0]?.transcript?.trim();
+        if (spoken) {
+          const el = document.getElementById(targetId);
+          if (el) {
+            const cur = el.value.trim();
+            el.value = cur ? `${cur}\n• ${spoken}` : spoken;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }
+      };
+      rec.onerror = () => showToast('Mic unavailable — use keyboard dictation.');
+      rec.onend = () => { btnEl.innerHTML = orig; };
+      rec.start();
+    }
+
     function renderRecapComposerModal(ath, ses, draft = null) {
       const d = draft || {
         includeWarmup: true,
@@ -3350,116 +3402,178 @@
         machine: '',
         homework: GINA_HOMEWORK_DEFAULT
       };
+      const prevRecap = state.sessionRecaps.find(r => r.athleteId === ath.id && !r.isDraft);
       const allTags = ['Barrel Control', 'Variability', 'Approach', 'Exit Velo', 'Timing', 'Slapping', 'Footwork', 'Pop Time'];
       const teeQuick = ['Extensions 3/3/3', 'Swing 3/3/3'];
       const ftQuick = ['Shorty baseballs', 'Baseball bat baseballs', 'Regular bat softballs'];
+      const machQuick = ['Middle-in timing', 'Outside corner tracking', 'Changeup recognition'];
       const hwQuick = ['Extensions in mid out', 'Step back drill to stay in legs', 'Outside pitches'];
-      openModal(`
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <div class="flex flex-wrap items-center gap-1.5">
-              <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Gina’s Session Notes</span>
-              <span id="recap-autosave-badge" class="px-2 py-0.5 rounded-full bg-[#D5FF5F]/35 text-[#010101] dark:text-[#D5FF5F] text-[10px] font-extrabold">${draft?.savedAt ? `✓ Auto-saved ${draft.savedAt}` : '● Auto-save on'}</span>
-            </div>
-            <h3 class="font-extrabold text-base mt-0.5">${ath.name} (${ath.ageGroup})</h3>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <button type="button" onclick="clearRecapDraft('${ath.id}','${ses ? ses.id : ''}')" title="Reset draft" class="px-2.5 h-8 rounded-full surface-soft text-[10px] font-extrabold text-[var(--text-muted)] cursor-pointer">Reset</button>
-            <button type="button" onclick="closeRecapComposer()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
-          </div>
-        </div>
+      const micSvg = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path stroke-linecap="round" d="M5 11a7 7 0 0014 0M12 18v3m-3 0h6"/></svg>`;
 
-        <form oninput="autoSaveRecapDraft()" onchange="autoSaveRecapDraft(true)" onsubmit="submitSessionRecap(event, '${ath.id}', '${ses ? ses.id : ''}')" class="space-y-3 text-xs">
-          <!-- 1-Tap Focus Tags -->
-          <div>
-            <label class="block text-[var(--text-muted)] font-bold mb-1.5">Quick Focus Tags</label>
-            <div class="flex flex-wrap gap-1.5">
+      openModal(`
+        <form oninput="autoSaveRecapDraft(); updateStationDots();" onchange="autoSaveRecapDraft(true); updateStationDots();" onsubmit="submitSessionRecap(event, '${ath.id}', '${ses ? ses.id : ''}')" class="flex flex-col max-h-[90vh]">
+          <!-- Sticky Coach Studio Header -->
+          <div class="px-5 pt-5 pb-3.5 border-b border-[var(--border-subtle)] flex items-center justify-between gap-2 shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-10 h-10 rounded-2xl bg-[#010101] text-[#D5FF5F] font-extrabold text-xs flex items-center justify-center shrink-0">${ath.initials}</div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <h3 class="font-extrabold text-base truncate">${ath.name}</h3>
+                  <span class="px-2 py-0.5 rounded-full surface-soft text-[10px] font-extrabold shrink-0">${ath.ageGroup}</span>
+                </div>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <span id="recap-autosave-badge" class="inline-flex items-center gap-1 text-[11px] font-bold text-[#4E6075] dark:text-[#D5FF5F]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#9ED11E]"></span>${draft?.savedAt ? `Auto-saved ${draft.savedAt}` : 'Auto-save active'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" onclick="clearRecapDraft('${ath.id}','${ses ? ses.id : ''}')" title="Reset draft" class="px-3 h-9 rounded-full surface-soft text-[11px] font-extrabold text-[var(--text-muted)] cursor-pointer">Reset</button>
+              <button type="button" onclick="closeRecapComposer()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
+            </div>
+          </div>
+
+          <!-- Scrollable Body -->
+          <div class="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+            ${prevRecap ? `
+              <!-- Collapsible Last Session Memory Pill -->
+              <div class="rounded-2xl surface-soft overflow-hidden">
+                <button type="button" onclick="document.getElementById('recap-prev-detail').classList.toggle('hidden')" class="w-full px-3.5 py-2.5 flex items-center justify-between gap-2 text-left cursor-pointer">
+                  <div class="min-w-0 flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold shrink-0">LAST • ${prevRecap.date}</span>
+                    <span class="text-xs font-semibold text-[var(--text-muted)] truncate">${(prevRecap.focus || prevRecap.note || '').split('\n')[0]}</span>
+                  </div>
+                  <span class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] shrink-0">Peek ▾</span>
+                </button>
+                <div id="recap-prev-detail" class="hidden px-3.5 pb-3 pt-1 border-t border-[var(--border-subtle)] text-xs space-y-1.5">
+                  <div><span class="font-extrabold">Focus:</span> <span class="text-[var(--text-muted)] whitespace-pre-line">${prevRecap.focus || prevRecap.note}</span></div>
+                  ${prevRecap.ft ? `<div><span class="font-extrabold">FT:</span> <span class="text-[var(--text-muted)]">${prevRecap.ft.replace(/\n/g, ' • ')}</span></div>` : ''}
+                  ${prevRecap.homework ? `<div><span class="font-extrabold">HW:</span> <span class="text-[var(--text-muted)]">${prevRecap.homework.replace(/\n/g, ' ')}</span></div>` : ''}
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- Single-Row Horizontal Swipe Focus Tags -->
+            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1 pb-0.5">
               ${allTags.map(t => {
                 const on = _recapDraftTags.includes(t);
-                return `<button type="button" onclick="toggleRecapTag('${t}','${ath.id}','${ses ? ses.id : ''}')" class="px-2.5 py-1 rounded-full text-[11px] font-extrabold cursor-pointer transition ${on ? 'bg-[#010101] text-[#D5FF5F]' : 'surface-soft text-[var(--text-muted)]'}">${t}</button>`;
+                return `<button type="button" onclick="toggleRecapTag('${t}','${ath.id}','${ses ? ses.id : ''}')" class="px-3 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap shrink-0 cursor-pointer transition ${on ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'surface-soft text-[var(--text-muted)]'}">${t}</button>`;
               }).join('')}
             </div>
-          </div>
 
-          <!-- 1. Hitter's Warm up routine (Pre-filled from Gina's template) -->
-          <div class="surface-soft rounded-2xl p-3 space-y-1.5">
-            <label class="flex items-center justify-between gap-2 cursor-pointer">
-              <span class="font-extrabold text-[11px]">• Hitter’s Warm up routine</span>
-              <input id="recap-include-warmup" type="checkbox" name="includeWarmup" ${d.includeWarmup ? 'checked' : ''} class="w-4 h-4 accent-[#010101]" />
-            </label>
-            <textarea id="recap-warmup-input" name="warmup" rows="2" class="w-full px-3 py-2 rounded-xl card-white text-[11px] leading-relaxed">${d.warmup}</textarea>
-          </div>
+            <!-- 1. Lesson Focus (Primary Input — 15px No-Zoom + Voice Dictate) -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between gap-2">
+                <label for="recap-focus-input" class="text-xs font-extrabold tracking-tight">What’s new / focus for lesson *</label>
+                <button type="button" onclick="startRecapDictation('recap-focus-input', this)" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full surface-soft text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition">${micSvg} Dictate</button>
+              </div>
+              <textarea id="recap-focus-input" name="focus" rows="2" class="w-full px-3.5 py-3 rounded-2xl surface-soft text-[15px] leading-snug resize-none" placeholder="e.g., Playing in 14u tourney this weekend • Barrel control w diff bats..." required>${d.focus}</textarea>
+            </div>
 
-          <!-- 2. What's new / focus for lesson -->
-          <div>
-            <label class="block font-extrabold mb-1">What’s new / focus for lesson: *</label>
-            <textarea id="recap-focus-input" name="focus" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft leading-relaxed" placeholder="e.g., Playing in 14u tourney this weekend • Barrel control w diff bats..." required>${d.focus}</textarea>
-          </div>
+            <!-- 2. Segmented Station Studio: Tee | FT | Machine -->
+            <div class="surface-soft rounded-[24px] p-3.5 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">What We Did Today</span>
+                <span class="text-[11px] font-semibold text-[var(--text-muted)]">Tap station to log</span>
+              </div>
 
-          <!-- 3. What we did today: Tee / FT / Machine -->
-          <div class="surface-soft rounded-2xl p-3 space-y-2.5">
-            <div class="font-extrabold text-[11px] uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">What we did today</div>
-            <div>
-              <div class="flex flex-wrap items-center justify-between gap-1 mb-1">
-                <label class="font-bold">Tee:</label>
-                <div class="flex flex-wrap gap-1">
-                  ${teeQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-tee-input','${q}')" class="px-2 py-0.5 rounded-full card-white text-[10px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+              <!-- 3-Tab Segmented Control -->
+              <div class="p-1 rounded-2xl card-white flex items-center gap-1">
+                <button id="recap-tab-tee" type="button" onclick="switchRecapStation('tee')" class="flex-1 py-2 px-3 rounded-xl text-xs font-extrabold cursor-pointer transition ${_recapActiveStation === 'tee' ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'text-[var(--text-muted)]'} flex items-center justify-center gap-1.5">
+                  <span>Tee</span><span id="recap-dot-tee" class="w-2 h-2 rounded-full bg-[#9ED11E] ${d.tee.trim() ? '' : 'hidden'}"></span>
+                </button>
+                <button id="recap-tab-ft" type="button" onclick="switchRecapStation('ft')" class="flex-1 py-2 px-3 rounded-xl text-xs font-extrabold cursor-pointer transition ${_recapActiveStation === 'ft' ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'text-[var(--text-muted)]'} flex items-center justify-center gap-1.5">
+                  <span>FT</span><span id="recap-dot-ft" class="w-2 h-2 rounded-full bg-[#9ED11E] ${d.ft.trim() ? '' : 'hidden'}"></span>
+                </button>
+                <button id="recap-tab-machine" type="button" onclick="switchRecapStation('machine')" class="flex-1 py-2 px-3 rounded-xl text-xs font-extrabold cursor-pointer transition ${_recapActiveStation === 'machine' ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'text-[var(--text-muted)]'} flex items-center justify-center gap-1.5">
+                  <span>Machine</span><span id="recap-dot-machine" class="w-2 h-2 rounded-full bg-[#9ED11E] ${d.machine.trim() ? '' : 'hidden'}"></span>
+                </button>
+              </div>
+
+              <!-- Tee Panel -->
+              <div id="recap-panel-tee" class="space-y-2 ${_recapActiveStation === 'tee' ? '' : 'hidden'}">
+                <div class="flex items-center justify-between gap-1.5">
+                  <div class="flex flex-wrap gap-1.5">
+                    ${teeQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-tee-input','${q}')" class="px-2.5 py-1 rounded-full card-white text-[11px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+                  </div>
+                  <button type="button" onclick="startRecapDictation('recap-tee-input', this)" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full card-white text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0">${micSvg}</button>
                 </div>
+                <textarea id="recap-tee-input" name="tee" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl card-white text-[15px] leading-snug resize-none" placeholder="• Extensions 3/3/3&#10;• Swing 3/3/3">${d.tee}</textarea>
               </div>
-              <textarea id="recap-tee-input" name="tee" rows="2" class="w-full px-3 py-2 rounded-xl card-white leading-snug" placeholder="• Extensions 3/3/3&#10;• Swing 3/3/3">${d.tee}</textarea>
-            </div>
-            <div>
-              <div class="flex flex-wrap items-center justify-between gap-1 mb-1">
-                <label class="font-bold">FT (Front Toss):</label>
-                <div class="flex flex-wrap gap-1">
-                  ${ftQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-ft-input','${q}')" class="px-2 py-0.5 rounded-full card-white text-[10px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+
+              <!-- FT Panel -->
+              <div id="recap-panel-ft" class="space-y-2 ${_recapActiveStation === 'ft' ? '' : 'hidden'}">
+                <div class="flex items-center justify-between gap-1.5">
+                  <div class="flex flex-wrap gap-1.5">
+                    ${ftQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-ft-input','${q}')" class="px-2.5 py-1 rounded-full card-white text-[11px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+                  </div>
+                  <button type="button" onclick="startRecapDictation('recap-ft-input', this)" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full card-white text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0">${micSvg}</button>
                 </div>
+                <textarea id="recap-ft-input" name="ft" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl card-white text-[15px] leading-snug resize-none" placeholder="• Shorty baseballs&#10;• Worked on at bats & attacking pitches you are hunting!!">${d.ft}</textarea>
               </div>
-              <textarea id="recap-ft-input" name="ft" rows="3" class="w-full px-3 py-2 rounded-xl card-white leading-snug" placeholder="• Shorty baseballs&#10;• Worked on at bats & attacking pitches you are hunting!!">${d.ft}</textarea>
-            </div>
-            <div>
-              <label class="block font-bold mb-1">Machine:</label>
-              <textarea id="recap-machine-input" name="machine" rows="2" class="w-full px-3 py-2 rounded-xl card-white leading-snug" placeholder="• Fastball timing reps (optional)">${d.machine}</textarea>
-            </div>
-          </div>
 
-          <!-- 4. Homework (Multi-line with bullet points, pre-filled from Gina's template) -->
-          <div class="space-y-1.5">
-            <div class="flex flex-wrap items-center justify-between gap-1">
-              <label class="font-extrabold">Homework:</label>
-              <div class="flex flex-wrap gap-1">
-                ${hwQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-homework-input','${q}')" class="px-2 py-0.5 rounded-full surface-soft text-[10px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+              <!-- Machine Panel -->
+              <div id="recap-panel-machine" class="space-y-2 ${_recapActiveStation === 'machine' ? '' : 'hidden'}">
+                <div class="flex items-center justify-between gap-1.5">
+                  <div class="flex flex-wrap gap-1.5">
+                    ${machQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-machine-input','${q}')" class="px-2.5 py-1 rounded-full card-white text-[11px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+                  </div>
+                  <button type="button" onclick="startRecapDictation('recap-machine-input', this)" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full card-white text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0">${micSvg}</button>
+                </div>
+                <textarea id="recap-machine-input" name="machine" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl card-white text-[15px] leading-snug resize-none" placeholder="• Fastball timing reps (optional)">${d.machine}</textarea>
               </div>
             </div>
-            <textarea id="recap-homework-input" name="homework" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft leading-snug font-semibold" placeholder="At least 1 bucket of each drill 2-3x a week!&#10;• Extensions in mid out&#10;• Step back drill to stay in legs.">${d.homework}</textarea>
+
+            <!-- 3. Homework (Pre-filled + Quick Chips) -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <label for="recap-homework-input" class="text-xs font-extrabold">Homework</label>
+                <span class="text-[11px] font-semibold text-[var(--text-muted)]">Tap to add drills</span>
+              </div>
+              <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                ${hwQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-homework-input','${q}')" class="px-2.5 py-1 rounded-full surface-soft text-[11px] font-bold whitespace-nowrap shrink-0 cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+              </div>
+              <textarea id="recap-homework-input" name="homework" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-[15px] leading-snug font-medium resize-none">${d.homework}</textarea>
+            </div>
+
+            <!-- 4. Compact 1-Row Hitter's Warm Up Routine (Pre-included, Tap Edit only if changing!) -->
+            <div class="surface-soft rounded-2xl p-3 space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <label class="flex items-center gap-2.5 cursor-pointer min-w-0">
+                  <input id="recap-include-warmup" type="checkbox" name="includeWarmup" ${d.includeWarmup ? 'checked' : ''} class="w-5 h-5 accent-[#010101] shrink-0" />
+                  <div class="min-w-0">
+                    <div class="text-xs font-extrabold truncate">Hitter’s Warm up routine</div>
+                    <div class="text-[11px] text-[var(--text-muted)] truncate">PVC swings, recoils, rotations + 4lb med ball</div>
+                  </div>
+                </label>
+                <button type="button" onclick="document.getElementById('recap-warmup-editor').classList.toggle('hidden')" class="px-2.5 py-1 rounded-full card-white text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0">Edit</button>
+              </div>
+              <div id="recap-warmup-editor" class="hidden">
+                <textarea id="recap-warmup-input" name="warmup" rows="2" class="w-full px-3 py-2 rounded-xl card-white text-xs leading-relaxed resize-none">${d.warmup}</textarea>
+              </div>
+            </div>
           </div>
 
-          <!-- Attach Session Videos / Photos from Camera Roll (Supports Multiple Clips!) -->
-          <div class="surface-soft rounded-2xl p-3 space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="font-extrabold">${uiIcon('video')} Attach Session Videos / Clips</span>
-              <span id="recap-video-status" class="text-[11px] font-bold text-[#4E6075] dark:text-[#9AC0D6]">${_recapDraftVideoName ? `✓ ${_recapDraftVideoName}` : '1 or more clips'}</span>
+          <!-- Sticky Thumb-Zone Footer (Attach Clips + Auto-Send + Send CTA) -->
+          <div class="px-5 py-3.5 border-t border-[var(--border-subtle)] bg-[var(--bg-card)] space-y-2.5 shrink-0">
+            <div class="flex items-center justify-between gap-2">
+              <label class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101]">
+                ${uiIcon('video')}
+                <span id="recap-video-status">${_recapDraftVideoName ? _recapDraftVideoName : '+ Add Clips'}</span>
+                <input type="file" accept="video/*,image/*" multiple onchange="handleRecapVideoFile(this)" class="hidden" />
+              </label>
+              <label class="inline-flex items-center gap-2 text-xs font-bold cursor-pointer">
+                <span class="text-[var(--text-muted)]">Text ${ath.parentName.split(' ')[0]}</span>
+                <input type="checkbox" name="sendNow" checked class="w-4 h-4 accent-[#010101]" />
+              </label>
             </div>
-            <label class="block w-full py-2 px-3 rounded-xl card-white text-center font-bold cursor-pointer hover:border-[#010101]">
-              Choose Videos or Photos from Phone / Computer
-              <input type="file" accept="video/*,image/*" multiple onchange="handleRecapVideoFile(this)" class="hidden" />
-            </label>
+            <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
+              Send Recap to ${ath.name.split(' ')[0]} &amp; ${ath.parentName.split(' ')[0]} →
+            </button>
           </div>
-
-          <!-- Auto-Send to Player & Parent Toggle -->
-          <label class="flex items-center justify-between gap-3 p-3 rounded-2xl card-mist cursor-pointer">
-            <div>
-              <div class="font-extrabold">Message Player &amp; Parent Automatically</div>
-              <div class="text-[11px] text-[var(--text-muted)]">Auto-saves as you type • Sends formatted note + clips to ${ath.parentName}</div>
-            </div>
-            <input type="checkbox" name="sendNow" checked class="w-5 h-5 accent-[#010101]" />
-          </label>
-
-          <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
-            Send Recap to Player &amp; Parent →
-          </button>
         </form>
-      `);
+      `, true);
       // Also auto-save if user clicks backdrop outside modal
       const m = document.getElementById('modal-root');
       if (m) m.onclick = (e) => { if (e.target === m) closeRecapComposer(); };
