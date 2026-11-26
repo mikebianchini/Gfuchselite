@@ -380,20 +380,20 @@
     // SHARED LIVE STATE (Defaults to Athlete/Parent Training Hub so Gina immediately sees the Peloton/FitStreak feel!)
     // =========================================================================
     const state = {
-      role: 'parent',
+      role: 'coach',
       parentTab: 'home',
-      coachTab: 'today',
+      coachTab: 'athletes',
       coachScheduleMode: 'bookings', // 'bookings' | 'blocks' | 'classes'
       selectedDay: 'Thu 26',
-      selectedAthleteId: 'ath-1',
+      selectedAthleteId: null,
       rosterView: 'list', // 'list' | 'detail'
       rosterSearch: '',
       rosterFilter: 'all', // 'all' | 'today' | '10U' | '12U' | '14U' | '16U' | '18U' | 'waiver' | 'drafts'
-      activeSiblingId: 'ath-1',
-      selectedVideoId: 'vid-1',
+      activeSiblingId: null,
+      selectedVideoId: null,
       videoSpeed: '0.25x',
       bookingFilter: 'all',
-      activeThreadId: 'msg-1',
+      activeThreadId: null,
       repPickerVal: 20,
 
       // Cal.com-Style Booking Engine State
@@ -410,7 +410,7 @@
         cart: [],
         checkoutMethod: 'clover', // 'clover' | 'cash'
         lastBooking: null,
-        bookedSlots: ['2026-11-26@16:00', '2026-11-26@17:00', '2026-11-27@16:30'],
+        bookedSlots: [],
         availability: {
           days: [1, 2, 3, 4, 5, 6], // Mon-Sat open, Sun off
           bufferMin: 15,
@@ -557,198 +557,9 @@
         }
       ],
 
-      athletes: [
-        {
-          id: 'ath-1',
-          initials: 'CM',
-          name: 'Chloe Miller',
-          familyId: 'fam-1',
-          parentName: 'Sarah Miller',
-          parentPhone: '(555) 234-8910',
-          ageGroup: '14U',
-          gradYear: 2029,
-          position: 'SS / 3B',
-          batsThrows: 'R / R',
-          credits: 3,
-          packTotal: 5,
-          streakDays: 6,
-          weeklyReps: 185,
-          weeklyDuration: '2:15 hours',
-          waiverSigned: true,
-          waiverDate: 'Nov 02, 2026',
-          emergencyContact: 'David Miller (Dad) — (555) 234-8911',
-          medicalNotes: 'Mild seasonal asthma (inhaler in bat bag)',
-          primaryMetricLabel: 'Exit Velo PR',
-          primaryMetricValue: '66.5',
-          primaryMetricUnit: 'MPH',
-          primaryMetricDelta: '+4.0 mph this fall',
-          pitches: [],
-          notes: [
-            { date: 'Nov 19', text: 'Explosive hip-to-hand separation today—hit 66.5 mph exit velo! Keep barrel working slightly up through the zone on inside pitches.' }
-          ],
-          drills: [
-            { id: 'd1', title: 'Walk-Through Swing Timing', reps: '25 reps', focus: 'Rhythm & lower-half load', done: true, img: 'assets/images/fastpitch-hitter.jpg' },
-            { id: 'd2', title: 'Inside-Out High Tee Drill', reps: '30 reps', focus: 'Stay compact through the zone', done: false, img: 'assets/images/fastpitch-fielding.jpg' },
-            { id: 'd3', title: 'Band Shoulder Mobility', reps: '15 reps', focus: 'Throwing arm care & mobility', done: false, img: 'assets/images/fastpitch-recovery.jpg' }
-          ]
-        },
-        {
-          id: 'ath-2',
-          initials: 'MM',
-          name: 'Maya Miller',
-          familyId: 'fam-1',
-          parentName: 'Sarah Miller',
-          parentPhone: '(555) 234-8910',
-          ageGroup: '12U',
-          gradYear: 2031,
-          position: 'SS / Hitter',
-          batsThrows: 'L / R',
-          credits: 3,
-          packTotal: 5,
-          streakDays: 4,
-          weeklyReps: 140,
-          weeklyDuration: '1:26 hours',
-          waiverSigned: true,
-          waiverDate: 'Nov 02, 2026',
-          emergencyContact: 'David Miller (Dad) — (555) 234-8911',
-          medicalNotes: 'None reported',
-          primaryMetricLabel: 'Exit Velo PR',
-          primaryMetricValue: '59.0',
-          primaryMetricUnit: 'MPH',
-          primaryMetricDelta: '+3.0 mph since Oct',
-          pitches: [],
-          notes: [
-            { date: 'Nov 18', text: 'Staying through the middle of the field much better! Watch front shoulder on outside pitches.' }
-          ],
-          drills: [
-            { id: 'd4', title: 'Opposite-Field High Tee', reps: '3 × 15 swings', focus: 'Inside-out bat path', done: true, img: 'assets/images/fastpitch-slapper.jpg' },
-            { id: 'd5', title: 'Stride & Freeze Balance Drill', reps: '20 reps', focus: 'Weight shift control', done: false, img: 'assets/images/fastpitch-hitter.jpg' }
-          ]
-        },
-        {
-          id: 'ath-3',
-          initials: 'BV',
-          name: 'Brooklyn Vance',
-          familyId: 'fam-2',
-          parentName: 'Tricia Vance',
-          parentPhone: '(555) 619-4420',
-          ageGroup: '16U',
-          gradYear: 2027,
-          position: 'Catcher / 3B',
-          batsThrows: 'R / R',
-          credits: 1,
-          packTotal: 10,
-          streakDays: 11,
-          weeklyReps: 260,
-          weeklyDuration: '3:10 hours',
-          waiverSigned: true,
-          waiverDate: 'Aug 15, 2026',
-          emergencyContact: 'Mark Vance — (555) 619-4421',
-          medicalNotes: 'None reported',
-          primaryMetricLabel: 'Pop Time PR',
-          primaryMetricValue: '1.88',
-          primaryMetricUnit: 'SEC',
-          primaryMetricDelta: '-0.08s faster to 2B',
-          pitches: [],
-          notes: [{ date: 'Nov 15', text: 'Footwork transfer is electric—dropped 0.08s off pop time!' }],
-          drills: [{ id: 'd6', title: 'Rapid Exchange Wall Drill', reps: '40 reps', focus: 'Quick transfer to ear', done: true, img: 'assets/images/fastpitch-catcher.jpg' }]
-        },
-        {
-          id: 'ath-4',
-          initials: 'AR',
-          name: 'Ava Reyes',
-          familyId: 'fam-3',
-          parentName: 'Carlos Reyes',
-          parentPhone: '(555) 892-1104',
-          ageGroup: '14U',
-          gradYear: 2029,
-          position: 'OF / Slapper',
-          batsThrows: 'L / L',
-          credits: 5,
-          packTotal: 5,
-          streakDays: 2,
-          weeklyReps: 95,
-          weeklyDuration: '1:05 hours',
-          waiverSigned: false,
-          waiverDate: null,
-          emergencyContact: 'Elena Reyes — (555) 892-1105',
-          medicalNotes: 'Peanut allergy',
-          primaryMetricLabel: 'Home-to-1st',
-          primaryMetricValue: '2.92',
-          primaryMetricUnit: 'SEC',
-          primaryMetricDelta: 'Baseline eval',
-          pitches: [],
-          notes: [{ date: 'Nov 20', text: 'First evaluation complete. Explosive speed—focus on soft slap barrel control.' }],
-          drills: [{ id: 'd7', title: '3-Step Crossover Footwork', reps: '25 reps', focus: 'Staying inside the box', done: false, img: 'assets/images/fastpitch-slapper.jpg' }]
-        }
-      ],
+      athletes: [],
 
-      sessions: [
-        {
-          id: 'ses-1',
-          dayKey: 'Thu 26',
-          day: 'Today • Thu 26',
-          time: '4:00 PM',
-          duration: '45 MIN',
-          type: '1-on-1 Private',
-          focus: 'Hitting Mechanics & Exit Velo',
-          athletes: ['Chloe Miller'],
-          athleteId: 'ath-1',
-          spotsMax: 1,
-          status: 'Up Next',
-          payment: 'Clover Paid ($75)',
-          price: 75,
-          img: 'assets/images/fastpitch-hitter.jpg'
-        },
-        {
-          id: 'ses-2',
-          dayKey: 'Thu 26',
-          day: 'Today • Thu 26',
-          time: '5:00 PM',
-          duration: '60 MIN',
-          type: 'Small Group',
-          focus: '14U/16U Power Hitting Lab',
-          athletes: ['Brooklyn Vance', 'Ava Reyes', 'Kylie M.', 'Jenna S.'],
-          athleteId: 'ath-3',
-          spotsMax: 5,
-          status: 'Confirmed',
-          payment: '$45 / player',
-          price: 180,
-          img: 'assets/images/fastpitch-group.jpg'
-        },
-        {
-          id: 'ses-3',
-          dayKey: 'Fri 27',
-          day: 'Fri 27',
-          time: '4:30 PM',
-          duration: '45 MIN',
-          type: '1-on-1 Private',
-          focus: 'Hitting & Opposite-Field Path',
-          athletes: ['Maya Miller'],
-          athleteId: 'ath-2',
-          spotsMax: 1,
-          status: 'Confirmed',
-          payment: 'Clover Paid ($75)',
-          price: 75,
-          img: 'assets/images/fastpitch-slapper.jpg'
-        },
-        {
-          id: 'ses-4',
-          dayKey: 'Sat 28',
-          day: 'Sat 28',
-          time: '9:00 AM',
-          duration: '3 HRS',
-          type: 'Camp / Clinic',
-          focus: 'Winter Power Hitting & Defense Clinic',
-          athletes: ['14 Registered Players'],
-          athleteId: null,
-          spotsMax: 16,
-          status: '2 Spots Left',
-          payment: '$95 Flat Fee',
-          price: 1330,
-          img: 'assets/images/fastpitch-fielding.jpg'
-        }
-      ],
+      sessions: [],
 
       openSlots: [
         { id: 'slot-1', dayKey: 'Fri 27', day: 'Fri, Nov 27', time: '5:30 PM', duration: '45 MIN', type: '1-on-1 Private', focus: 'Hitting & Swing Mechanics Private', price: 75, spotsLeft: 1, spotsMax: 1, img: 'assets/images/fastpitch-hitter.jpg' },
@@ -757,218 +568,47 @@
         { id: 'slot-4', dayKey: 'Mon 30', day: 'Mon, Nov 30', time: '4:00 PM', duration: '45 MIN', type: '1-on-1 Private', focus: 'Infield Footwork & Quick Transfer', price: 75, spotsLeft: 1, spotsMax: 1, img: 'assets/images/fastpitch-fielding.jpg' }
       ],
 
-      waitlist: [
-        { id: 'w-1', athlete: 'Harper Brooks (12U)', parent: 'Kelly Brooks', requested: 'Thu 4–6 PM Hitting', status: 'Waiting' },
-        { id: 'w-2', athlete: 'Sienna Ortiz (14U)', parent: 'Lori Ortiz', requested: 'Sat Morning Private', status: 'Waiting' }
-      ],
+      waitlist: [],
 
-      // Replaces Gina's Apple Notes + Manual Texting Workflow!
-      sessionRecaps: [
-        {
-          id: 'rec-1',
-          athleteId: 'ath-1',
-          date: '11/23',
-          sessionTitle: '1-on-1 Hitting Private (45m)',
-          tags: ['Barrel Control', 'Variability', 'Exit Velo'],
-          warmup: 'walking pvc swings, recoils, pvc rotations\nMed ball - staggered, scoop, step back 5 each (4lbs)',
-          focus: 'Barrel control w diff bats. Variability training.\nNew ghost unlimited.',
-          tee: 'Warm-up tee barrel checks (video attached)',
-          ft: 'Shorty baseballs\nBaseball bat baseballs\nRegular bat softballs',
-          machine: '',
-          homework: 'At least 1 bucket of each drill 2-3x a week!\n• Work on drills we’ve been doing off the tee.\n• Extensions, step back, outside pitch extension',
-          note: 'Barrel control w diff bats. Variability training. New ghost unlimited.',
-          videoTitle: '11/23 Tee & FT Variability Clip — Ghost Unlimited (0:14)',
-          videoImg: 'assets/images/fastpitch-hitter.jpg',
-          videoUrl: null,
-          sentTo: 'Sarah Miller (SMS + App)',
-          sentAt: '11/23 • 5:02 PM'
-        },
-        {
-          id: 'rec-2',
-          athleteId: 'ath-1',
-          date: '11/9/26',
-          sessionTitle: '1-on-1 Hitting Private (45m)',
-          tags: ['Approach', 'Extensions 3/3/3', 'At-Bats'],
-          warmup: 'walking pvc swings, recoils, pvc rotations\nMed ball - staggered, scoop, step back 5 each (4lbs)',
-          focus: 'Wrestling. Just started practicing/no matches yet.\nPlaying in 14u tourney this weekend',
-          tee: 'Extensions 3/3/3\nSwing 3/3/3',
-          ft: 'Worked on at bats and having a good plan — attacking the pitches you are hunting!!',
-          machine: '',
-          homework: 'At least 1 bucket of each drill 2-3x a week!\n• Extensions in mid out\n• Step back drill to stay in legs.\n• Outside pitches',
-          note: 'Worked on at bats and having a good plan — attacking the pitches you are hunting!!',
-          videoTitle: '11/9 FT Clip #1 — Hunting Pitch Plan (0:12)',
-          videoImg: 'assets/images/fastpitch-hitter.jpg',
-          videoUrl: null,
-          clips: [
-            { title: 'FT Clip #1 — Attacking Pitch Plan (0:12)', img: 'assets/images/fastpitch-hitter.jpg', url: null },
-            { title: 'FT Clip #2 — Outside Pitch Extension (0:10)', img: 'assets/images/fastpitch-slapper.jpg', url: null }
-          ],
-          sentTo: 'Sarah Miller (SMS + App)',
-          sentAt: '11/9 • 4:58 PM'
-        },
-        {
-          id: 'rec-3',
-          athleteId: 'ath-2',
-          date: 'Nov 18, 2026',
-          sessionTitle: '1-on-1 Hitting Private (45m)',
-          tags: ['Barrel Path', 'Opposite Field'],
-          warmup: 'Walking PVC swings, recoils, PVC rotations\nMed ball - staggered, scoop, step back 5 each (4lbs)',
-          focus: 'Keeping front shoulder closed on outside pitches & staying through the middle of the field.',
-          tee: 'Opposite-field high tee — letting ball travel deep (20)\nStride & freeze balance drill (15)',
-          ft: 'Outer-half front toss — driving line drives to LF/LCF',
-          machine: 'Outside corner reps — tracking barrel all the way through contact',
-          homework: 'At least 1 bucket of each drill 2-3x a week!',
-          note: 'Staying through the middle of the field much better! Watch front shoulder flying open on outside pitch—keep chest over the plate.',
-          videoTitle: 'Front Toss — Outside Pitch Swing (0:11)',
-          videoImg: 'assets/images/fastpitch-slapper.jpg',
-          videoUrl: null,
-          sentTo: 'Sarah Miller (SMS + App)',
-          sentAt: 'Nov 18 • 5:20 PM'
-        },
-        {
-          id: 'rec-4',
-          athleteId: 'ath-3',
-          date: 'Nov 15, 2026',
-          sessionTitle: '1-on-1 Catching & Throwdowns (45m)',
-          tags: ['Pop Time', 'Footwork'],
-          warmup: 'Hip mobility openers, band arm care & quiet-glove framing reps',
-          focus: 'Rapid glove-to-ear exchange & staying low on throwdowns to 2B (dropped pop time to 1.88s!).',
-          tee: 'Rapid exchange wall drill — feet & hands synced (30)',
-          ft: 'Low-zone framing & dirt-ball blocking reads',
-          machine: 'Live throwdowns to 2B off machine — 1.88s PR',
-          homework: 'At least 1 bucket of each drill 2-3x a week!',
-          note: 'Transfer to ear is super clean—dropped pop time to 1.88s! Keep hips low on the throwdown to 2B.',
-          videoTitle: '2B Throwdown 1.88s Slow-Mo (0:09)',
-          videoImg: 'assets/images/fastpitch-catcher.jpg',
-          videoUrl: null,
-          sentTo: 'Tricia Vance (SMS + App)',
-          sentAt: 'Nov 15 • 6:05 PM'
-        }
-      ],
+      sessionRecaps: [],
 
-      videos: [
-        {
-          id: 'vid-1', athleteId: 'ath-1', athleteName: 'Chloe Miller', title: 'Front Toss Side Angle — Swing Clip', uploadedAt: 'Yesterday • 0:14', status: 'Reviewed', img: 'assets/images/fastpitch-hitter.jpg',
-          cues: [
-            { time: '0:03', pct: 22, note: 'Clean load & stride separation—stay stacked over back hip.' },
-            { time: '0:06', pct: 48, note: 'Awesome palm-up/palm-down contact point! Barrel stays in the zone.' },
-            { time: '0:09', pct: 74, note: 'Balanced high finish without lunging forward.' }
-          ]
-        },
-        {
-          id: 'vid-2', athleteId: 'ath-2', athleteName: 'Maya Miller', title: 'Front Toss — Outside Pitch Swing', uploadedAt: '2 days ago • 0:11', status: 'Needs Review', img: 'assets/images/fastpitch-slapper.jpg',
-          cues: [{ time: '0:04', pct: 36, note: 'Good load timing—let the ball travel 3 inches deeper.' }]
-        }
-      ],
+      videos: [],
 
-      payments: [
-        { id: 'pay-1', date: 'Nov 24', family: 'Miller Family', item: '1-on-1 Hitting Private (Chloe)', amount: 75, method: 'Clover • Apple Pay', status: 'Paid' },
-        { id: 'pay-2', date: 'Nov 22', family: 'Reyes Family', item: '1-on-1 Fielding & Defense (Ava)', amount: 75, method: 'Cash (Collected ✓)', status: 'Paid' },
-        { id: 'pay-3', date: 'Nov 20', family: 'Vance Family', item: 'Winter Hitting & Defense Clinic', amount: 95, method: 'Clover • Card' },
-        { id: 'pay-4', date: 'Nov 18', family: 'Brooks Family', item: '1-on-1 Drop-In', amount: 75, method: 'Zelle (Logged)' }
-      ],
+      payments: [],
 
-      threads: [
-        {
-          id: 'msg-1', parent: 'Sarah Miller', athletes: 'Chloe & Maya', unread: 1,
-          messages: [
-            { from: 'parent', time: '10:15 AM', text: 'Hi Gina! Chloe nailed her high-tee drills all week. Can we work on inside-pitch barrel control today at 4?' },
-            { from: 'coach', time: '10:28 AM', text: 'Love hearing that! Yes—we’ll spend the last 15 minutes on inside front-toss and quick hands.' }
-          ]
-        },
-        { id: 'msg-2', parent: 'Tricia Vance', athletes: 'Brooklyn', unread: 0, messages: [{ from: 'parent', time: 'Yesterday', text: 'Booking Brooklyn for Thursday & Saturday next week!' }] }
+      threads: []
+    };
+
+    const GUEST_ATHLETE = {
+      id: 'guest',
+      initials: 'EF',
+      name: 'New Athlete',
+      familyId: 'guest',
+      parentName: 'Parent / Guardian',
+      parentPhone: '(412) 555-0100',
+      ageGroup: '14U',
+      gradYear: 2030,
+      position: 'Hitter / Utility',
+      batsThrows: 'R / R',
+      team: 'Gina Fuchs Elite Fastpitch',
+      height: '5\'5"',
+      streakDays: 1,
+      weeklyReps: 0,
+      weeklyDuration: '0:00 hours',
+      waiverSigned: false,
+      waiverDate: null,
+      emergencyContact: 'Not set yet',
+      medicalNotes: 'None reported',
+      pitches: [],
+      notes: [],
+      drills: [
+        { id: 'd-guest-1', title: 'Hitter’s Warmup: PVC Swings & 4lb Med Ball', reps: '5 each', focus: 'Pre-session routine', done: false, img: 'assets/images/fastpitch-hitter.jpg' }
       ]
     };
 
-    // Seed 48 additional realistic Pittsburgh fastpitch athletes (total 52) to reflect Gina's 50+ roster
-    (function seedLargeRoster() {
-      const rosterSeed = [
-        ['Addison Clark', '14U', 2029, 'SS / 2B', 'R / R', 'Pittsburgh Spirit 14U', 'Rachel Clark'],
-        ['Alaina Novak', '12U', 2031, 'OF / Slapper', 'L / L', 'Steel City Cyclones 12U', 'Greg Novak'],
-        ['Alexa Kowalski', '16U', 2027, 'Catcher / 1B', 'R / R', 'Pittsburgh Passion 16U', 'Jen Kowalski'],
-        ['Aubrey Russo', '14U', 2029, '3B / Hitter', 'R / R', 'PA Outlaws 14U', 'Marco Russo'],
-        ['Bella Santoro', '10U', 2033, 'SS / Utility', 'R / R', 'South Hills Storm 10U', 'Lisa Santoro'],
-        ['Brielle Foster', '18U', 2026, 'OF / Hitter', 'L / R', 'Pittsburgh Power 18U', 'Tanya Foster'],
-        ['Camryn Hayes', '14U', 2028, 'Catcher / 3B', 'R / R', 'PA Strikers 14U', 'Brett Hayes'],
-        ['Claire Donovan', '12U', 2030, '2B / Slapper', 'L / R', 'Pittsburgh Riot 12U', 'Megan Donovan'],
-        ['Delaney Brooks', '16U', 2027, 'SS / Hitter', 'R / R', 'Pittsburgh Passion 16U', 'Kelly Brooks'],
-        ['Elena Rossi', '14U', 2029, '1B / Power Hitter', 'R / R', 'Steel City Select 14U', 'Dante Rossi'],
-        ['Ellie Gallagher', '10U', 2033, 'OF / Utility', 'R / R', 'North Allegheny 10U', 'Erin Gallagher'],
-        ['Emerson Price', '16U', 2028, 'OF / Slapper', 'L / L', 'Pittsburgh Spirit 16U', 'Stacy Price'],
-        ['Faith Zimmerman', '12U', 2031, 'Catcher / 2B', 'R / R', 'PA Chaos 12U', 'Amy Zimmerman'],
-        ['Gabriella Conti', '18U', 2026, '3B / 1B', 'R / R', 'Pittsburgh Passion 18U', 'Tina Conti'],
-        ['Gianna DeLuca', '14U', 2029, 'SS / Hitter', 'R / R', 'South Hills Fastpitch 14U', 'Vince DeLuca'],
-        ['Grace Callahan', '12U', 2030, 'OF / Hitter', 'R / R', 'Pittsburgh Power 12U', 'Kate Callahan'],
-        ['Hailey Mercer', '16U', 2027, '2B / Slapper', 'L / R', 'PA Outlaws 16U', 'Dawn Mercer'],
-        ['Hannah Kowal', '14U', 2028, 'Catcher / OF', 'R / R', 'Pittsburgh Riot 14U', 'Chris Kowal'],
-        ['Harper Brooks', '12U', 2031, 'SS / 3B', 'R / R', 'Pittsburgh Passion 12U', 'Kelly Brooks'],
-        ['Isabella Marino', '18U', 2026, '1B / Hitter', 'L / L', 'Pittsburgh Spirit 18U', 'Paula Marino'],
-        ['Jada Washington', '14U', 2029, 'OF / Slapper', 'L / R', 'Steel City Cyclones 14U', 'Monique Washington'],
-        ['Jenna Snyder', '16U', 2027, '3B / SS', 'R / R', 'Pittsburgh Passion 16U', 'Karen Snyder'],
-        ['Jordyn Walsh', '10U', 2032, '2B / Hitter', 'R / R', 'Pine-Richland 10U', 'Sarah Walsh'],
-        ['Kaitlyn Bell', '14U', 2028, 'OF / Hitter', 'R / R', 'PA Strikers 14U', 'Tracy Bell'],
-        ['Kendall Morris', '12U', 2031, 'SS / Utility', 'R / R', 'Pittsburgh Power 12U', 'Jill Morris'],
-        ['Kennedy Shaw', '16U', 2028, 'Catcher / 3B', 'R / R', 'Pittsburgh Spirit 16U', 'Heather Shaw'],
-        ['Kylie Morgan', '14U', 2029, 'SS / 3B', 'R / R', 'Pittsburgh Passion 14U', 'Amanda Morgan'],
-        ['Lainey Cooper', '12U', 2030, 'OF / Slapper', 'L / L', 'PA Chaos 12U', 'Nicole Cooper'],
-        ['Lauren Hoffman', '18U', 2026, '2B / SS', 'R / R', 'Pittsburgh Passion 18U', 'Beth Hoffman'],
-        ['Lexi Patterson', '14U', 2029, '1B / 3B', 'R / R', 'Steel City Select 14U', 'Kim Patterson'],
-        ['Lila Brennan', '10U', 2033, 'Catcher / Utility', 'R / R', 'Mt. Lebanon 10U', 'Julie Brennan'],
-        ['Mackenzie Reed', '16U', 2027, 'OF / Hitter', 'R / R', 'PA Outlaws 16U', 'Carrie Reed'],
-        ['Madelyn Perry', '14U', 2028, 'SS / Slapper', 'L / R', 'Pittsburgh Riot 14U', 'Tara Perry'],
-        ['Makayla Grant', '12U', 2031, '3B / Hitter', 'R / R', 'Pittsburgh Spirit 12U', 'Renee Grant'],
-        ['Mia Lombardi', '16U', 2027, 'Catcher / 1B', 'R / R', 'Pittsburgh Passion 16U', 'Carla Lombardi'],
-        ['Morgan Bennett', '18U', 2026, 'OF / Slapper', 'L / L', 'Pittsburgh Power 18U', 'Wendy Bennett'],
-        ['Natalie Kline', '14U', 2029, '2B / Hitter', 'R / R', 'PA Strikers 14U', 'Denise Kline'],
-        ['Olivia Caruso', '12U', 2030, 'SS / 3B', 'R / R', 'South Hills Storm 12U', 'Angela Caruso'],
-        ['Paige Henderson', '16U', 2028, '1B / Power Hitter', 'R / R', 'Pittsburgh Spirit 16U', 'Michelle Henderson'],
-        ['Peyton Shaffer', '14U', 2029, 'OF / Hitter', 'R / R', 'Pittsburgh Passion 14U', 'Lauren Shaffer'],
-        ['Quinn Gallagher', '10U', 2032, 'SS / 2B', 'R / R', 'North Allegheny 10U', 'Erin Gallagher'],
-        ['Reagan Bauer', '16U', 2027, '3B / Hitter', 'R / R', 'PA Outlaws 16U', 'Kristen Bauer'],
-        ['Riley McCarthy', '12U', 2031, 'OF / Slapper', 'L / R', 'Pittsburgh Riot 12U', 'Shannon McCarthy'],
-        ['Savannah Cole', '14U', 2028, 'Catcher / 3B', 'R / R', 'Steel City Cyclones 14U', 'Melissa Cole'],
-        ['Sienna Ortiz', '14U', 2029, 'OF / Hitter', 'R / R', 'Pittsburgh Passion 14U', 'Lori Ortiz'],
-        ['Sophia Greco', '18U', 2026, 'SS / Hitter', 'R / R', 'Pittsburgh Spirit 18U', 'Maria Greco'],
-        ['Sydney Weaver', '12U', 2030, '1B / 3B', 'R / R', 'PA Chaos 12U', 'Becky Weaver'],
-        ['Zoe Campbell', '16U', 2027, '2B / OF', 'L / R', 'Pittsburgh Power 16U', 'Dana Campbell']
-      ];
-      rosterSeed.forEach((row, i) => {
-        const [name, ageGroup, gradYear, position, batsThrows, team, parentName] = row;
-        const parts = name.split(' ');
-        const initials = (parts[0][0] + parts[1][0]).toUpperCase();
-        const isCatcher = position.toLowerCase().includes('catcher');
-        const isSlapper = position.toLowerCase().includes('slap');
-        const waiverSigned = i % 11 !== 4;
-        state.athletes.push({
-          id: `ath-seed-${i + 5}`,
-          initials,
-          name,
-          familyId: `fam-seed-${i + 5}`,
-          parentName,
-          parentPhone: `(412) 555-${String(1200 + i * 17).slice(0, 4)}`,
-          ageGroup,
-          gradYear,
-          position,
-          batsThrows,
-          team,
-          height: ageGroup === '10U' ? '4\'10"' : ageGroup === '12U' ? '5\'1"' : ageGroup === '14U' ? '5\'5"' : '5\'7"',
-          streakDays: (i % 9) + 1,
-          weeklyReps: 90 + (i % 7) * 25,
-          weeklyDuration: `${1 + (i % 2)}:${String(10 + (i % 4) * 12).padStart(2, '0')} hours`,
-          waiverSigned,
-          waiverDate: waiverSigned ? 'Oct 14, 2026' : null,
-          emergencyContact: `${parentName} — (412) 555-${String(1200 + i * 17).slice(0, 4)}`,
-          medicalNotes: 'None reported',
-          primaryMetricLabel: isCatcher ? 'Pop Time PR' : isSlapper ? 'Home-to-1st' : 'Exit Velo PR',
-          primaryMetricValue: isCatcher ? (1.84 + (i % 5) * 0.04).toFixed(2) : isSlapper ? (2.82 + (i % 5) * 0.05).toFixed(2) : (56 + (i % 13) * 1.1).toFixed(1),
-          primaryMetricUnit: isCatcher || isSlapper ? 'SEC' : 'MPH',
-          primaryMetricDelta: isCatcher ? '-0.05s this fall' : isSlapper ? '-0.06s faster' : `+${(1.5 + (i % 4) * 0.8).toFixed(1)} mph this fall`,
-          pitches: [],
-          notes: [{ date: 'Nov 14', text: 'Great barrel consistency & athletic balance through contact.' }],
-          drills: [{ id: `d-seed-${i}`, title: 'Extensions 3/3/3 & Step Back Tee', reps: '1 bucket • 2-3x/wk', focus: 'Barrel Control', done: i % 2 === 0, img: 'assets/images/fastpitch-hitter.jpg' }]
-        });
-      });
-    })();
+    function getActiveAthlete() {
+      return getActiveAthlete() || GUEST_ATHLETE;
+    }
 
     const icons = {
       calendar: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
@@ -1083,7 +723,7 @@
         if (el) el.className = `${id.startsWith('desk') ? 'py-2 rounded-xl' : 'px-2.5 py-1 rounded-full'} transition cursor-pointer ${!isCoach ? activeRoleCls : idleRoleCls}`;
       });
 
-      const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
+      const ath = getActiveAthlete();
       const uName = document.getElementById('sidebar-user-name');
       const uSub = document.getElementById('sidebar-user-sub');
       const uAv = document.getElementById('sidebar-avatar');
@@ -1142,7 +782,7 @@
     // ATHLETE / PARENT PORTAL (PELOTON + FITSTREAK EXPERIENCE)
     // =========================================================================
     function renderSiblingBar() {
-      const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
+      const ath = getActiveAthlete();
       const isProfile = state.parentTab === 'profile';
       return `
         <div class="flex items-center justify-between gap-2">
@@ -1159,7 +799,7 @@
     }
 
     function renderParentHome() {
-      const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
+      const ath = getActiveAthlete();
       const hero = state.featuredWorkouts[0];
       const recovery = state.featuredWorkouts.find(w => w.category === 'ARM CARE') || state.featuredWorkouts[state.featuredWorkouts.length - 1];
       const upcoming = state.sessions.filter(s => s.athletes.includes(ath.name) && s.status !== 'Canceled');
@@ -1502,7 +1142,7 @@
 
     function calAddToCart(time24, goToCheckout = false) {
       const evt = state.cal.eventTypes.find(x => x.id === state.cal.eventTypeId) || state.cal.eventTypes[0];
-      const ath = state.athletes.find(x => x.id === state.activeSiblingId) || state.athletes[0];
+      const ath = getActiveAthlete();
       const iso = state.cal.selectedDate;
       const slotKey = `${iso}@${time24}`;
       if (state.cal.cart.some(i => i.slotKey === slotKey)) {
@@ -1671,7 +1311,7 @@
     }
 
     function renderParentBook() {
-      const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
+      const ath = getActiveAthlete();
       const evt = state.cal.eventTypes.find(e => e.id === state.cal.eventTypeId) || state.cal.eventTypes[0];
       const { cardTotal } = calCartTotals();
 
@@ -2069,7 +1709,7 @@
     }
 
     function renderParentVideo() {
-      const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
+      const ath = getActiveAthlete();
       const recaps = state.sessionRecaps.filter(r => r.athleteId === ath.id && !r.isDraft);
       return `
         ${renderSiblingBar()}
@@ -2226,7 +1866,7 @@
     }
 
     function renderAthleteProfile() {
-      const ath = ensureAthleteProfileExtras(state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0]);
+      const ath = ensureAthleteProfileExtras(getActiveAthlete());
       const recaps = state.sessionRecaps.filter(r => r.athleteId === ath.id && !r.isDraft);
       const coverImg = getAthleteCoverImg(ath);
 
@@ -2378,7 +2018,7 @@
     }
 
     function renderParentWaiver() {
-      const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
+      const ath = getActiveAthlete();
       return `
         ${renderSiblingBar()}
         <div>
@@ -2953,10 +2593,7 @@
     function openRemoveAthleteModal(athId) {
       const ath = state.athletes.find(a => a.id === athId);
       if (!ath) return;
-      if (state.athletes.length <= 1) {
-        showToast('Keep at least one athlete on the roster.');
-        return;
-      }
+      
       openModal(`
         <div class="flex items-start justify-between gap-2">
           <div>
@@ -2976,23 +2613,19 @@
     }
 
     function confirmRemoveAthlete(athId) {
-      if (state.athletes.length <= 1) {
-        closeModal();
-        showToast('Keep at least one athlete on the roster.');
-        return;
-      }
+      
       const ath = state.athletes.find(a => a.id === athId);
       if (!ath) return;
       state.athletes = state.athletes.filter(a => a.id !== athId);
       state.cal.cart = state.cal.cart.filter(item => item.athleteId !== athId);
 
       if (state.selectedAthleteId === athId) {
-        state.selectedAthleteId = state.athletes[0].id;
+        state.selectedAthleteId = state.athletes[0]?.id || null;
       }
       state.rosterView = 'list';
       if (state.activeSiblingId === athId) {
         const nextFam = state.athletes.find(a => a.familyId === 'fam-1') || state.athletes[0];
-        state.activeSiblingId = nextFam.id;
+        state.activeSiblingId = nextFam?.id || null;
       }
       closeModal();
       render();
@@ -3177,6 +2810,16 @@
     function renderRosterRowsHtml() {
       const list = getFilteredRosterAthletes();
       if (!list.length) {
+        if (state.athletes.length === 0) {
+          return `
+            <div class="card-white rounded-[28px] p-10 text-center space-y-3">
+              <div class="w-14 h-14 rounded-2xl bg-[#010101] text-[#D5FF5F] font-extrabold text-xl flex items-center justify-center mx-auto">+</div>
+              <div class="text-base font-extrabold">No Athletes on Roster Yet</div>
+              <p class="text-xs text-[var(--text-muted)] max-w-sm mx-auto">Add your first fastpitch athlete to start scheduling sessions, logging session notes, and sharing clips.</p>
+              <button onclick="openAddAthleteModal(null)" class="mt-2 px-5 py-3 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-md hover:brightness-95 transition">+ Add First Athlete</button>
+            </div>
+          `;
+        }
         return `
           <div class="card-white rounded-[28px] p-8 text-center space-y-2">
             <div class="text-sm font-extrabold">No athletes match "${state.rosterSearch || state.rosterFilter}"</div>
@@ -3392,7 +3035,7 @@
                     ${uiIcon('eye')} View Page
                   </button>
                 </div>
-                ${state.athletes.length > 1 ? `
+                ${true ? `
                   <button onclick="openRemoveAthleteModal('${sel.id}')" class="px-3 py-1.5 rounded-xl text-[11px] font-extrabold text-red-600 dark:text-red-400 hover:bg-red-500/10 cursor-pointer transition">
                     Remove
                   </button>
@@ -4162,6 +3805,7 @@
 
     function renderCoachVideo() {
       const vid = state.videos.find(v => v.id === state.selectedVideoId) || state.videos[0];
+      if (!vid) return `<div class="card-white rounded-[28px] p-10 text-center space-y-2"><div class="text-base font-extrabold">No Practice Clips Yet</div><p class="text-xs text-[var(--text-muted)]">Clips uploaded by athletes or attached to session notes will appear here.</p></div>`;
       return `
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div class="space-y-3">
@@ -4246,6 +3890,7 @@
 
     function renderCoachMessaging() {
       const thread = state.threads.find(t => t.id === state.activeThreadId) || state.threads[0];
+      if (!thread) return `<div class="card-white rounded-[28px] p-10 text-center space-y-2"><div class="text-base font-extrabold">No Messages Yet</div><p class="text-xs text-[var(--text-muted)]">Messages automatically appear here when you schedule a session or send session notes to a parent.</p></div>`;
       return `
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div class="space-y-3">
