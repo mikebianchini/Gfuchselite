@@ -1108,7 +1108,7 @@
             </div>
 
             ${(() => {
-              const recaps = state.sessionRecaps.filter(r => r.athleteId === ath.id);
+              const recaps = state.sessionRecaps.filter(r => r.athleteId === ath.id && !r.isDraft);
               const latest = recaps[0];
               if (!latest) return '';
               return `
@@ -1884,7 +1884,7 @@
 
     function renderParentVideo() {
       const ath = state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0];
-      const recaps = state.sessionRecaps.filter(r => r.athleteId === ath.id);
+      const recaps = state.sessionRecaps.filter(r => r.athleteId === ath.id && !r.isDraft);
       return `
         ${renderSiblingBar()}
         <div class="flex flex-wrap items-center justify-between gap-2">
@@ -2043,7 +2043,7 @@
 
     function renderAthleteProfile() {
       const ath = ensureAthleteProfileExtras(state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0]);
-      const recaps = state.sessionRecaps.filter(r => r.athleteId === ath.id);
+      const recaps = state.sessionRecaps.filter(r => r.athleteId === ath.id && !r.isDraft);
       const coverImg = getAthleteCoverImg(ath);
 
       return `
@@ -2914,10 +2914,14 @@
                 <div class="surface-soft rounded-[24px] p-4 space-y-3">
                   <div class="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <div class="text-xs font-extrabold">${r.date} • ${r.sessionTitle}</div>
-                      <div class="text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-semibold">✓ Sent to ${r.sentTo} (${r.sentAt})</div>
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-extrabold">${r.date} • ${r.sessionTitle}</span>
+                        ${r.isDraft ? `<span class="px-2 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">AUTO-SAVED DRAFT</span>` : ''}
+                      </div>
+                      <div class="text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-semibold">${r.isDraft ? `✓ Auto-saved ${r.sentAt} — tap to keep editing or send` : `✓ Sent to ${r.sentTo} (${r.sentAt})`}</div>
                     </div>
-                    <div class="flex flex-wrap gap-1">
+                    <div class="flex flex-wrap items-center gap-1">
+                      ${r.isDraft ? `<button onclick="openSessionRecapModal('${sel.id}', null)" class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold cursor-pointer">✏️ Continue Editing</button>` : ''}
                       ${r.tags.map(t => `<span class="px-2 py-0.5 rounded-full card-white text-[10px] font-extrabold">${t}</span>`).join('')}
                     </div>
                   </div>
@@ -3007,6 +3011,7 @@
       if (!el) return;
       const cur = el.value.trim();
       el.value = cur ? `${cur}\n• ${text}` : `• ${text}`;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
       el.focus();
     }
 
@@ -3091,15 +3096,127 @@
     }
 
     let _recapDraftClips = [];
+    let _recapActiveAthId = null;
+    let _recapActiveSesId = null;
+    let _recapAutoSaveTimer = null;
 
-    function openSessionRecapModal(athId, sessionId) {
-      const ath = state.athletes.find(a => a.id === athId) || state.athletes[0];
-      const ses = sessionId ? state.sessions.find(s => s.id === sessionId) : null;
+    function getRecapDraftStorageKey(athId) {
+      return `gfuchs_recap_draft_${athId}`;
+    }
+
+    function loadSavedRecapDraft(athId) {
+      const mem = state.sessionRecaps.find(r => r.id === `draft-${athId}` && r.isDraft);
+      if (mem) {
+        return {
+          includeWarmup: !!mem.warmup,
+          warmup: mem.warmup || GINA_WARMUP_DEFAULT,
+          focus: mem.focus || '',
+          tee: mem.tee || '',
+          ft: mem.ft || '',
+          machine: mem.machine || '',
+          homework: mem.homework || GINA_HOMEWORK_DEFAULT,
+          tags: mem.tags || ['Barrel Control', 'Variability'],
+          savedAt: mem.sentAt || 'Just now'
+        };
+      }
+      try {
+        const raw = localStorage.getItem(getRecapDraftStorageKey(athId));
+        if (raw) return JSON.parse(raw);
+      } catch (_) {}
+      return null;
+    }
+
+    function autoSaveRecapDraft(immediate = false) {
+      const athId = _recapActiveAthId;
+      if (!athId) return;
+      const badge = document.getElementById('recap-autosave-badge');
+      if (badge && !immediate) {
+        badge.textContent = 'Saving…';
+      }
+      clearTimeout(_recapAutoSaveTimer);
+      const doSave = () => {
+        const ath = state.athletes.find(a => a.id === athId);
+        if (!ath) return;
+        const ses = _recapActiveSesId ? state.sessions.find(s => s.id === _recapActiveSesId) : null;
+        const d = readRecapComposerDraft();
+        const nowTime = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        const hasContent = !!(d.focus.trim() || d.tee.trim() || d.ft.trim() || d.machine.trim() || _recapDraftClips.length);
+
+        try {
+          localStorage.setItem(getRecapDraftStorageKey(athId), JSON.stringify({
+            ...d,
+            tags: [..._recapDraftTags],
+            savedAt: nowTime
+          }));
+        } catch (_) {}
+
+        if (hasContent) {
+          const vidImg = getAthleteCoverImg(ath);
+          const vidTitle = _recapDraftVideoName || `${ath.name.split(' ')[0]} Session Clip — Draft`;
+          const clips = _recapDraftClips.length ? _recapDraftClips.map(c => ({ ...c, img: vidImg })) : [{ title: vidTitle, img: vidImg, url: _recapDraftVideoUrl }];
+          const draftRecap = {
+            id: `draft-${athId}`,
+            isDraft: true,
+            athleteId: athId,
+            date: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }),
+            sessionTitle: ses ? ses.focus : '1-on-1 Training Session',
+            tags: [..._recapDraftTags],
+            warmup: d.includeWarmup ? d.warmup.trim() : '',
+            focus: d.focus.trim(),
+            tee: d.tee.trim(),
+            ft: d.ft.trim(),
+            machine: d.machine.trim(),
+            homework: d.homework.trim() || GINA_HOMEWORK_DEFAULT,
+            note: d.focus.trim() || 'In-progress session note',
+            videoTitle: vidTitle,
+            videoImg: vidImg,
+            videoUrl: _recapDraftVideoUrl,
+            clips,
+            sentTo: 'Auto-saved Draft',
+            sentAt: nowTime
+          };
+          const idx = state.sessionRecaps.findIndex(r => r.id === `draft-${athId}`);
+          if (idx >= 0) state.sessionRecaps[idx] = draftRecap;
+          else state.sessionRecaps.unshift(draftRecap);
+        }
+
+        const b = document.getElementById('recap-autosave-badge');
+        if (b) b.textContent = `✓ Auto-saved ${nowTime}`;
+      };
+      if (immediate) doSave();
+      else _recapAutoSaveTimer = setTimeout(doSave, 250);
+    }
+
+    function clearRecapDraft(athId, sessionId) {
+      try { localStorage.removeItem(getRecapDraftStorageKey(athId)); } catch (_) {}
+      state.sessionRecaps = state.sessionRecaps.filter(r => r.id !== `draft-${athId}`);
       _recapDraftTags = ['Barrel Control', 'Variability'];
       _recapDraftVideoUrl = null;
       _recapDraftVideoName = null;
       _recapDraftClips = [];
-      renderRecapComposerModal(ath, ses);
+      const ath = state.athletes.find(a => a.id === athId) || state.athletes[0];
+      const ses = sessionId ? state.sessions.find(s => s.id === sessionId) : null;
+      renderRecapComposerModal(ath, ses, null);
+      showToast('Draft reset to blank template.');
+    }
+
+    function closeRecapComposer() {
+      autoSaveRecapDraft(true);
+      closeModal();
+      render();
+    }
+
+    function openSessionRecapModal(athId, sessionId) {
+      const ath = state.athletes.find(a => a.id === athId) || state.athletes[0];
+      const ses = sessionId ? state.sessions.find(s => s.id === sessionId) : null;
+      _recapActiveAthId = ath.id;
+      _recapActiveSesId = ses ? ses.id : null;
+      const saved = loadSavedRecapDraft(ath.id);
+      _recapDraftTags = saved?.tags ? [...saved.tags] : ['Barrel Control', 'Variability'];
+      _recapDraftVideoUrl = null;
+      _recapDraftVideoName = null;
+      _recapDraftClips = [];
+      renderRecapComposerModal(ath, ses, saved);
     }
 
     function readRecapComposerDraft() {
@@ -3119,7 +3236,9 @@
       else _recapDraftTags.push(tag);
       const ath = state.athletes.find(a => a.id === athId) || state.athletes[0];
       const ses = sessionId ? state.sessions.find(s => s.id === sessionId) : null;
-      renderRecapComposerModal(ath, ses, readRecapComposerDraft());
+      const cur = readRecapComposerDraft();
+      autoSaveRecapDraft(true);
+      renderRecapComposerModal(ath, ses, cur);
     }
 
     function handleRecapVideoFile(input) {
@@ -3133,6 +3252,7 @@
       _recapDraftVideoName = _recapDraftClips.length === 1 ? _recapDraftClips[0].title : `${_recapDraftClips.length} clips attached`;
       const label = document.getElementById('recap-video-status');
       if (label) label.textContent = `✓ ${_recapDraftVideoName}`;
+      autoSaveRecapDraft(true);
     }
 
     function renderRecapComposerModal(ath, ses, draft = null) {
@@ -3152,13 +3272,19 @@
       openModal(`
         <div class="flex items-start justify-between gap-2">
           <div>
-            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Gina’s Session Notes Template</div>
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Gina’s Session Notes</span>
+              <span id="recap-autosave-badge" class="px-2 py-0.5 rounded-full bg-[#D5FF5F]/35 text-[#010101] dark:text-[#D5FF5F] text-[10px] font-extrabold">${draft?.savedAt ? `✓ Auto-saved ${draft.savedAt}` : '● Auto-save on'}</span>
+            </div>
             <h3 class="font-extrabold text-base mt-0.5">${ath.name} (${ath.ageGroup})</h3>
           </div>
-          <button onclick="closeModal()" class="w-8 h-8 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+          <div class="flex items-center gap-1.5">
+            <button type="button" onclick="clearRecapDraft('${ath.id}','${ses ? ses.id : ''}')" title="Reset draft" class="px-2.5 h-8 rounded-full surface-soft text-[10px] font-extrabold text-[var(--text-muted)] cursor-pointer">Reset</button>
+            <button type="button" onclick="closeRecapComposer()" class="w-8 h-8 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+          </div>
         </div>
 
-        <form onsubmit="submitSessionRecap(event, '${ath.id}', '${ses ? ses.id : ''}')" class="space-y-3 text-xs">
+        <form oninput="autoSaveRecapDraft()" onchange="autoSaveRecapDraft(true)" onsubmit="submitSessionRecap(event, '${ath.id}', '${ses ? ses.id : ''}')" class="space-y-3 text-xs">
           <!-- 1-Tap Focus Tags -->
           <div>
             <label class="block text-[var(--text-muted)] font-bold mb-1.5">Quick Focus Tags</label>
@@ -3239,20 +3365,24 @@
           <label class="flex items-center justify-between gap-3 p-3 rounded-2xl card-mist cursor-pointer">
             <div>
               <div class="font-extrabold">Message Player &amp; Parent Automatically</div>
-              <div class="text-[11px] text-[var(--text-muted)]">Sends formatted note + clips to ${ath.parentName} (${ath.parentPhone})</div>
+              <div class="text-[11px] text-[var(--text-muted)]">Auto-saves as you type • Sends formatted note + clips to ${ath.parentName}</div>
             </div>
             <input type="checkbox" name="sendNow" checked class="w-5 h-5 accent-[#010101]" />
           </label>
 
           <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
-            Save Recap &amp; Send to Player →
+            Send Recap to Player &amp; Parent →
           </button>
         </form>
       `);
+      // Also auto-save if user clicks backdrop outside modal
+      const m = document.getElementById('modal-root');
+      if (m) m.onclick = (e) => { if (e.target === m) closeRecapComposer(); };
     }
 
     function submitSessionRecap(e, athId, sessionId) {
       e.preventDefault();
+      clearTimeout(_recapAutoSaveTimer);
       const ath = state.athletes.find(a => a.id === athId) || state.athletes[0];
       const ses = sessionId ? state.sessions.find(s => s.id === sessionId) : null;
       const includeWarmup = e.target.includeWarmup.checked;
@@ -3269,6 +3399,7 @@
 
       const newRecap = {
         id: 'rec-' + Date.now(),
+        isDraft: false,
         athleteId: ath.id,
         date: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }),
         sessionTitle: ses ? ses.focus : '1-on-1 Training Session',
@@ -3284,12 +3415,16 @@
         videoImg: vidImg,
         videoUrl: _recapDraftVideoUrl,
         clips,
-        sentTo: sendNow ? `${ath.parentName} (SMS + App)` : 'Saved Private (Draft)',
+        sentTo: sendNow ? `${ath.parentName} (SMS + App)` : 'Saved Private',
         sentAt: 'Just now'
       };
 
-      // 1. Save permanently in Session Recaps timeline (replaces Apple Notes!)
+      // 1. Replace any auto-saved draft with the finalized recap & clear localStorage draft
+      state.sessionRecaps = state.sessionRecaps.filter(r => r.id !== `draft-${ath.id}`);
       state.sessionRecaps.unshift(newRecap);
+      try { localStorage.removeItem(getRecapDraftStorageKey(ath.id)); } catch (_) {}
+      _recapActiveAthId = null;
+      _recapActiveSesId = null;
 
       // 2. Also update athlete notes & sync first Tee/FT drill to weekly checklist
       ath.notes.unshift({ date: 'Today', text: focus });
