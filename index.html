@@ -3139,6 +3139,13 @@
       showToast(`Added ${focus} on ${dayNice} at ${timeNice} to ${ath.name.split(' ')[0]}’s profile!`);
     }
 
+    function setRosterSort(col) {
+      if (state.rosterSortCol === col) state.rosterSortDir = state.rosterSortDir === 'asc' ? 'desc' : 'asc';
+      else { state.rosterSortCol = col; state.rosterSortDir = 'asc'; }
+      const box = document.getElementById('roster-list-container');
+      if (box) box.innerHTML = renderRosterRowsHtml();
+    }
+
     function getFilteredRosterAthletes() {
       const q = (state.rosterSearch || '').trim().toLowerCase();
       const f = state.rosterFilter || 'all';
@@ -3149,6 +3156,8 @@
         state.sessions.filter(s => s.dayKey === 'Thu 26' || s.day.includes('Today')).map(s => s.athleteId).filter(Boolean)
       );
       const draftIds = new Set(state.sessionRecaps.filter(r => r.isDraft).map(r => r.athleteId));
+      const col = state.rosterSortCol || 'name';
+      const dir = state.rosterSortDir === 'desc' ? -1 : 1;
 
       return state.athletes
         .filter(a => {
@@ -3162,7 +3171,12 @@
           }
           return true;
         })
-        .sort((a, b) => a.name.localeCompare(b.name));
+        .sort((a, b) => {
+          if (col === 'age') return (parseInt(a.ageGroup, 10) - parseInt(b.ageGroup, 10)) * dir || a.name.localeCompare(b.name);
+          if (col === 'pr') return ((parseFloat(a.primaryMetricValue) || 0) - (parseFloat(b.primaryMetricValue) || 0)) * dir;
+          if (col === 'waiver') return (Number(a.waiverSigned) - Number(b.waiverSigned)) * dir || a.name.localeCompare(b.name);
+          return a.name.localeCompare(b.name) * dir;
+        });
     }
 
     function renderRosterRowsHtml() {
@@ -3178,54 +3192,84 @@
       }
 
       const draftIds = new Set(state.sessionRecaps.filter(r => r.isDraft).map(r => r.athleteId));
-      // Group alphabetically by first letter
-      const groups = {};
-      list.forEach(a => {
-        const ltr = (a.name[0] || '#').toUpperCase();
-        if (!groups[ltr]) groups[ltr] = [];
-        groups[ltr].push(a);
-      });
-      const letters = Object.keys(groups).sort();
+      const col = state.rosterSortCol || 'name';
+      const arrow = (c) => col === c ? (state.rosterSortDir === 'desc' ? ' ↓' : ' ↑') : '';
 
       return `
-        <div class="space-y-4">
-          ${letters.map(ltr => `
-            <div class="space-y-2">
-              <div class="flex items-center gap-2 px-1">
-                <span class="w-6 h-6 rounded-lg bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold inline-flex items-center justify-center">${ltr}</span>
-                <div class="h-px flex-1 bg-[var(--border-subtle)]"></div>
-                <span class="text-[11px] font-bold text-[var(--text-muted)]">${groups[ltr].length}</span>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                ${groups[ltr].map(a => {
+        <div class="card-white rounded-[26px] overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-[var(--border-subtle)] bg-white/40 dark:bg-white/5 text-[11px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">
+                  <th class="py-3 pl-4 pr-2">
+                    <button type="button" onclick="setRosterSort('name')" class="cursor-pointer hover:text-[var(--text-main)]">Athlete${arrow('name')}</button>
+                  </th>
+                  <th class="py-3 px-2">
+                    <button type="button" onclick="setRosterSort('age')" class="cursor-pointer hover:text-[var(--text-main)]">Age${arrow('age')}</button>
+                  </th>
+                  <th class="py-3 px-2 hidden md:table-cell">Position &amp; Team</th>
+                  <th class="py-3 px-2 hidden sm:table-cell">Parent</th>
+                  <th class="py-3 px-2">
+                    <button type="button" onclick="setRosterSort('pr')" class="cursor-pointer hover:text-[var(--text-main)]">PR${arrow('pr')}</button>
+                  </th>
+                  <th class="py-3 px-2 hidden lg:table-cell">
+                    <button type="button" onclick="setRosterSort('waiver')" class="cursor-pointer hover:text-[var(--text-main)]">Waiver${arrow('waiver')}</button>
+                  </th>
+                  <th class="py-3 pl-2 pr-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[var(--border-subtle)] text-xs">
+                ${list.map(a => {
                   const hasDraft = draftIds.has(a.id);
                   return `
-                    <div onclick="openCoachAthleteDetail('${a.id}')" class="card-white rounded-[22px] p-3.5 flex items-center justify-between gap-2.5 cursor-pointer hover:border-[#010101] transition">
-                      <div class="flex items-center gap-3 min-w-0">
-                        <div class="relative w-10 h-10 rounded-2xl bg-[#010101] text-[#D5FF5F] font-extrabold text-xs flex items-center justify-center shrink-0">
-                          ${a.initials}
-                          ${!a.waiverSigned ? `<span title="Waiver pending" class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 ring-2 ring-white dark:ring-[#15191E]"></span>` : ''}
-                        </div>
-                        <div class="min-w-0">
-                          <div class="flex items-center gap-1.5">
-                            <span class="font-extrabold text-sm truncate">${a.name}</span>
-                            <span class="px-1.5 py-0.5 rounded-md surface-soft text-[10px] font-extrabold shrink-0">${a.ageGroup}</span>
-                            ${hasDraft ? `<span class="px-1.5 py-0.5 rounded-md bg-[#D5FF5F] text-[#010101] text-[9px] font-extrabold shrink-0">DRAFT</span>` : ''}
+                    <tr onclick="openCoachAthleteDetail('${a.id}')" class="hover:bg-white/50 dark:hover:bg-white/5 transition cursor-pointer">
+                      <td class="py-3 pl-4 pr-2">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                          <div class="relative w-8 h-8 rounded-xl bg-[#010101] text-[#D5FF5F] font-extrabold text-[11px] flex items-center justify-center shrink-0">
+                            ${a.initials}
+                            ${!a.waiverSigned ? `<span title="Waiver pending" class="lg:hidden absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-[#15191E]"></span>` : ''}
                           </div>
-                          <div class="text-xs text-[var(--text-muted)] truncate">${a.position} • ${a.parentName}</div>
+                          <div class="min-w-0">
+                            <div class="flex items-center gap-1.5">
+                              <span class="font-extrabold text-[13px] truncate">${a.name}</span>
+                              ${hasDraft ? `<span class="px-1.5 py-0.5 rounded bg-[#D5FF5F] text-[#010101] text-[9px] font-extrabold shrink-0">DRAFT</span>` : ''}
+                            </div>
+                            <div class="md:hidden text-[11px] text-[var(--text-muted)] truncate">${a.position}</div>
+                          </div>
                         </div>
-                      </div>
-                      <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
-                        <span class="hidden sm:inline-block px-2 py-1 rounded-lg surface-soft text-[10px] font-extrabold tabular-nums">${a.primaryMetricValue} ${a.primaryMetricUnit}</span>
-                        <button onclick="openSessionRecapModal('${a.id}', null)" title="Session Notes" class="px-2.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer">Notes</button>
-                        <button onclick="openAddSessionForAthleteModal('${a.id}')" title="Add Session" aria-label="Add session for ${a.name}" class="w-8 h-8 rounded-xl surface-soft text-xs font-extrabold flex items-center justify-center cursor-pointer">+</button>
-                      </div>
-                    </div>
+                      </td>
+                      <td class="py-3 px-2 whitespace-nowrap">
+                        <span class="px-2 py-0.5 rounded-full surface-soft text-[11px] font-extrabold">${a.ageGroup}</span>
+                      </td>
+                      <td class="py-3 px-2 hidden md:table-cell">
+                        <div class="font-bold truncate max-w-[190px]">${a.position}</div>
+                        <div class="text-[11px] text-[var(--text-muted)] truncate max-w-[190px]">${a.team || 'Elite Fastpitch'}</div>
+                      </td>
+                      <td class="py-3 px-2 hidden sm:table-cell">
+                        <div class="font-semibold truncate max-w-[140px]">${a.parentName}</div>
+                        <div class="text-[11px] text-[var(--text-muted)] tabular-nums">${a.parentPhone}</div>
+                      </td>
+                      <td class="py-3 px-2 whitespace-nowrap">
+                        <span class="font-extrabold tabular-nums">${a.primaryMetricValue}</span>
+                        <span class="text-[10px] font-bold text-[var(--text-muted)] ml-0.5">${a.primaryMetricUnit}</span>
+                      </td>
+                      <td class="py-3 px-2 hidden lg:table-cell whitespace-nowrap">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${a.waiverSigned ? 'bg-[#D5FF5F]/35 text-[#010101] dark:text-[#D5FF5F]' : 'bg-red-500/15 text-red-600 dark:text-red-400'}">
+                          ${a.waiverSigned ? 'Signed ✓' : 'Pending'}
+                        </span>
+                      </td>
+                      <td class="py-3 pl-2 pr-4 text-right whitespace-nowrap" onclick="event.stopPropagation()">
+                        <div class="inline-flex items-center gap-1.5">
+                          <button onclick="openSessionRecapModal('${a.id}', null)" title="Session Notes" class="px-2.5 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer">Notes</button>
+                          <button onclick="openAddSessionForAthleteModal('${a.id}')" title="Add Session" aria-label="Add session for ${a.name}" class="w-8 h-8 rounded-xl surface-soft text-xs font-extrabold inline-flex items-center justify-center cursor-pointer">+</button>
+                        </div>
+                      </td>
+                    </tr>
                   `;
                 }).join('')}
-              </div>
-            </div>
-          `).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
       `;
     }
