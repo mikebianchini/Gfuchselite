@@ -4095,7 +4095,6 @@
                 ${s.athleteId ? `
                   <button onclick="openSessionRecapModal('${s.athleteId}', '${s.id}')" class="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-1.5 shadow-sm hover:brightness-95">${uiIcon('note')} Start Notes</button>
                 ` : ''}
-                <button onclick="openSessionPlanModal('${s.id}')" class="px-3 py-2.5 rounded-xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101] inline-flex items-center gap-1.5">${uiIcon('clipboard')} ${plan ? 'Edit Plan' : '+ Plan'}</button>
                 ${s.athleteId ? `<button onclick="openPreviousSessionsModal('${s.athleteId}', '${s.id}')" class="px-3 py-2.5 rounded-xl surface-soft text-xs font-bold cursor-pointer hover:border-[#010101] inline-flex items-center gap-1.5">${uiIcon('history')} Last Session</button>` : ''}
               </div>
             ` : `
@@ -7197,12 +7196,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                 ${ses.sessionPlan.drills ? `<div class="text-[11px] text-[var(--text-muted)] whitespace-pre-line">${ses.sessionPlan.drills.replace(/</g, '&lt;')}</div>` : ''}
                 ${ses.sessionPlan.notes ? `<div class="text-[11px] italic text-[var(--text-muted)]">${ses.sessionPlan.notes.replace(/</g, '&lt;')}</div>` : ''}
               </div>
-            ` : (ses ? `
-              <button type="button" onclick="openSessionPlanModal('${ses.id}')" class="w-full rounded-2xl card-white px-3.5 py-2.5 flex items-center justify-between text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:border-[#010101]">
-                <span class="inline-flex items-center gap-1.5">${uiIcon('clipboard', 'w-3.5 h-3.5')} Add a Session Plan for today</span>
-                <span>+ Plan</span>
-              </button>
-            ` : '')}
+            ` : ''}
 
             <!-- Live Cage Video Capture Bar (1-Tap Rear Camera + Library) -->
             <div class="grid grid-cols-2 gap-2">
@@ -8770,7 +8764,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.8.6';
+    const APP_VERSION = 'v3.8.7';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Unified Modal Design System (solid high-contrast sheets, 44px aligned inputs/selects, sticky header & CTA footer, streamlined multi-athlete group picker)';
 
