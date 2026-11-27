@@ -7188,10 +7188,21 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       return noteObj;
     }
 
+    function findBestRecapForSession(athId, sessionId = null) {
+      const draftId = getSessionNoteDraftId(athId, sessionId);
+      const matches = sessionId
+        ? state.sessionRecaps.filter(r => r.athleteId === athId && (r.sessionId === sessionId || r.id === draftId))
+        : state.sessionRecaps.filter(r => r.id === `draft-${athId}` && r.isDraft);
+      if (!matches.length) return null;
+      const score = (r) => {
+        const cloudClips = Array.isArray(r.clips) ? r.clips.filter(c => c && c.url && !String(c.url).startsWith('blob:')).length : 0;
+        return (cloudClips * 1000) + (r.isDraft ? 0 : 100) + ((r._modifiedAt || 0) / 1e13);
+      };
+      return [...matches].sort((a, b) => score(b) - score(a))[0];
+    }
+
     function loadSavedRecapDraft(athId, sessionId = null) {
-      const mem = sessionId
-        ? state.sessionRecaps.find(r => r.athleteId === athId && (r.sessionId === sessionId || r.id === getSessionNoteDraftId(athId, sessionId)))
-        : state.sessionRecaps.find(r => r.id === `draft-${athId}` && r.isDraft);
+      const mem = findBestRecapForSession(athId, sessionId);
       if (mem) {
         return {
           warmup: mem.warmup || '',
@@ -7243,9 +7254,10 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           const vidTitle = _recapDraftVideoName || `${ath.name.split(' ')[0]} Session Clip — Draft`;
           const clips = _recapDraftClips.length ? _recapDraftClips.map(c => ({ ...c, img: vidImg })) : [{ title: vidTitle, img: vidImg, url: _recapDraftVideoUrl }];
           const draftId = getSessionNoteDraftId(athId, ses ? ses.id : null);
-          const existingIdx = state.sessionRecaps.findIndex(r =>
-            r.id === draftId || (ses && r.athleteId === athId && r.sessionId === ses.id)
-          );
+          const bestPrev = findBestRecapForSession(athId, ses ? ses.id : null);
+          const existingIdx = bestPrev
+            ? state.sessionRecaps.findIndex(r => r.id === bestPrev.id)
+            : state.sessionRecaps.findIndex(r => r.id === draftId || (ses && r.athleteId === athId && r.sessionId === ses.id));
           const prevObj = existingIdx >= 0 ? state.sessionRecaps[existingIdx] : null;
           const draftRecap = {
             id: prevObj ? prevObj.id : draftId,
@@ -7274,6 +7286,11 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           };
           if (existingIdx >= 0) state.sessionRecaps[existingIdx] = draftRecap;
           else state.sessionRecaps.unshift(draftRecap);
+          if (typeof saveLocalState === 'function') saveLocalState();
+          clearTimeout(window._recapDraftCloudTimer);
+          window._recapDraftCloudTimer = setTimeout(() => {
+            if (typeof pushStateToSupabase === 'function') pushStateToSupabase();
+          }, 900);
         }
 
         const b = document.getElementById('recap-autosave-badge');
@@ -7377,18 +7394,21 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           <div class="relative bg-[#010101] flex items-center justify-center min-h-[220px]">
             ${isImage
               ? `<img src="${clip.url}" alt="${clip.title || 'Session clip'}" class="w-full max-h-[56vh] object-contain" />`
-              : `<video src="${clip.url}" controls autoplay playsinline class="w-full max-h-[56vh] object-contain"></video>`}
+              : `<video controls playsinline preload="metadata" class="w-full max-h-[56vh] object-contain"><source src="${clip.url}" type="video/mp4" /><source src="${clip.url}" type="video/quicktime" /></video>`}
             <button type="button" onclick="closeModal()" aria-label="Close" class="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center bg-[#010101]/75 text-white text-xs font-bold cursor-pointer">✕</button>
           </div>
           <div class="p-4 bg-[var(--bg-card)] space-y-3">
-            <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center justify-between gap-2">
               <div class="min-w-0">
                 <div class="text-xs font-extrabold truncate">${clip.title || 'Session Clip'}</div>
                 <div class="text-[11px] font-semibold text-[var(--text-muted)]">
                   ${clip.stationLabel || 'Session'} • ${clip.uploading ? 'Uploading to cloud…' : clip.cloud ? 'Saved in Supabase Cloud ✓' : 'Local preview only'}
                 </div>
               </div>
-              <button type="button" onclick="autoSaveRecapDraft(true); closeModal();" class="px-4 py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer shrink-0">Done</button>
+              <div class="flex items-center gap-1.5 shrink-0">
+                ${clip.url && !String(clip.url).startsWith('blob:') ? `<a href="${clip.url}" target="_blank" rel="noopener" class="px-3 py-2 rounded-xl surface-soft text-xs font-extrabold">Open ↗</a>` : ''}
+                <button type="button" onclick="autoSaveRecapDraft(true); closeModal();" class="px-4 py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Done</button>
+              </div>
             </div>
             <div class="space-y-1">
               <label class="block text-[11px] font-extrabold text-[var(--text-muted)] uppercase tracking-wider">Clip Note</label>
@@ -8057,7 +8077,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             ${activeUrl
               ? (activeIsImage
                   ? `<img src="${activeUrl}" alt="${activeClip.title || 'Session photo'}" class="w-full max-h-64 object-contain" />`
-                  : `<video src="${activeUrl}" controls autoplay playsinline class="w-full max-h-64 object-contain"></video>`)
+                  : `<video controls playsinline preload="metadata" class="w-full max-h-64 object-contain"><source src="${activeUrl}" type="video/mp4" /><source src="${activeUrl}" type="video/quicktime" /></video>`)
               : `<div class="relative h-48"><img src="${r.videoImg}" class="w-full h-full object-cover" alt="Fastpitch softball training" loading="lazy" decoding="async" /><div class="absolute inset-0 bg-[#010101]/55 flex flex-col items-center justify-center gap-2 text-white px-4 text-center"><div class="w-12 h-12 rounded-full bg-[#D5FF5F] text-[#010101] flex items-center justify-center text-base font-extrabold shadow-xl">▶</div><span class="text-xs font-extrabold">No video uploaded to this note yet</span><label class="px-3.5 py-2 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Upload Video Clip<input type="file" accept="video/*,image/*" multiple onchange="attachVideosToRecap('${r.id}', this).then(() => openRecapViewerModal('${r.id}', 0))" class="hidden" /></label></div></div>`
             }
             <button onclick="closeModal()" aria-label="Close" class="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center bg-[#010101]/70 text-white text-xs font-bold cursor-pointer">✕</button>
@@ -8092,7 +8112,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             </div>
             <div class="font-extrabold text-base">${r.sessionTitle}</div>
             <div class="flex flex-wrap gap-1.5">
-              ${r.tags.map(t => `<span class="px-2.5 py-0.5 rounded-full surface-soft text-[10px] font-extrabold">${t}</span>`).join('')}
+              ${(r.tags || []).map(t => `<span class="px-2.5 py-0.5 rounded-full surface-soft text-[10px] font-extrabold">${t}</span>`).join('')}
             </div>
             ${renderRecapTemplateBody(r)}
             <div class="grid grid-cols-3 gap-2 pt-1">
@@ -9266,9 +9286,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.13.1';
+    const APP_VERSION = 'v3.13.2';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Adding a clip in Tee, Front Toss, or Machine automatically inserts "• Clip N - " into that section’s notes with 44px mobile touch targets';
+    const APP_RELEASE_NOTES = 'Fixed cross-device video syncing for draft & saved session notes, deduplicated empty local drafts, and improved cross-browser MOV playback';
 
     function reloadLatestAppVersion() {
       try {
@@ -9667,12 +9687,45 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       return { url, key };
     }
 
+    function sanitizeRecapForCloud(r) {
+      if (!r || typeof r !== 'object') return r;
+      const cleanClips = Array.isArray(r.clips)
+        ? r.clips.filter(c => c && c.url && !String(c.url).startsWith('blob:'))
+        : [];
+      const cleanVideoUrl = (r.videoUrl && !String(r.videoUrl).startsWith('blob:'))
+        ? r.videoUrl
+        : (cleanClips[0]?.url || null);
+      return { ...r, clips: cleanClips, videoUrl: cleanVideoUrl };
+    }
+
+    function dedupeSessionRecaps(list) {
+      if (!Array.isArray(list)) return [];
+      const bySessionKey = new Map();
+      const score = (r) => {
+        const cloudClips = Array.isArray(r.clips) ? r.clips.filter(c => c && c.url && !String(c.url).startsWith('blob:')).length : 0;
+        const textLen = (r.warmup || '').length + (r.focus || '').length + (r.tee || '').length + (r.ft || '').length + (r.machine || '').length + (r.sessionNotes || '').length + (r.privateCoachNote || '').length;
+        return (cloudClips * 10000) + (r.isDraft ? 0 : 1000) + Math.min(500, textLen) + ((r._modifiedAt || 0) / 1e13);
+      };
+      const out = [];
+      for (const r of list) {
+        if (!r || !r.id) continue;
+        if (r.sessionId && r.athleteId) {
+          const key = `${r.athleteId}::${r.sessionId}`;
+          const prev = bySessionKey.get(key);
+          if (!prev || score(r) > score(prev)) bySessionKey.set(key, r);
+        } else {
+          out.push(r);
+        }
+      }
+      return [...bySessionKey.values(), ...out];
+    }
+
     function serializeDataOnly() {
       state.deletedIds = ensureDeletedIdsShape(state.deletedIds);
       return {
         athletes: state.athletes,
         sessions: state.sessions,
-        sessionRecaps: state.sessionRecaps.filter(r => !r.isDraft),
+        sessionRecaps: dedupeSessionRecaps(state.sessionRecaps).map(sanitizeRecapForCloud),
         videos: state.videos,
         payments: state.payments,
         threads: state.threads,
@@ -9732,8 +9785,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       if (Array.isArray(data.athletes)) state.athletes = data.athletes;
       if (Array.isArray(data.sessions)) state.sessions = data.sessions;
       if (Array.isArray(data.sessionRecaps)) {
-        const localDrafts = state.sessionRecaps.filter(r => r.isDraft);
-        state.sessionRecaps = [...localDrafts, ...data.sessionRecaps];
+        state.sessionRecaps = dedupeSessionRecaps(data.sessionRecaps);
       }
       if (Array.isArray(data.videos)) state.videos = data.videos;
       if (Array.isArray(data.payments)) state.payments = data.payments;
@@ -9830,10 +9882,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       state.athletes = mergeArraysById(state.athletes, cloudData.athletes, state.deletedIds.athletes, preferCloud);
       state.sessions = mergeArraysById(state.sessions, cloudData.sessions, state.deletedIds.sessions, preferCloud);
 
-      const localDrafts = state.sessionRecaps.filter(r => r.isDraft);
-      const localNonDrafts = state.sessionRecaps.filter(r => !r.isDraft);
-      const mergedRecaps = mergeArraysById(localNonDrafts, cloudData.sessionRecaps, state.deletedIds.sessionRecaps, preferCloud);
-      state.sessionRecaps = [...localDrafts, ...mergedRecaps];
+      const mergedRecaps = mergeArraysById(state.sessionRecaps, cloudData.sessionRecaps, state.deletedIds.sessionRecaps, preferCloud);
+      state.sessionRecaps = dedupeSessionRecaps(mergedRecaps);
 
       state.videos = mergeArraysById(state.videos, cloudData.videos, state.deletedIds.videos, preferCloud);
       state.payments = mergeArraysById(state.payments, cloudData.payments, state.deletedIds.payments, preferCloud);
