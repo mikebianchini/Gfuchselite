@@ -4066,6 +4066,7 @@
           (draft.ft || '').trim() ||
           (draft.machine || '').trim() ||
           (draft.sessionNotes || '').trim() ||
+          (draft.privateCoachNote || '').trim() ||
           (Array.isArray(draft.clips) && draft.clips.length)
         );
         if (hasDraftContent) return true;
@@ -4078,12 +4079,12 @@
         return state.sessionRecaps.some(r =>
           r.athleteId === athId && (
             (r.sessionId && r.sessionId === sessionId) ||
-            (r.isDraft && Boolean((r.warmup || r.focus || r.tee || r.ft || r.machine || r.sessionNotes || '').trim())) ||
+            (r.isDraft && Boolean((r.warmup || r.focus || r.tee || r.ft || r.machine || r.sessionNotes || r.privateCoachNote || '').trim())) ||
             (sesDateLabel && !r.isDraft && r.date === sesDateLabel)
           )
         );
       }
-      return state.sessionRecaps.some(r => r.athleteId === athId && r.isDraft && Boolean((r.warmup || r.focus || r.tee || r.ft || r.machine || r.sessionNotes || '').trim()));
+      return state.sessionRecaps.some(r => r.athleteId === athId && r.isDraft && Boolean((r.warmup || r.focus || r.tee || r.ft || r.machine || r.sessionNotes || r.privateCoachNote || '').trim()));
     }
 
     function renderCoachSessionRow(s, showDate = false) {
@@ -6905,6 +6906,20 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             </div>
           ` : ''}
 
+          ${r.sessionNotes ? `
+            <div class="${boxCls} rounded-2xl p-3 space-y-1">
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Session Notes</div>
+              <div class="text-xs leading-relaxed whitespace-pre-line">${String(r.sessionNotes).replace(/</g, '&lt;')}</div>
+            </div>
+          ` : ''}
+
+          ${state.role === 'coach' && r.privateCoachNote ? `
+            <div class="rounded-2xl p-3 space-y-1 bg-amber-400/15 dark:bg-amber-400/10 border border-amber-400/40">
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300">Private Coach Note (Not Sent to Athlete)</div>
+              <div class="text-xs leading-relaxed whitespace-pre-line text-amber-950 dark:text-amber-100">${String(r.privateCoachNote).replace(/</g, '&lt;')}</div>
+            </div>
+          ` : ''}
+
           ${r.clips && r.clips.length > 1 ? `
             <div class="space-y-1.5">
               <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('video')} Attached Clips (${r.clips.length})</div>
@@ -6988,7 +7003,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         const ses = _recapActiveSesId ? state.sessions.find(s => s.id === _recapActiveSesId) : null;
         const d = readRecapComposerDraft();
         const nowTime = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        const hasContent = !!(d.warmup.trim() || d.focus.trim() || d.tee.trim() || d.ft.trim() || d.machine.trim() || d.sessionNotes.trim() || _recapDraftClips.length);
+        const hasContent = !!(d.warmup.trim() || d.focus.trim() || d.tee.trim() || d.ft.trim() || d.machine.trim() || d.sessionNotes.trim() || d.privateCoachNote.trim() || _recapDraftClips.length);
 
         try {
           localStorage.setItem(getRecapDraftStorageKey(athId), JSON.stringify({
@@ -7006,6 +7021,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             id: `draft-${athId}`,
             isDraft: true,
             athleteId: athId,
+            sessionId: ses ? ses.id : null,
             date: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }),
             sessionTitle: ses ? ses.focus : '1-on-1 Training Session',
             tags: [..._recapDraftTags],
@@ -7015,6 +7031,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             ft: d.ft.trim(),
             machine: d.machine.trim(),
             sessionNotes: d.sessionNotes.trim(),
+            privateCoachNote: d.privateCoachNote.trim(),
             homework: d.homework.trim() || GINA_HOMEWORK_DEFAULT,
             note: d.focus.trim() || d.sessionNotes.trim() || 'In-progress session note',
             videoTitle: vidTitle,
@@ -7091,6 +7108,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         ft: document.getElementById('recap-ft-input')?.value ?? '',
         machine: document.getElementById('recap-machine-input')?.value ?? '',
         sessionNotes: document.getElementById('recap-session-notes-input')?.value ?? '',
+        privateCoachNote: document.getElementById('recap-private-note-input')?.value ?? '',
         homework: document.getElementById('recap-homework-input')?.value ?? GINA_HOMEWORK_DEFAULT
       };
     }
@@ -7396,16 +7414,35 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             <textarea id="recap-homework-input" name="homework" rows="3" class="w-full px-4 py-3 rounded-2xl surface-soft text-[16px] leading-snug font-medium resize-none">${d.homework || ''}</textarea>
           </div>
 
-          <!-- 5. Session Notes (Bottom) -->
-          <div class="card-white rounded-[28px] p-5 space-y-2.5">
-            <div class="flex items-center justify-between gap-2">
-              <div>
-                <label for="recap-session-notes-input" class="text-sm font-extrabold tracking-tight block">Session Notes</label>
-                <p class="text-xs text-[var(--text-muted)]">Overall session takeaways, reminders, or follow-up notes</p>
+          <!-- 5. Session Notes (Player-Viewable) & Private Coach Note (Coach Only) -->
+          <div class="card-white rounded-[28px] p-5 space-y-4">
+            <div class="space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <label for="recap-session-notes-input" class="text-sm font-extrabold tracking-tight">Session Notes</label>
+                    <span class="px-2 py-0.5 rounded-full bg-[#D5FF5F]/40 text-[#010101] dark:text-[#D5FF5F] dark:bg-[#D5FF5F]/15 text-[10px] font-extrabold">Viewable to Player</span>
+                  </div>
+                  <p class="text-xs text-[var(--text-muted)]">Included in the recap shared with the athlete &amp; parent</p>
+                </div>
+                <button type="button" onclick="startRecapDictation('recap-session-notes-input', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full surface-soft text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
               </div>
-              <button type="button" onclick="startRecapDictation('recap-session-notes-input', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full surface-soft text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
+              <textarea id="recap-session-notes-input" name="sessionNotes" rows="3" class="w-full px-4 py-3 rounded-2xl surface-soft text-[16px] leading-snug resize-none" placeholder="Great energy today! Keep focusing on staying through the middle…">${d.sessionNotes || ''}</textarea>
             </div>
-            <textarea id="recap-session-notes-input" name="sessionNotes" rows="3" class="w-full px-4 py-3 rounded-2xl surface-soft text-[16px] leading-snug resize-none" placeholder="Additional session notes, progress observations, or next-lesson reminders…">${d.sessionNotes || ''}</textarea>
+
+            <div class="pt-3 border-t border-[var(--border-subtle)] space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <label for="recap-private-note-input" class="text-sm font-extrabold tracking-tight">Private Coach Note</label>
+                    <span class="px-2 py-0.5 rounded-full bg-amber-400/25 text-amber-900 dark:text-amber-300 text-[10px] font-extrabold">Coach Only • Private</span>
+                  </div>
+                  <p class="text-xs text-[var(--text-muted)]">Only viewable by Coach — never sent to athlete or parent</p>
+                </div>
+                <button type="button" onclick="startRecapDictation('recap-private-note-input', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full surface-soft text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
+              </div>
+              <textarea id="recap-private-note-input" name="privateCoachNote" rows="2" class="w-full px-4 py-3 rounded-2xl bg-amber-50/70 dark:bg-amber-400/[0.08] border border-amber-300/60 dark:border-amber-400/25 text-[16px] leading-snug resize-none" placeholder="Private reminders for next lesson (not visible to player)…">${d.privateCoachNote || ''}</textarea>
+            </div>
           </div>
 
           <!-- 6. Post-Lesson Wrap-Up (Payment, Rebook +7d & Group Share) -->
@@ -7519,6 +7556,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const ft = (f.ft?.value || '').trim();
       const machine = (f.machine?.value || '').trim();
       const sessionNotes = (f.sessionNotes?.value || '').trim();
+      const privateCoachNote = (f.privateCoachNote?.value || '').trim();
       const homework = (f.homework?.value || '').trim() || GINA_HOMEWORK_DEFAULT;
       const sendNow = Boolean(f.sendNow?.checked);
 
@@ -7553,6 +7591,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           ft,
           machine,
           sessionNotes,
+          privateCoachNote,
           homework,
           note: focus,
           videoTitle: vidTitle,
@@ -8831,7 +8870,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.9.1';
+    const APP_VERSION = 'v3.9.2';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Redesigned Session Notes Studio (Warm Up Routine w/ Walking PVC & custom drills, Player Notes and Focus, What We Worked On Tee/Front Toss/Machine with drills & per-area video, Session Notes)';
 
