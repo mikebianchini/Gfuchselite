@@ -5786,9 +5786,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v2.5.0';
+    const APP_VERSION = 'v2.5.1';
     const APP_BUILD_DATE = 'Nov 26, 2026';
-    const APP_RELEASE_NOTES = 'Reorderable Home sections, Lesson → Session hierarchy & Sync v2';
+    const APP_RELEASE_NOTES = 'Clean Schedule header, reorderable Home sections & Sync v2';
 
     function reloadLatestAppVersion() {
       try {
@@ -7395,9 +7395,6 @@ create policy "Allow media update" on storage.objects
               <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">${rangeLabel}</h1>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-              <button onclick="openCalendarSyncModal()" class="px-3.5 py-2.5 rounded-2xl card-white text-xs font-extrabold cursor-pointer hover:border-[#010101] transition">
-                Sync Calendar
-              </button>
               <button onclick="openDayAvailabilityModal('${anchorIso}')" class="px-3.5 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer hover:opacity-90 transition">
                 Set Availability
               </button>
