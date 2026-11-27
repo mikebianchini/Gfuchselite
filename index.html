@@ -494,7 +494,9 @@
       trash: '<path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6h12z"/>',
       refresh: '<path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-2.64-6.36L21 8m0-5v5h-5"/>',
       sliders: '<path stroke-linecap="round" d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/>',
-      dollar: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 2v20M17 6.5c0-1.93-2.24-3.5-5-3.5s-5 1.57-5 3.5S9.24 10 12 10s5 1.57 5 3.5S14.76 17 12 17s-5-1.57-5-3.5"/>'
+      dollar: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 2v20M17 6.5c0-1.93-2.24-3.5-5-3.5s-5 1.57-5 3.5S9.24 10 12 10s5 1.57 5 3.5S14.76 17 12 17s-5-1.57-5-3.5"/>',
+      clipboard: '<rect x="5" y="4" width="14" height="17" rx="2"/><path stroke-linecap="round" d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1M9 10h6M9 14h4"/>',
+      history: '<path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 103-6.7L3 8m0-5v5h5M12 7v5l3 2"/>'
     };
     function uiIcon(name, cls = 'w-3.5 h-3.5') {
       return `<svg class="${cls} inline-block shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">${UI_SVGS[name] || ''}</svg>`;
@@ -3231,6 +3233,187 @@
       }
     }
 
+    // =========================================================================
+    // COACH GINA PRE-SESSION PLAN, PREVIOUS SESSIONS & LIVE VIDEO HELPERS (v3.5.0)
+    // =========================================================================
+    function openSessionPlanModal(sessionId) {
+      const s = state.sessions.find(x => x.id === sessionId);
+      if (!s) return;
+      const ath = s.athleteId ? state.athletes.find(a => a.id === s.athleteId) : null;
+      const prevRecaps = ath ? getSortedRecapsForAthlete(ath.id, false).slice(0, 2) : [];
+      const plan = s.sessionPlan || { goal: '', drills: '', notes: '' };
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const quickPlanDrills = [
+        'Extensions 3/3/3',
+        'Swing 3/3/3',
+        'Shorty baseballs',
+        'Baseball bat baseballs',
+        'Regular bat softballs',
+        'Middle-in timing',
+        'Outside corner tracking',
+        'Changeup recognition'
+      ];
+
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="inline-flex items-center gap-1.5 text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('clipboard', 'w-3.5 h-3.5')} Session Plan</div>
+            <h3 class="font-extrabold text-base mt-0.5">${esc(ath ? ath.name : (s.lessonTitle || 'Session'))}</h3>
+            <p class="text-[11px] text-[var(--text-muted)]">${esc(s.day || s.dateIso || 'Today')} • ${esc(s.time)} • ${esc(s.lessonTitle || s.focus || '')}</p>
+          </div>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-9 h-9 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+
+        ${prevRecaps.length ? `
+          <div class="surface-soft rounded-2xl p-3 space-y-2 text-xs">
+            <button type="button" onclick="document.getElementById('plan-prev-history')?.classList.toggle('hidden')" class="w-full flex items-center justify-between text-left cursor-pointer">
+              <span class="inline-flex items-center gap-1.5 font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('history', 'w-3.5 h-3.5')} Last Session (${esc(prevRecaps[0].date)})</span>
+              <span class="text-[11px] font-bold text-[var(--text-muted)]">Show / Hide ▾</span>
+            </button>
+            <div id="plan-prev-history" class="space-y-2 pt-1.5 border-t border-[var(--border-subtle)]">
+              ${prevRecaps.map((r, i) => `
+                <div class="${i > 0 ? 'pt-2 border-t border-[var(--border-subtle)]' : ''} space-y-0.5">
+                  <div class="text-[11px] font-extrabold">${esc(r.date)} • ${esc(r.sessionTitle || 'Session')}</div>
+                  ${r.focus ? `<div class="text-[11px] text-[var(--text-muted)]"><strong class="text-[var(--text-main)]">Focus:</strong> ${esc(r.focus)}</div>` : ''}
+                  ${r.homework ? `<div class="text-[11px] text-[var(--text-muted)]"><strong class="text-[var(--text-main)]">HW:</strong> ${esc(r.homework.replace(/\n/g, ' '))}</div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <form onsubmit="submitSessionPlan(event, '${s.id}')" class="space-y-3 text-xs">
+          <div>
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Today’s Goal / Focus *</label>
+            <input name="goal" value="${esc(plan.goal)}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm font-semibold" placeholder="e.g., Stay back on off-speed & inside-out hand path" required />
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="block font-bold text-[var(--text-muted)]">Planned Drills (Tap to add)</label>
+            <div class="flex flex-wrap gap-1.5">
+              ${quickPlanDrills.map(q => `<button type="button" onclick="appendPlanDrillChip('${q.replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-full surface-soft text-[11px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+            </div>
+            <textarea id="session-plan-drills" name="drills" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm leading-snug" placeholder="• Tee: Extensions 3/3/3&#10;• FT: Shorty baseballs&#10;• Machine: Changeup timing">${esc(plan.drills)}</textarea>
+          </div>
+
+          <div>
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Prep Notes / Reminders (Optional)</label>
+            <input name="notes" value="${esc(plan.notes)}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm" placeholder="e.g., Ask how weekend tournament at-bats felt" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            ${ath ? `<button type="button" onclick="closeModal(); openSessionRecapModal('${ath.id}', '${s.id}');" class="py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101]">Start Live Notes</button>` : `<button type="button" onclick="closeModal()" class="py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Cancel</button>`}
+            <button type="submit" class="py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95">Save Session Plan</button>
+          </div>
+        </form>
+      `);
+    }
+
+    function appendPlanDrillChip(drill) {
+      const el = document.getElementById('session-plan-drills');
+      if (!el) return;
+      const cur = el.value.trim();
+      el.value = cur ? `${cur}\n• ${drill}` : `• ${drill}`;
+      el.focus();
+    }
+
+    function submitSessionPlan(e, sessionId) {
+      e.preventDefault();
+      const s = state.sessions.find(x => x.id === sessionId);
+      if (!s) return;
+      const f = e.target;
+      s.sessionPlan = {
+        goal: (f.goal.value || '').trim(),
+        drills: (f.drills.value || '').trim(),
+        notes: (f.notes.value || '').trim(),
+        updatedAt: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      };
+      s._modifiedAt = Date.now();
+      closeModal();
+      render();
+      showToast('Session plan saved!');
+    }
+
+    function openPreviousSessionsModal(athId, sessionId = null) {
+      const ath = state.athletes.find(a => a.id === athId);
+      if (!ath) return;
+      const recaps = getSortedRecapsForAthlete(ath.id, false).slice(0, 3);
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="inline-flex items-center gap-1.5 text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('history', 'w-3.5 h-3.5')} Previous Sessions</div>
+            <h3 class="font-extrabold text-base mt-0.5">${esc(ath.name)} ${ath.ageGroup ? `<span class="text-xs font-bold text-[var(--text-muted)]">(${esc(ath.ageGroup)})</span>` : ''}</h3>
+          </div>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-9 h-9 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+
+        ${ath.currentFocus ? `
+          <div class="card-mist rounded-2xl p-3 space-y-0.5 text-xs">
+            <div class="inline-flex items-center gap-1 font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('target', 'w-3.5 h-3.5')} Pinned Focus</div>
+            <div class="font-semibold">${esc(ath.currentFocus)}</div>
+          </div>
+        ` : ''}
+
+        <div class="space-y-3 text-xs">
+          ${recaps.length ? recaps.map(r => `
+            <div class="surface-soft rounded-2xl p-3.5 space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-extrabold">${esc(r.date)} • ${esc(r.sessionTitle || 'Session')}</span>
+                ${r.clips?.length || r.videoUrl ? `<button type="button" onclick="openRecapViewerModal('${r.id}', 0)" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full card-white text-[10px] font-extrabold cursor-pointer">${uiIcon('video', 'w-3 h-3')} Watch Clip</button>` : ''}
+              </div>
+              ${renderRecapTemplateBody(r, true)}
+            </div>
+          `).join('') : `<div class="surface-soft rounded-2xl p-5 text-center text-[var(--text-muted)]">No previous session notes yet for ${esc(ath.name.split(' ')[0])}.</div>`}
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          ${sessionId ? `<button type="button" onclick="openSessionPlanModal('${sessionId}')" class="inline-flex items-center justify-center gap-1.5 py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101]">${uiIcon('clipboard')} Session Plan</button>` : `<button type="button" onclick="closeModal(); jumpToAthlete('${ath.id}');" class="py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Full Profile</button>`}
+          <button type="button" onclick="closeModal(); openSessionRecapModal('${ath.id}', '${sessionId || ''}');" class="inline-flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm">${uiIcon('note')} Start Notes</button>
+        </div>
+      `);
+    }
+
+    function pullSessionPlanIntoDraft(sessionId) {
+      const s = state.sessions.find(x => x.id === sessionId);
+      if (!s?.sessionPlan) return;
+      const focusEl = document.getElementById('recap-focus-input');
+      const teeEl = document.getElementById('recap-tee-input');
+      if (focusEl && s.sessionPlan.goal) {
+        focusEl.value = focusEl.value.trim() ? `${focusEl.value.trim()}\n${s.sessionPlan.goal}` : s.sessionPlan.goal;
+      }
+      if (teeEl && s.sessionPlan.drills) {
+        teeEl.value = teeEl.value.trim() ? `${teeEl.value.trim()}\n${s.sessionPlan.drills}` : s.sessionPlan.drills;
+      }
+      autoSaveRecapDraft(true);
+      updateStationDots();
+      showToast('Pulled session plan into notes!');
+    }
+
+    function removeRecapDraftClip(idx) {
+      if (idx < 0 || idx >= _recapDraftClips.length) return;
+      _recapDraftClips.splice(idx, 1);
+      _recapDraftVideoUrl = _recapDraftClips[0]?.url || null;
+      _recapDraftVideoName = _recapDraftClips.length === 0 ? null
+        : _recapDraftClips.length === 1 ? _recapDraftClips[0].title
+        : `${_recapDraftClips.length} clips attached`;
+      render(false);
+    }
+
+    function quickRecordSessionVideo(athId, sessionId, input) {
+      const files = Array.from(input?.files || []);
+      if (!files.length) return;
+      openSessionRecapModal(athId, sessionId);
+      files.forEach(file => {
+        const url = URL.createObjectURL(file);
+        _recapDraftClips.push({ title: file.name || `Cage Video ${_recapDraftClips.length + 1}`, url, img: 'assets/images/fastpitch-hitter.jpg' });
+      });
+      _recapDraftVideoUrl = _recapDraftClips[0]?.url || null;
+      _recapDraftVideoName = _recapDraftClips.length === 1 ? _recapDraftClips[0].title : `${_recapDraftClips.length} clips attached`;
+      render(false);
+      showToast(`Recorded ${files.length} clip${files.length === 1 ? '' : 's'} — attached to today’s notes!`);
+    }
+
     function openManageSessionModal(sessionId) {
       const s = state.sessions.find(x => x.id === sessionId);
       if (!s) return;
@@ -3479,6 +3662,7 @@
       const lastInfo = primaryAth ? getAthleteLastSeenInfo(primaryAth.id) : null;
       const unpaidInfo = primaryAth ? getAthleteUnpaidInfo(primaryAth.id) : { count: 0, total: 0 };
       const briefCue = primaryAth?.currentFocus || lastInfo?.lastFocus || '';
+      const plan = s.sessionPlan && (s.sessionPlan.goal || s.sessionPlan.drills) ? s.sessionPlan : null;
       const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
       return `
@@ -3487,27 +3671,54 @@
             <span class="swipe-rail-left inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold opacity-0 transition-opacity">${s.athleteId && !isCanceled ? `${uiIcon('note')} Notes →` : `${uiIcon('sliders')} Manage →`}</span>
             <span class="swipe-rail-right inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold opacity-0 transition-opacity">← ${isCanceled ? 'Restore / Delete' : 'Reschedule / Cancel'}</span>
           </div>
-          <div class="swipe-card card-interactive relative card-white rounded-[24px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isCanceled ? 'opacity-65' : ''}" style="touch-action: pan-y;">
-            <div class="flex items-center gap-3.5 min-w-0">
-              <img src="${s.img || 'assets/images/fastpitch-hitter.jpg'}" class="w-14 h-14 rounded-2xl object-cover shrink-0 ${isCanceled ? 'grayscale' : ''}" alt="Fastpitch softball training" loading="lazy" decoding="async" />
-              <div class="min-w-0">
-                <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">
-                  <span class="inline-flex items-center gap-1">${uiIcon('clock', 'w-3 h-3')} ${showDate && s.day ? `${s.day} • ` : ''}${s.time} • ${s.duration} • ${s.type}</span>
-                  ${s.recurrenceGroupId ? `<span title="Recurring standing slot" class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full surface-soft text-[10px] font-bold">${uiIcon('repeat', 'w-2.5 h-2.5')}</span>` : ''}
-                  ${unpaidInfo.total > 0 && !isCanceled ? `<button type="button" onclick="event.stopPropagation(); state.paymentFilterUnpaid=true; setTab('payments');" class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold cursor-pointer">${uiIcon('dollar', 'w-2.5 h-2.5')}${unpaidInfo.total} due</button>` : ''}
-                  ${isAttendanceFlag ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold">${uiIcon('alertTriangle', 'w-2.5 h-2.5')} ${s.status}</span>` : ''}
+          <div class="swipe-card card-interactive relative card-white rounded-[24px] p-4 space-y-3 ${isCanceled ? 'opacity-65' : ''}" style="touch-action: pan-y;">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-3.5 min-w-0">
+                <img src="${s.img || 'assets/images/fastpitch-hitter.jpg'}" class="w-14 h-14 rounded-2xl object-cover shrink-0 ${isCanceled ? 'grayscale' : ''}" alt="Fastpitch softball training" loading="lazy" decoding="async" />
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">
+                    <span class="inline-flex items-center gap-1">${uiIcon('clock', 'w-3 h-3')} ${showDate && s.day ? `${s.day} • ` : ''}${s.time} • ${s.duration} • ${s.type}</span>
+                    ${s.recurrenceGroupId ? `<span title="Recurring standing slot" class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full surface-soft text-[10px] font-bold">${uiIcon('repeat', 'w-2.5 h-2.5')}</span>` : ''}
+                    ${unpaidInfo.total > 0 && !isCanceled ? `<button type="button" onclick="event.stopPropagation(); state.paymentFilterUnpaid=true; setTab('payments');" class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold cursor-pointer">${uiIcon('dollar', 'w-2.5 h-2.5')}${unpaidInfo.total} due</button>` : ''}
+                    ${isAttendanceFlag ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold">${uiIcon('alertTriangle', 'w-2.5 h-2.5')} ${s.status}</span>` : ''}
+                  </div>
+                  <div class="font-extrabold text-sm truncate ${isCanceled ? 'line-through' : ''}">${lessonLabel}${customFocus ? ` — ${customFocus}` : ''}</div>
+                  <div class="text-xs text-[var(--text-muted)] truncate">${athDisplay} • ${s.payment || 'Scheduled'}</div>
+                  ${briefCue && !isCanceled ? `<div class="inline-flex items-center gap-1 text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-semibold truncate max-w-full mt-0.5">${uiIcon('target', 'w-3 h-3 shrink-0')}<span class="truncate">${primaryAth?.currentFocus ? 'Focus:' : 'Last:'} ${esc(briefCue)}</span></div>` : ''}
                 </div>
-                <div class="font-extrabold text-sm truncate ${isCanceled ? 'line-through' : ''}">${lessonLabel}${customFocus ? ` — ${customFocus}` : ''}</div>
-                <div class="text-xs text-[var(--text-muted)] truncate">${athDisplay} • ${s.payment || 'Scheduled'}</div>
-                ${briefCue && !isCanceled ? `<div class="inline-flex items-center gap-1 text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-semibold truncate max-w-full mt-0.5">${uiIcon('target', 'w-3 h-3 shrink-0')}<span class="truncate">${primaryAth?.currentFocus ? 'Focus:' : 'Last:'} ${esc(briefCue)}</span></div>` : ''}
               </div>
+              <button onclick="openManageSessionModal('${s.id}')" title="Reschedule or manage session" aria-label="Manage session" class="w-9 h-9 rounded-xl surface-soft flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] shrink-0 cursor-pointer">${uiIcon('sliders', 'w-4 h-4')}</button>
             </div>
-            <div class="flex flex-wrap items-center gap-2 shrink-0">
-              ${s.athleteId && !isCanceled ? `<button onclick="openSessionRecapModal('${s.athleteId}', '${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5">${uiIcon('note')} Notes</button>` : ''}
-              <button onclick="openManageSessionModal('${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101] inline-flex items-center gap-1.5">${uiIcon('calendar')} ${isCanceled ? 'Restore / Delete' : 'Reschedule'}</button>
-              ${isCanceled ? `<span class="px-2.5 py-1.5 rounded-xl bg-red-500/15 text-red-600 dark:text-red-400 text-[11px] font-extrabold">Canceled</span>` : ''}
-              ${s.athleteId ? `<button onclick="jumpToAthlete('${s.athleteId}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer inline-flex items-center gap-1.5">${uiIcon('user')} Profile</button>` : ''}
-            </div>
+
+            ${plan && !isCanceled ? `
+              <button type="button" onclick="openSessionPlanModal('${s.id}')" class="w-full text-left surface-soft rounded-2xl px-3.5 py-2.5 space-y-0.5 cursor-pointer hover:border-[#010101] transition">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#4E6075] dark:text-[#D5FF5F]">${uiIcon('clipboard', 'w-3 h-3')} Session Plan</span>
+                  <span class="text-[10px] font-bold text-[var(--text-muted)]">Edit</span>
+                </div>
+                ${plan.goal ? `<div class="text-xs font-bold truncate">${esc(plan.goal)}</div>` : ''}
+                ${plan.drills ? `<div class="text-[11px] text-[var(--text-muted)] truncate">${esc(plan.drills.replace(/\n/g, ' • '))}</div>` : ''}
+              </button>
+            ` : ''}
+
+            ${!isCanceled ? `
+              <div class="flex flex-wrap items-center gap-2">
+                ${s.athleteId ? `
+                  <button onclick="openSessionRecapModal('${s.athleteId}', '${s.id}')" class="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-1.5 shadow-sm hover:brightness-95">${uiIcon('note')} Start Notes</button>
+                  <label class="px-3.5 py-2.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-1.5 hover:opacity-90">
+                    ${uiIcon('video')} Record Video
+                    <input type="file" accept="video/*" capture="environment" onchange="quickRecordSessionVideo('${s.athleteId}', '${s.id}', this)" class="hidden" />
+                  </label>
+                ` : ''}
+                <button onclick="openSessionPlanModal('${s.id}')" class="px-3 py-2.5 rounded-xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101] inline-flex items-center gap-1.5">${uiIcon('clipboard')} ${plan ? 'Edit Plan' : '+ Plan'}</button>
+                ${s.athleteId ? `<button onclick="openPreviousSessionsModal('${s.athleteId}', '${s.id}')" class="px-3 py-2.5 rounded-xl surface-soft text-xs font-bold cursor-pointer hover:border-[#010101] inline-flex items-center gap-1.5">${uiIcon('history')} Last Session</button>` : ''}
+              </div>
+            ` : `
+              <div class="flex items-center justify-between gap-2">
+                <span class="px-2.5 py-1.5 rounded-xl bg-red-500/15 text-red-600 dark:text-red-400 text-[11px] font-extrabold">Canceled</span>
+                <button onclick="openManageSessionModal('${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-extrabold cursor-pointer">Restore / Delete</button>
+              </div>
+            `}
           </div>
         </div>
       `;
@@ -3839,7 +4050,7 @@
       }
     }
 
-    const HOME_SECTION_DEFAULTS = ['metrics', 'actions', 'today', 'next7'];
+    const HOME_SECTION_DEFAULTS = ['today', 'next7', 'metrics', 'actions'];
     let _draggedHomeSectionId = null;
 
     function getHomeSectionOrder() {
@@ -5948,15 +6159,15 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     function handleRecapVideoFile(input) {
       const files = Array.from(input.files || []);
       if (!files.length) return;
+      autoSaveRecapDraft(true);
       files.forEach(file => {
         const url = URL.createObjectURL(file);
-        _recapDraftClips.push({ title: file.name, url, img: 'assets/images/fastpitch-hitter.jpg' });
+        _recapDraftClips.push({ title: file.name || `Cage Clip ${_recapDraftClips.length + 1}`, url, img: 'assets/images/fastpitch-hitter.jpg' });
       });
       _recapDraftVideoUrl = _recapDraftClips[0].url;
       _recapDraftVideoName = _recapDraftClips.length === 1 ? _recapDraftClips[0].title : `${_recapDraftClips.length} clips attached`;
-      const label = document.getElementById('recap-video-status');
-      if (label) label.textContent = _recapDraftVideoName;
-      autoSaveRecapDraft(true);
+      render(false);
+      showToast(`Attached ${files.length} clip${files.length === 1 ? '' : 's'}!`);
     }
 
     let _recapActiveStation = 'tee';
@@ -6076,6 +6287,53 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                 ${state.athletes.filter(a => !a.archived).map(a => `<option value="${a.id}" ${a.id === ath.id ? 'selected' : ''}>${a.name.split(' ')[0]}${a.ageGroup ? ` (${a.ageGroup})` : ''}</option>`).join('')}
               </select>
             </div>
+
+            ${ses?.sessionPlan && (ses.sessionPlan.goal || ses.sessionPlan.drills) ? `
+              <!-- Pinned Today's Session Plan -->
+              <div class="rounded-2xl card-white p-3.5 space-y-1.5 text-xs">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="inline-flex items-center gap-1.5 font-extrabold text-[#4E6075] dark:text-[#D5FF5F]">${uiIcon('clipboard', 'w-3.5 h-3.5')} Today’s Session Plan</span>
+                  <div class="flex items-center gap-2">
+                    <button type="button" onclick="pullSessionPlanIntoDraft('${ses.id}')" class="px-2.5 py-1 rounded-lg bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer">Pull into Notes</button>
+                    <button type="button" onclick="openSessionPlanModal('${ses.id}')" class="text-[11px] font-bold text-[var(--text-muted)] hover:underline cursor-pointer">Edit</button>
+                  </div>
+                </div>
+                ${ses.sessionPlan.goal ? `<div class="font-bold">${ses.sessionPlan.goal.replace(/</g, '&lt;')}</div>` : ''}
+                ${ses.sessionPlan.drills ? `<div class="text-[11px] text-[var(--text-muted)] whitespace-pre-line">${ses.sessionPlan.drills.replace(/</g, '&lt;')}</div>` : ''}
+                ${ses.sessionPlan.notes ? `<div class="text-[11px] italic text-[var(--text-muted)]">${ses.sessionPlan.notes.replace(/</g, '&lt;')}</div>` : ''}
+              </div>
+            ` : (ses ? `
+              <button type="button" onclick="openSessionPlanModal('${ses.id}')" class="w-full rounded-2xl card-white px-3.5 py-2.5 flex items-center justify-between text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:border-[#010101]">
+                <span class="inline-flex items-center gap-1.5">${uiIcon('clipboard', 'w-3.5 h-3.5')} Add a Session Plan for today</span>
+                <span>+ Plan</span>
+              </button>
+            ` : '')}
+
+            <!-- Live Cage Video Capture Bar (1-Tap Rear Camera + Library) -->
+            <div class="grid grid-cols-2 gap-2">
+              <label class="py-3 px-3.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-2 shadow-sm hover:opacity-90">
+                ${uiIcon('video', 'w-4 h-4')}
+                <span>Record Video</span>
+                <input type="file" accept="video/*" capture="environment" onchange="handleRecapVideoFile(this)" class="hidden" />
+              </label>
+              <label class="py-3 px-3.5 rounded-2xl card-white text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-2 hover:border-[#010101]">
+                ${uiIcon('plus', 'w-4 h-4')}
+                <span>Attach Clip</span>
+                <input type="file" accept="video/*,image/*" multiple onchange="handleRecapVideoFile(this)" class="hidden" />
+              </label>
+            </div>
+
+            ${_recapDraftClips.length ? `
+              <div class="flex flex-wrap gap-1.5">
+                ${_recapDraftClips.map((c, idx) => `
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl card-white text-[11px] font-extrabold">
+                    ${uiIcon('video', 'w-3 h-3 text-[#4E6075] dark:text-[#D5FF5F]')}
+                    <span class="max-w-[140px] truncate">${formatClipLabel(c.title, idx)}</span>
+                    <button type="button" onclick="removeRecapDraftClip(${idx})" aria-label="Remove clip" class="text-[var(--text-muted)] hover:text-red-500 cursor-pointer ml-0.5">✕</button>
+                  </span>
+                `).join('')}
+              </div>
+            ` : ''}
 
             ${prevRecap ? `
               <!-- Collapsible Last Session Memory Pill + 1-Tap Copy Forward -->
@@ -7105,9 +7363,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.4.0';
+    const APP_VERSION = 'v3.5.0';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Thoughtful SVG icon system, smooth view transitions, modal springs & tactile micro-interactions';
+    const APP_RELEASE_NOTES = 'Optimized for Coach Gina’s daily flow: Today-first schedule, per-session plans, 1-tap previous session review & live camera video recording';
 
     function reloadLatestAppVersion() {
       try {
