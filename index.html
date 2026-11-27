@@ -4094,10 +4094,6 @@
               <div class="flex flex-wrap items-center gap-2">
                 ${s.athleteId ? `
                   <button onclick="openSessionRecapModal('${s.athleteId}', '${s.id}')" class="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-1.5 shadow-sm hover:brightness-95">${uiIcon('note')} Start Notes</button>
-                  <label class="px-3.5 py-2.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-1.5 hover:opacity-90">
-                    ${uiIcon('video')} Record Video
-                    <input type="file" accept="video/*" capture="environment" onchange="quickRecordSessionVideo('${s.athleteId}', '${s.id}', this)" class="hidden" />
-                  </label>
                 ` : ''}
                 <button onclick="openSessionPlanModal('${s.id}')" class="px-3 py-2.5 rounded-xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101] inline-flex items-center gap-1.5">${uiIcon('clipboard')} ${plan ? 'Edit Plan' : '+ Plan'}</button>
                 ${s.athleteId ? `<button onclick="openPreviousSessionsModal('${s.athleteId}', '${s.id}')" class="px-3 py-2.5 rounded-xl surface-soft text-xs font-bold cursor-pointer hover:border-[#010101] inline-flex items-center gap-1.5">${uiIcon('history')} Last Session</button>` : ''}
@@ -8766,7 +8762,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.8.4';
+    const APP_VERSION = 'v3.8.5';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Unified Modal Design System (solid high-contrast sheets, 44px aligned inputs/selects, sticky header & CTA footer, streamlined multi-athlete group picker)';
 
