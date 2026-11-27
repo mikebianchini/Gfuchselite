@@ -387,11 +387,12 @@
       coachScheduleMode: 'bookings', // 'bookings' | 'blocks' | 'classes'
       coachSettingsTab: 'general', // 'general' | 'blocks' | 'classes'
       homeDayFilter: 'all7', // 'all7' | YYYY-MM-DD
+      schedule: { view: 'week', anchorDate: null }, // view: 'day' | 'week' | 'month' | 'year'
       selectedDay: 'Thu 26',
       selectedAthleteId: null,
       rosterView: 'list', // 'list' | 'detail'
       rosterSearch: '',
-      rosterFilter: 'all', // 'all' | 'today' | '10U' | '12U' | '14U' | '16U' | '18U' | 'waiver' | 'drafts'
+      rosterFilter: 'all', // 'all' | 'today' | '10U' | '12U' | '14U' | '16U' | '18U' | 'drafts'
       activeSiblingId: null,
       selectedVideoId: null,
       videoSpeed: '0.25x',
@@ -418,6 +419,7 @@
           days: [1, 2, 3, 4, 5, 6], // Mon-Sat open, Sun off
           bufferMin: 15,
           minNoticeHours: 24,
+          dateOverrides: {}, // { 'YYYY-MM-DD': { off: boolean, blocks: [{ id, start, end }] } }
           weeklyBlocks: {
             0: [],
             1: [{ id: 'b-1a', start: '15:30', end: '19:30' }],
@@ -745,6 +747,7 @@
       const navItems = isCoach
         ? [
             { id: 'today', label: 'Home', fullLabel: 'Home', icon: icons.home },
+            { id: 'schedule', label: 'Schedule', fullLabel: 'Schedule', icon: icons.calendar },
             { id: 'athletes', label: 'Athletes', fullLabel: 'Athletes', icon: icons.athletes },
             { id: 'payments', label: 'Payments', fullLabel: 'Payments', icon: icons.wallet },
             { id: 'messaging', label: 'Messages', fullLabel: 'Messages', icon: icons.chat, badge: unread },
@@ -773,9 +776,9 @@
       document.getElementById('mobile-bottom-nav').innerHTML = navItems.map(item => {
         const active = item.id === activeTab;
         return `
-          <button onclick="setTab('${item.id}')" ${active ? 'aria-current="page"' : ''} class="relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 min-h-[44px] min-w-[52px] rounded-2xl transition cursor-pointer ${active ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}">
+          <button onclick="setTab('${item.id}')" ${active ? 'aria-current="page"' : ''} class="relative flex flex-col items-center justify-center gap-0.5 px-1.5 sm:px-3 py-1 min-h-[44px] min-w-[46px] rounded-2xl transition cursor-pointer ${active ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}">
             <span class="p-1.5 rounded-xl ${active ? 'bg-[#D5FF5F] text-[#010101]' : ''}">${item.icon}</span>
-            <span class="text-[10px] font-bold">${item.label}</span>
+            <span class="text-[9.5px] sm:text-[10px] font-bold leading-tight">${item.label}</span>
           </button>
         `;
       }).join('');
@@ -1088,12 +1091,9 @@
     }
 
     function calGetSlotsForDate(iso) {
-      const [y, m, d] = iso.split('-').map(Number);
-      const dt = new Date(y, m - 1, d);
-      const dow = dt.getDay(); // 0=Sun..6=Sat
-      if (!state.cal.availability.days.includes(dow)) return [];
-      const blocks = state.cal.availability.weeklyBlocks[dow] || [];
-      if (!blocks.length) return [];
+      const eff = getEffectiveDayAvailability(iso);
+      if (eff.off || !eff.blocks.length) return [];
+      const blocks = eff.blocks;
       const evt = state.cal.eventTypes.find(e => e.id === state.cal.eventTypeId) || state.cal.eventTypes[0];
       const dur = Number(evt.duration) || 45;
       const buf = Number(state.cal.availability.bufferMin) || 0;
@@ -5403,11 +5403,516 @@ create policy "Allow media update" on storage.objects
       `);
     }
 
+    // =========================================================================
+    // COACH SCHEDULE PAGE (DAY / WEEK / MONTH / YEAR + PER-DAY AVAILABILITY)
+    // =========================================================================
+    function getEffectiveDayAvailability(iso) {
+      if (!iso) return { isOverride: false, off: true, blocks: [] };
+      const overrides = state.cal?.availability?.dateOverrides || {};
+      if (Object.prototype.hasOwnProperty.call(overrides, iso)) {
+        const ov = overrides[iso] || {};
+        const blocks = Array.isArray(ov.blocks) ? ov.blocks : [];
+        return { isOverride: true, off: !!ov.off || blocks.length === 0, blocks: ov.off ? [] : blocks };
+      }
+      const [y, m, d] = iso.split('-').map(Number);
+      const dow = new Date(y, m - 1, d).getDay();
+      const days = state.cal?.availability?.days || [];
+      const blocks = days.includes(dow) ? (state.cal?.availability?.weeklyBlocks?.[dow] || []) : [];
+      return { isOverride: false, off: blocks.length === 0, blocks };
+    }
+
+    function fmt24To12Short(hm) {
+      if (!hm || !hm.includes(':')) return hm || '';
+      const [h, m] = hm.split(':').map(Number);
+      if (state.cal?.timeFormat === '24h') return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      const ap = h >= 12 ? 'p' : 'a';
+      const h12 = h % 12 || 12;
+      return m ? `${h12}:${String(m).padStart(2, '0')}${ap}` : `${h12}${ap}`;
+    }
+
+    function fmtAvailSummary(eff) {
+      if (!eff || eff.off || !eff.blocks.length) return 'Day Off';
+      return eff.blocks.map(b => `${fmt24To12Short(b.start)}–${fmt24To12Short(b.end)}`).join(', ');
+    }
+
+    function toIsoDate(y, m0, d) {
+      return `${y}-${String(m0 + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+
+    function parseIsoLocal(iso) {
+      const [y, m, d] = (iso || getTodayIsoEst()).split('-').map(Number);
+      return new Date(y, m - 1, d, 12, 0, 0);
+    }
+
+    function getScheduleAnchorIso() {
+      if (!state.schedule) state.schedule = { view: 'week', anchorDate: null };
+      if (!state.schedule.anchorDate) state.schedule.anchorDate = getTodayIsoEst();
+      return state.schedule.anchorDate;
+    }
+
+    function getSessionsForIso(iso) {
+      const dt = parseIsoLocal(iso);
+      const dayKey = dt.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }).replace(',', '');
+      const shortLabel = dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      return state.sessions.filter(s => {
+        if (s.dateIso) return s.dateIso === iso;
+        return s.dayKey === dayKey || s.day === shortLabel;
+      });
+    }
+
+    function scheduleSetView(view) {
+      if (!state.schedule) state.schedule = { view: 'week', anchorDate: getTodayIsoEst() };
+      state.schedule.view = view;
+      render(false);
+    }
+
+    function scheduleGoToday() {
+      if (!state.schedule) state.schedule = { view: 'week', anchorDate: getTodayIsoEst() };
+      state.schedule.anchorDate = getTodayIsoEst();
+      render(false);
+    }
+
+    function scheduleSelectDate(iso, switchToView = null) {
+      if (!state.schedule) state.schedule = { view: 'week', anchorDate: iso };
+      state.schedule.anchorDate = iso;
+      if (switchToView) state.schedule.view = switchToView;
+      render(false);
+    }
+
+    function scheduleStep(dir) {
+      const iso = getScheduleAnchorIso();
+      const dt = parseIsoLocal(iso);
+      const view = state.schedule.view || 'week';
+      if (view === 'day') dt.setDate(dt.getDate() + dir);
+      else if (view === 'week') dt.setDate(dt.getDate() + dir * 7);
+      else if (view === 'month') dt.setMonth(dt.getMonth() + dir);
+      else if (view === 'year') dt.setFullYear(dt.getFullYear() + dir);
+      state.schedule.anchorDate = toIsoDate(dt.getFullYear(), dt.getMonth(), dt.getDate());
+      render(false);
+    }
+
+    // Per-Day Availability Modal Draft State
+    let _dayAvailDraft = null;
+
+    function openDayAvailabilityModal(iso) {
+      const eff = getEffectiveDayAvailability(iso);
+      _dayAvailDraft = {
+        iso,
+        isOverride: eff.isOverride,
+        off: eff.off,
+        blocks: eff.blocks.map(b => ({ id: b.id || ('ov-' + Math.random().toString(36).slice(2, 7)), start: b.start, end: b.end }))
+      };
+      renderDayAvailabilityModal();
+    }
+
+    function renderDayAvailabilityModal() {
+      if (!_dayAvailDraft) return;
+      const { iso, off, blocks, isOverride } = _dayAvailDraft;
+      const dt = parseIsoLocal(iso);
+      const niceDate = dt.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+      const hasSavedOverride = Boolean(state.cal?.availability?.dateOverrides && Object.prototype.hasOwnProperty.call(state.cal.availability.dateOverrides, iso));
+
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Daily Availability</div>
+            <h3 class="font-extrabold text-base mt-0.5">${niceDate}</h3>
+          </div>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+
+        <label class="flex items-center justify-between gap-3 p-3.5 rounded-2xl card-mist cursor-pointer">
+          <div>
+            <div class="font-extrabold text-xs">Available for Lessons</div>
+            <div class="text-[11px] text-[var(--text-muted)]">${off ? 'Currently marked as Day Off / Closed' : `${blocks.length} open time block${blocks.length === 1 ? '' : 's'} set`}</div>
+          </div>
+          <input type="checkbox" ${!off ? 'checked' : ''} onchange="toggleDayAvailOpen(this.checked)" class="w-5 h-5 accent-[#010101]" />
+        </label>
+
+        ${!off ? `
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-extrabold">Open Hours (EST)</span>
+              <button type="button" onclick="addDayAvailBlock()" class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold cursor-pointer">+ Add Block</button>
+            </div>
+            ${blocks.length ? blocks.map((b, idx) => `
+              <div class="flex items-center gap-2 surface-soft rounded-2xl p-2.5">
+                <input type="time" value="${b.start}" onchange="updateDayAvailBlock(${idx}, 'start', this.value)" class="flex-1 px-2.5 py-2 rounded-xl card-white text-xs font-bold" />
+                <span class="text-xs font-bold text-[var(--text-muted)]">to</span>
+                <input type="time" value="${b.end}" onchange="updateDayAvailBlock(${idx}, 'end', this.value)" class="flex-1 px-2.5 py-2 rounded-xl card-white text-xs font-bold" />
+                <button type="button" onclick="removeDayAvailBlock(${idx})" aria-label="Remove block" class="w-8 h-8 rounded-xl card-white text-xs font-extrabold text-red-600 cursor-pointer">✕</button>
+              </div>
+            `).join('') : `<div class="p-3 rounded-2xl surface-soft text-xs text-[var(--text-muted)] text-center">No hours added yet — tap + Add Block.</div>`}
+          </div>
+        ` : ''}
+
+        <div class="flex flex-col gap-2 pt-1">
+          <button type="button" onclick="saveDayAvailability()" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
+            Save Availability for This Day
+          </button>
+          ${hasSavedOverride || isOverride ? `
+            <button type="button" onclick="resetDayAvailability('${iso}')" class="w-full py-2.5 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">
+              Reset to Weekly Default
+            </button>
+          ` : ''}
+        </div>
+      `);
+    }
+
+    function toggleDayAvailOpen(isOpen) {
+      if (!_dayAvailDraft) return;
+      _dayAvailDraft.off = !isOpen;
+      if (isOpen && !_dayAvailDraft.blocks.length) {
+        _dayAvailDraft.blocks.push({ id: 'ov-' + Date.now(), start: '15:30', end: '19:30' });
+      }
+      renderDayAvailabilityModal();
+    }
+
+    function addDayAvailBlock() {
+      if (!_dayAvailDraft) return;
+      _dayAvailDraft.off = false;
+      _dayAvailDraft.blocks.push({ id: 'ov-' + Date.now(), start: '16:00', end: '19:00' });
+      renderDayAvailabilityModal();
+    }
+
+    function updateDayAvailBlock(idx, field, val) {
+      if (!_dayAvailDraft || !_dayAvailDraft.blocks[idx]) return;
+      _dayAvailDraft.blocks[idx][field] = val;
+    }
+
+    function removeDayAvailBlock(idx) {
+      if (!_dayAvailDraft) return;
+      _dayAvailDraft.blocks.splice(idx, 1);
+      if (!_dayAvailDraft.blocks.length) _dayAvailDraft.off = true;
+      renderDayAvailabilityModal();
+    }
+
+    function saveDayAvailability() {
+      if (!_dayAvailDraft) return;
+      if (!state.cal.availability.dateOverrides) state.cal.availability.dateOverrides = {};
+      const { iso, off, blocks } = _dayAvailDraft;
+      state.cal.availability.dateOverrides[iso] = {
+        off: !!off || !blocks.length,
+        blocks: off ? [] : blocks.map(b => ({ id: b.id, start: b.start, end: b.end }))
+      };
+      _dayAvailDraft = null;
+      closeModal();
+      render();
+      showToast('Daily availability saved & synced!');
+    }
+
+    function resetDayAvailability(iso) {
+      if (state.cal?.availability?.dateOverrides) {
+        delete state.cal.availability.dateOverrides[iso];
+      }
+      _dayAvailDraft = null;
+      closeModal();
+      render();
+      showToast('Reset day to weekly default hours.');
+    }
+
+    function renderCoachSchedule() {
+      const anchorIso = getScheduleAnchorIso();
+      const todayIso = getTodayIsoEst();
+      const view = state.schedule.view || 'week';
+      const anchorDt = parseIsoLocal(anchorIso);
+      const y = anchorDt.getFullYear();
+      const m0 = anchorDt.getMonth();
+
+      let rangeLabel = '';
+      if (view === 'day') {
+        rangeLabel = anchorDt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+      } else if (view === 'week') {
+        const sun = new Date(anchorDt);
+        sun.setDate(anchorDt.getDate() - anchorDt.getDay());
+        const sat = new Date(sun);
+        sat.setDate(sun.getDate() + 6);
+        rangeLabel = `${sun.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${sat.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      } else if (view === 'month') {
+        rangeLabel = anchorDt.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      } else {
+        rangeLabel = `${y} Schedule Overview`;
+      }
+
+      // Build view-specific body
+      let bodyHtml = '';
+
+      if (view === 'day') {
+        const eff = getEffectiveDayAvailability(anchorIso);
+        const daySessions = getSessionsForIso(anchorIso);
+        bodyHtml = `
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <!-- Availability Card -->
+            <div class="lg:col-span-4 card-white rounded-[28px] p-5 space-y-4">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${eff.isOverride ? 'Custom Hours' : 'Weekly Default'}</div>
+                  <h2 class="text-base font-extrabold mt-0.5">Gina’s Availability</h2>
+                </div>
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold ${eff.off ? 'bg-red-500/15 text-red-600 dark:text-red-400' : 'bg-[#D5FF5F] text-[#010101]'}">
+                  ${eff.off ? 'Day Off' : 'Open'}
+                </span>
+              </div>
+
+              ${!eff.off ? `
+                <div class="space-y-2">
+                  ${eff.blocks.map(b => `
+                    <div class="surface-soft rounded-2xl p-3 flex items-center justify-between text-xs">
+                      <span class="font-extrabold">${fmt24To12Short(b.start)} – ${fmt24To12Short(b.end)}</span>
+                      <span class="text-[11px] text-[var(--text-muted)] font-semibold">EST</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : `
+                <div class="surface-soft rounded-2xl p-4 text-xs text-[var(--text-muted)]">
+                  Marked as <strong>Day Off</strong>. Athletes won’t see open booking slots on this date.
+                </div>
+              `}
+
+              <button onclick="openDayAvailabilityModal('${anchorIso}')" class="w-full py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer hover:opacity-90 transition">
+                Set Availability for This Day
+              </button>
+            </div>
+
+            <!-- Scheduled Lessons for This Day -->
+            <div class="lg:col-span-8 space-y-3">
+              <div class="flex items-center justify-between">
+                <h2 class="text-base font-extrabold">Scheduled Lessons (${daySessions.length})</h2>
+                <button onclick="openAddSessionModal('${anchorIso}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Add Session</button>
+              </div>
+              ${daySessions.length ? daySessions.map(s => renderCoachSessionRow(s, false)).join('') : `
+                <div class="card-white rounded-[24px] p-8 text-center space-y-2.5">
+                  <div class="font-extrabold text-sm">No lessons scheduled on this day</div>
+                  <p class="text-xs text-[var(--text-muted)]">Tap below to manually add a lesson for ${anchorDt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.</p>
+                  <button onclick="openAddSessionModal('${anchorIso}')" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Add Session</button>
+                </div>
+              `}
+            </div>
+          </div>
+        `;
+      } else if (view === 'week') {
+        const sun = new Date(anchorDt);
+        sun.setDate(anchorDt.getDate() - anchorDt.getDay());
+        const weekDays = [];
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(sun.getTime() + i * 86400000);
+          const iso = toIsoDate(d.getFullYear(), d.getMonth(), d.getDate());
+          weekDays.push({
+            iso,
+            dow: d.toLocaleDateString('en-US', { weekday: 'short' }),
+            num: d.getDate(),
+            isToday: iso === todayIso,
+            isSelected: iso === anchorIso,
+            eff: getEffectiveDayAvailability(iso),
+            sessions: getSessionsForIso(iso)
+          });
+        }
+        bodyHtml = `
+          <div class="grid grid-cols-1 md:grid-cols-7 gap-3">
+            ${weekDays.map(d => `
+              <div class="card-white rounded-[24px] p-3.5 flex flex-col justify-between gap-3 ${d.isToday ? 'ring-2 ring-[#010101] dark:ring-[#D5FF5F]' : ''}">
+                <div class="space-y-2.5">
+                  <div class="flex items-center justify-between gap-1">
+                    <button onclick="scheduleSelectDate('${d.iso}', 'day')" class="text-left cursor-pointer group">
+                      <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">${d.dow}${d.isToday ? ' • TODAY' : ''}</div>
+                      <div class="text-xl font-extrabold leading-tight group-hover:underline">${d.num}</div>
+                    </button>
+                    <button onclick="openDayAvailabilityModal('${d.iso}')" title="Set availability for ${d.dow} ${d.num}" class="px-2 py-1 rounded-full text-[10px] font-extrabold cursor-pointer transition ${d.eff.off ? 'bg-red-500/15 text-red-600 dark:text-red-400' : d.eff.isOverride ? 'bg-amber-400/25 text-amber-900 dark:text-amber-200' : 'bg-[#D5FF5F]/60 text-[#010101]'}">
+                      ${d.eff.off ? 'Off' : d.eff.isOverride ? 'Custom' : 'Open'}
+                    </button>
+                  </div>
+
+                  <button onclick="openDayAvailabilityModal('${d.iso}')" class="w-full text-left px-2.5 py-1.5 rounded-xl surface-soft text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] truncate cursor-pointer">
+                    ${fmtAvailSummary(d.eff)}
+                  </button>
+
+                  <div class="space-y-1.5">
+                    ${d.sessions.length ? d.sessions.map(s => `
+                      <button onclick="scheduleSelectDate('${d.iso}', 'day')" class="w-full text-left p-2 rounded-xl bg-[#010101] text-white space-y-0.5 cursor-pointer hover:opacity-90 transition">
+                        <div class="text-[10px] font-extrabold text-[#D5FF5F]">${s.time}</div>
+                        <div class="text-[11px] font-extrabold truncate">${(s.athletes || []).join(', ') || s.focus}</div>
+                        <div class="text-[10px] text-[#D6DFE2] truncate">${s.focus}</div>
+                      </button>
+                    `).join('') : `<div class="text-[11px] text-[var(--text-muted)] py-2 text-center opacity-70">No lessons</div>`}
+                  </div>
+                </div>
+
+                <button onclick="openAddSessionModal('${d.iso}')" class="w-full py-1.5 rounded-xl surface-soft text-[11px] font-extrabold cursor-pointer hover:border-[#010101] transition">
+                  + Session
+                </button>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else if (view === 'month') {
+        const firstDow = new Date(y, m0, 1).getDay();
+        const daysInMonth = new Date(y, m0 + 1, 0).getDate();
+        const cells = [];
+        for (let i = 0; i < firstDow; i++) cells.push(null);
+        for (let d = 1; d <= daysInMonth; d++) {
+          const iso = toIsoDate(y, m0, d);
+          cells.push({
+            iso,
+            d,
+            isToday: iso === todayIso,
+            isSelected: iso === anchorIso,
+            eff: getEffectiveDayAvailability(iso),
+            sessions: getSessionsForIso(iso)
+          });
+        }
+        const selEff = getEffectiveDayAvailability(anchorIso);
+        const selSessions = getSessionsForIso(anchorIso);
+
+        bodyHtml = `
+          <div class="card-white rounded-[28px] p-4 sm:p-5 space-y-3">
+            <div class="grid grid-cols-7 gap-1.5 text-center text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">
+              ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="py-1">${d}</div>`).join('')}
+            </div>
+            <div class="grid grid-cols-7 gap-1.5">
+              ${cells.map(c => {
+                if (!c) return `<div class="min-h-[64px] sm:min-h-[82px]"></div>`;
+                const bg = c.isSelected
+                  ? 'bg-[#010101] text-[#D5FF5F] border-[#010101]'
+                  : c.isToday
+                    ? 'surface-soft border-[#010101] dark:border-[#D5FF5F]'
+                    : 'surface-soft border-transparent hover:border-[var(--border-subtle)]';
+                return `
+                  <button onclick="scheduleSelectDate('${c.iso}')" class="min-h-[64px] sm:min-h-[82px] p-1.5 sm:p-2 rounded-2xl border text-left flex flex-col justify-between transition cursor-pointer ${bg}">
+                    <div class="flex items-center justify-between w-full">
+                      <span class="text-xs sm:text-sm font-extrabold">${c.d}</span>
+                      <span title="${fmtAvailSummary(c.eff)}" class="w-2 h-2 rounded-full ${c.eff.off ? 'bg-red-400/60' : c.eff.isOverride ? 'bg-amber-400' : 'bg-[#9ED11E]'}"></span>
+                    </div>
+                    <div class="space-y-0.5 w-full overflow-hidden">
+                      ${c.sessions.slice(0, 2).map(s => `
+                        <div class="truncate text-[9px] sm:text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${c.isSelected ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#010101] text-[#D5FF5F]'}">
+                          ${s.time.replace(':00 ', '')} ${(s.athletes?.[0] || s.focus).split(' ')[0]}
+                        </div>
+                      `).join('')}
+                      ${c.sessions.length > 2 ? `<div class="text-[9px] font-extrabold opacity-75">+${c.sessions.length - 2} more</div>` : ''}
+                    </div>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+            <div class="flex flex-wrap items-center gap-4 pt-1 text-[11px] font-bold text-[var(--text-muted)]">
+              <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#9ED11E]"></span> Open</span>
+              <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-400"></span> Custom Hours</span>
+              <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-400/60"></span> Day Off</span>
+            </div>
+          </div>
+
+          <!-- Selected Day Inspector -->
+          <div class="card-mist rounded-[28px] p-5 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Selected Day</div>
+                <h2 class="text-lg font-extrabold">${anchorDt.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</h2>
+                <div class="text-xs text-[var(--text-muted)] font-semibold">Availability: <strong>${fmtAvailSummary(selEff)}</strong> ${selEff.isOverride ? '(Custom)' : '(Weekly Default)'}</div>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button onclick="openDayAvailabilityModal('${anchorIso}')" class="px-3.5 py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Set Availability</button>
+                <button onclick="openAddSessionModal('${anchorIso}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Add Session</button>
+              </div>
+            </div>
+            ${selSessions.length ? `<div class="space-y-2.5">${selSessions.map(s => renderCoachSessionRow(s, false)).join('')}</div>` : `
+              <div class="card-white rounded-2xl p-4 text-xs text-[var(--text-muted)] text-center">No lessons scheduled on this date yet.</div>
+            `}
+          </div>
+        `;
+      } else {
+        // YEAR VIEW (12-Month Overview)
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        bodyHtml = `
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            ${monthNames.map((mName, mi) => {
+              const firstDow = new Date(y, mi, 1).getDay();
+              const dim = new Date(y, mi + 1, 0).getDate();
+              let monthSessionCount = 0;
+              const miniCells = [];
+              for (let i = 0; i < firstDow; i++) miniCells.push('');
+              for (let d = 1; d <= dim; d++) {
+                const iso = toIsoDate(y, mi, d);
+                const cnt = getSessionsForIso(iso).length;
+                monthSessionCount += cnt;
+                const isTod = iso === todayIso;
+                miniCells.push(`
+                  <button onclick="event.stopPropagation(); scheduleSelectDate('${iso}', 'day');" class="h-6 w-6 mx-auto rounded-full text-[10px] font-bold flex items-center justify-center cursor-pointer transition ${isTod ? 'bg-[#010101] text-[#D5FF5F] font-extrabold' : cnt ? 'bg-[#D5FF5F] text-[#010101] font-extrabold' : 'hover:bg-[var(--bg-elevated)] text-[var(--text-muted)]'}">
+                    ${d}
+                  </button>
+                `);
+              }
+              return `
+                <div onclick="scheduleSelectDate('${toIsoDate(y, mi, 1)}', 'month')" class="card-white rounded-[24px] p-4 space-y-2.5 cursor-pointer hover:border-[#010101] transition">
+                  <div class="flex items-center justify-between">
+                    <span class="font-extrabold text-sm">${mName}</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${monthSessionCount ? 'bg-[#D5FF5F] text-[#010101]' : 'surface-soft text-[var(--text-muted)]'}">
+                      ${monthSessionCount} lesson${monthSessionCount === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                  <div class="grid grid-cols-7 gap-0.5 text-center text-[9px] font-bold text-[var(--text-muted)]">
+                    ${['S','M','T','W','T','F','S'].map(x => `<div>${x}</div>`).join('')}
+                  </div>
+                  <div class="grid grid-cols-7 gap-0.5 text-center">
+                    ${miniCells.join('')}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+
+      return `
+        <!-- Schedule Top Header -->
+        <div class="card-mist rounded-[28px] p-5 sm:p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Pittsburgh • Eastern Time (EST)</div>
+              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">${rangeLabel}</h1>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button onclick="openDayAvailabilityModal('${anchorIso}')" class="px-3.5 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer hover:opacity-90 transition">
+                Set Availability
+              </button>
+              <button onclick="openAddSessionModal('${anchorIso}')" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition">
+                + Add Session
+              </button>
+            </div>
+          </div>
+
+          <!-- View Switcher (Day / Week / Month / Year) + Prev/Today/Next -->
+          <div class="flex flex-wrap items-center justify-between gap-2.5">
+            <div class="inline-flex items-center gap-1 p-1 rounded-2xl card-white">
+              ${[
+                { id: 'day', label: 'Day' },
+                { id: 'week', label: 'Week' },
+                { id: 'month', label: 'Month' },
+                { id: 'year', label: 'Year' }
+              ].map(v => `
+                <button onclick="scheduleSetView('${v.id}')" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${view === v.id ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}">
+                  ${v.label}
+                </button>
+              `).join('')}
+            </div>
+
+            <div class="inline-flex items-center gap-1.5">
+              <button onclick="scheduleStep(-1)" aria-label="Previous" class="w-9 h-9 rounded-xl card-white text-sm font-extrabold cursor-pointer hover:border-[#010101]">‹</button>
+              <button onclick="scheduleGoToday()" class="px-3.5 h-9 rounded-xl card-white text-xs font-extrabold cursor-pointer hover:border-[#010101]">Today</button>
+              <button onclick="scheduleStep(1)" aria-label="Next" class="w-9 h-9 rounded-xl card-white text-sm font-extrabold cursor-pointer hover:border-[#010101]">›</button>
+            </div>
+          </div>
+        </div>
+
+        ${bodyHtml}
+      `;
+    }
+
     function render(shouldSync = true) {
       renderChrome();
       const root = document.getElementById('app-root');
       if (state.role === 'coach') {
         if (state.coachTab === 'today') root.innerHTML = renderCoachToday();
+        else if (state.coachTab === 'schedule') root.innerHTML = renderCoachSchedule();
         else if (state.coachTab === 'athletes') root.innerHTML = renderCoachAthletes();
         else if (state.coachTab === 'recap') root.innerHTML = renderCoachRecapPage();
         else if (state.coachTab === 'video') root.innerHTML = renderCoachVideo();
