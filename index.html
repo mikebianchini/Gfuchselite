@@ -3724,7 +3724,7 @@
 
         <div class="grid grid-cols-2 gap-2 pt-1">
           ${sessionId ? `<button type="button" onclick="openSessionPlanModal('${sessionId}')" class="inline-flex items-center justify-center gap-1.5 py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101]">${uiIcon('clipboard')} Session Plan</button>` : `<button type="button" onclick="closeModal(); jumpToAthlete('${ath.id}');" class="py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Full Profile</button>`}
-          <button type="button" onclick="closeModal(); openSessionRecapModal('${ath.id}', '${sessionId || ''}');" class="inline-flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm">${uiIcon('note')} Start Notes</button>
+          <button type="button" onclick="closeModal(); openSessionRecapModal('${ath.id}', '${sessionId || ''}');" class="inline-flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm">${uiIcon(hasStartedSessionNote(ath.id, sessionId) ? 'edit' : 'note')} ${hasStartedSessionNote(ath.id, sessionId) ? 'Edit Note' : 'Start Notes'}</button>
         </div>
       `);
     }
@@ -4055,6 +4055,37 @@
       showToast('Session permanently deleted.');
     }
 
+    function hasStartedSessionNote(athId, sessionId = null) {
+      if (!athId) return false;
+      const draft = typeof loadSavedRecapDraft === 'function' ? loadSavedRecapDraft(athId) : null;
+      if (draft) {
+        const hasDraftContent = Boolean(
+          (draft.warmup || '').trim() ||
+          (draft.focus || '').trim() ||
+          (draft.tee || '').trim() ||
+          (draft.ft || '').trim() ||
+          (draft.machine || '').trim() ||
+          (draft.sessionNotes || '').trim() ||
+          (Array.isArray(draft.clips) && draft.clips.length)
+        );
+        if (hasDraftContent) return true;
+      }
+      if (sessionId) {
+        const ses = state.sessions.find(x => x.id === sessionId);
+        const sesDateLabel = ses?.dateIso
+          ? new Date(ses.dateIso + 'T12:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' })
+          : null;
+        return state.sessionRecaps.some(r =>
+          r.athleteId === athId && (
+            (r.sessionId && r.sessionId === sessionId) ||
+            (r.isDraft && Boolean((r.warmup || r.focus || r.tee || r.ft || r.machine || r.sessionNotes || '').trim())) ||
+            (sesDateLabel && !r.isDraft && r.date === sesDateLabel)
+          )
+        );
+      }
+      return state.sessionRecaps.some(r => r.athleteId === athId && r.isDraft && Boolean((r.warmup || r.focus || r.tee || r.ft || r.machine || r.sessionNotes || '').trim()));
+    }
+
     function renderCoachSessionRow(s, showDate = false) {
       const lessonLabel = s.lessonTitle || s.focus;
       const customFocus = s.lessonTitle && s.focus && s.focus !== s.lessonTitle ? s.focus : '';
@@ -4068,12 +4099,13 @@
       const unpaidInfo = primaryAth ? getAthleteUnpaidInfo(primaryAth.id) : { count: 0, total: 0 };
       const briefCue = primaryAth?.currentFocus || lastInfo?.lastFocus || '';
       const plan = s.sessionPlan && (s.sessionPlan.goal || s.sessionPlan.drills) ? s.sessionPlan : null;
+      const noteStarted = s.athleteId ? hasStartedSessionNote(s.athleteId, s.id) : false;
       const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
       return `
         <div class="swipe-row relative overflow-hidden rounded-[24px]" data-swipe-type="session" data-swipe-id="${s.id}" data-athlete-id="${s.athleteId || ''}" data-canceled="${isCanceled ? '1' : '0'}">
           <div class="lg:hidden absolute inset-0 flex items-center justify-between px-5 pointer-events-none select-none" aria-hidden="true">
-            <span class="swipe-rail-left inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold opacity-0 transition-opacity">${s.athleteId && !isCanceled ? `${uiIcon('note')} Notes →` : `${uiIcon('sliders')} Manage →`}</span>
+            <span class="swipe-rail-left inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold opacity-0 transition-opacity">${s.athleteId && !isCanceled ? `${uiIcon(noteStarted ? 'edit' : 'note')} ${noteStarted ? 'Edit Note' : 'Notes'} →` : `${uiIcon('sliders')} Manage →`}</span>
             <span class="swipe-rail-right inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold opacity-0 transition-opacity">← ${isCanceled ? 'Restore / Delete' : 'Reschedule / Cancel'}</span>
           </div>
           <div class="swipe-card card-interactive relative card-white rounded-[24px] p-4 space-y-3 ${isCanceled ? 'opacity-65' : ''}" style="touch-action: pan-y;">
@@ -4101,7 +4133,7 @@
                   <span class="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#4E6075] dark:text-[#D5FF5F]">${uiIcon('clipboard', 'w-3 h-3')} Session Plan</span>
                   <span class="text-[10px] font-bold text-[var(--text-muted)]">Edit</span>
                 </div>
-                ${plan.goal ? `<div class="text-xs font-bold truncate">${esc(plan.goal)}</div>` : ''}
+                ${plan.goal ? `<div class="text-xs font-extrabold truncate">${esc(plan.goal)}</div>` : ''}
                 ${plan.drills ? `<div class="text-[11px] text-[var(--text-muted)] truncate">${esc(plan.drills.replace(/\n/g, ' • '))}</div>` : ''}
               </button>
             ` : ''}
@@ -4109,7 +4141,7 @@
             ${!isCanceled ? `
               <div class="flex flex-wrap items-center gap-2">
                 ${s.athleteId ? `
-                  <button onclick="openSessionRecapModal('${s.athleteId}', '${s.id}')" class="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-1.5 shadow-sm hover:brightness-95">${uiIcon('note')} Start Notes</button>
+                  <button onclick="openSessionRecapModal('${s.athleteId}', '${s.id}')" class="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-1.5 shadow-sm hover:brightness-95">${uiIcon(noteStarted ? 'edit' : 'note')} ${noteStarted ? 'Edit Note' : 'Start Notes'}</button>
                 ` : ''}
                 ${s.athleteId ? `<button onclick="openPreviousSessionsModal('${s.athleteId}', '${s.id}')" class="px-3 py-2.5 rounded-xl surface-soft text-xs font-bold cursor-pointer hover:border-[#010101] inline-flex items-center gap-1.5">${uiIcon('history')} Last Session</button>` : ''}
               </div>
@@ -7511,6 +7543,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           id: 'rec-' + (Date.now() + idx),
           isDraft: false,
           athleteId: targetAth.id,
+          sessionId: ses ? ses.id : null,
           date: todayLabel,
           sessionTitle: ses ? (ses.lessonTitle || ses.focus) : '1-on-1 Training Session',
           tags: [..._recapDraftTags],
@@ -8798,7 +8831,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.9.0';
+    const APP_VERSION = 'v3.9.1';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Redesigned Session Notes Studio (Warm Up Routine w/ Walking PVC & custom drills, Player Notes and Focus, What We Worked On Tee/Front Toss/Machine with drills & per-area video, Session Notes)';
 
