@@ -2613,10 +2613,7 @@
           <div class="flex flex-wrap items-center gap-2 shrink-0">
             <button onclick="openSessionRecapModal('${s.athleteId || ''}', '${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5">${uiIcon('note')} Notes</button>
             <button onclick="openCalendarSyncModal('${s.id}')" title="Add lesson to Apple / Google / Outlook Calendar" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer hover:border-[#010101]">+ Cal</button>
-            ${s.status !== 'Completed' && s.status !== 'Canceled'
-              ? `<button onclick="completeSession('${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">Check In</button>`
-              : `<span class="px-2.5 py-1.5 rounded-xl bg-[#D6DFE2] text-[#010101] text-[11px] font-extrabold">${s.status}</span>`
-            }
+            ${s.status === 'Canceled' ? `<span class="px-2.5 py-1.5 rounded-xl bg-[#D6DFE2] text-[#010101] text-[11px] font-extrabold">Canceled</span>` : ''}
             ${s.athleteId ? `<button onclick="jumpToAthlete('${s.athleteId}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">Profile</button>` : ''}
           </div>
         </div>
