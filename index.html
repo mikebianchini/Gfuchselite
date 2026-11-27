@@ -624,6 +624,7 @@
       home: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
       plus: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>`,
       shield: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>`,
+      sessions: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01"/></svg>`,
       settings: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
       arrowBtn: `<span class="glass-pill-hero inline-flex items-center gap-2 pl-3.5 pr-1.5 py-1.5 rounded-full text-[#010101] text-xs font-extrabold">GO <span class="w-6 h-6 rounded-full bg-[#010101] text-[#D5FF5F] inline-flex items-center justify-center text-xs">→</span></span>`
     };
@@ -748,6 +749,7 @@
         ? [
             { id: 'today', label: 'Home', fullLabel: 'Home', icon: icons.home },
             { id: 'schedule', label: 'Schedule', fullLabel: 'Schedule', icon: icons.calendar },
+            { id: 'sessions', label: 'Sessions', fullLabel: 'Sessions', icon: icons.sessions },
             { id: 'athletes', label: 'Athletes', fullLabel: 'Athletes', icon: icons.athletes },
             { id: 'payments', label: 'Payments', fullLabel: 'Payments', icon: icons.wallet },
             { id: 'messaging', label: 'Messages', fullLabel: 'Messages', icon: icons.chat, badge: unread },
@@ -776,9 +778,9 @@
       document.getElementById('mobile-bottom-nav').innerHTML = navItems.map(item => {
         const active = item.id === activeTab;
         return `
-          <button onclick="setTab('${item.id}')" ${active ? 'aria-current="page"' : ''} class="relative flex flex-col items-center justify-center gap-0.5 px-1.5 sm:px-3 py-1 min-h-[44px] min-w-[46px] rounded-2xl transition cursor-pointer ${active ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}">
+          <button onclick="setTab('${item.id}')" ${active ? 'aria-current="page"' : ''} class="relative flex flex-col items-center justify-center gap-0.5 px-1 sm:px-2.5 py-1 min-h-[44px] min-w-[44px] shrink-0 rounded-2xl transition cursor-pointer ${active ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}">
             <span class="p-1.5 rounded-xl ${active ? 'bg-[#D5FF5F] text-[#010101]' : ''}">${item.icon}</span>
-            <span class="text-[9.5px] sm:text-[10px] font-bold leading-tight">${item.label}</span>
+            <span class="text-[9px] sm:text-[10px] font-bold leading-tight">${item.label}</span>
           </button>
         `;
       }).join('');
@@ -1091,10 +1093,29 @@
     }
 
     function calGetSlotsForDate(iso) {
-      const eff = getEffectiveDayAvailability(iso);
-      if (eff.off || !eff.blocks.length) return [];
-      const blocks = eff.blocks;
       const evt = state.cal.eventTypes.find(e => e.id === state.cal.eventTypeId) || state.cal.eventTypes[0];
+      if (!evt) return [];
+      const [y, m, d] = iso.split('-').map(Number);
+      const dow = new Date(y, m - 1, d).getDay();
+
+      let blocks = [];
+      if (evt.availabilityMode === 'custom') {
+        const allowedDays = Array.isArray(evt.availableDays) ? evt.availableDays : [];
+        if (!allowedDays.includes(dow)) return [];
+        const eff = getEffectiveDayAvailability(iso);
+        // If coach explicitly marked this specific date as Day Off via override, respect Day Off
+        if (eff.isOverride && eff.off) return [];
+        if (evt.availableStart && evt.availableEnd) {
+          blocks = [{ start: evt.availableStart, end: evt.availableEnd }];
+        } else {
+          blocks = eff.off ? [] : eff.blocks;
+        }
+      } else {
+        const eff = getEffectiveDayAvailability(iso);
+        if (eff.off || !eff.blocks.length) return [];
+        blocks = eff.blocks;
+      }
+      if (!blocks.length) return [];
       const dur = Number(evt.duration) || 45;
       const buf = Number(state.cal.availability.bufferMin) || 0;
       const step = Math.max(15, dur + buf);
@@ -2115,15 +2136,24 @@
     function openClassTypeModal(editId = null) {
       const existing = editId ? state.cal.eventTypes.find(e => e.id === editId) : null;
       const durations = [15, 30, 45, 60, 75, 90, 120, 180];
+      const availMode = existing?.availabilityMode || 'coach';
+      const availDays = Array.isArray(existing?.availableDays) ? existing.availableDays : [1, 2, 3, 4, 5, 6];
+      const availStart = existing?.availableStart || '15:30';
+      const availEnd = existing?.availableEnd || '19:30';
+      const dowLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
       openModal(`
         <div class="flex items-center justify-between">
-          <h3 class="font-extrabold text-sm">${existing ? 'Edit Class Type & Length' : 'Add New Class Type'}</h3>
-          <button onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
+          <div>
+            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Session / Lesson Class</div>
+            <h3 class="font-extrabold text-base mt-0.5">${existing ? 'Edit Session & Availability' : 'Add New Session Class'}</h3>
+          </div>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
         </div>
         <form onsubmit="saveClassType(event, '${existing ? existing.id : ''}')" class="space-y-3 text-xs">
           <div>
-            <label class="block text-[var(--text-muted)] font-bold mb-1">Class / Session Name *</label>
-            <input name="title" value="${existing ? existing.title : ''}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" placeholder="e.g., 30m Quick Swing Tune-Up" required />
+            <label class="block text-[var(--text-muted)] font-bold mb-1">Session / Class Name *</label>
+            <input name="title" value="${existing ? existing.title.replace(/"/g, '&quot;') : ''}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold text-sm" placeholder="e.g., 45m Power Hitting Private" required />
           </div>
           <div class="grid grid-cols-2 gap-2.5">
             <div>
@@ -2142,11 +2172,11 @@
           <div class="grid grid-cols-2 gap-2.5">
             <div>
               <label class="block text-[var(--text-muted)] font-bold mb-1">Price ($)</label>
-              <input name="price" type="number" min="0" value="${existing ? existing.price : 60}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
+              <input name="price" type="number" min="0" value="${existing ? existing.price : 75}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
             </div>
             <div>
               <label class="block text-[var(--text-muted)] font-bold mb-1">Location / Cage</label>
-              <input name="location" value="${existing ? existing.location : 'Gina Fuchs Elite Facility • Cage 1'}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
+              <input name="location" value="${existing ? existing.location.replace(/"/g, '&quot;') : 'Gina Fuchs Elite Facility • Cage 1'}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
             </div>
           </div>
           <div>
@@ -2154,8 +2184,47 @@
             <textarea name="desc" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="What players work on in this session...">${existing ? existing.desc : ''}</textarea>
           </div>
 
-          <button type="submit" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer">
-            ${existing ? 'Save Changes' : 'Create Class Type'}
+          <!-- Per-Session Availability Selector -->
+          <div class="pt-2 border-t border-[var(--border-subtle)] space-y-2.5">
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">When Is This Session Available?</div>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="flex items-center gap-2 p-2.5 rounded-2xl surface-soft cursor-pointer font-bold">
+                <input type="radio" name="availabilityMode" value="coach" ${availMode !== 'custom' ? 'checked' : ''} onchange="document.getElementById('class-custom-avail').classList.add('hidden')" class="accent-[#010101]" />
+                <span>Coach Schedule</span>
+              </label>
+              <label class="flex items-center gap-2 p-2.5 rounded-2xl surface-soft cursor-pointer font-bold">
+                <input type="radio" name="availabilityMode" value="custom" ${availMode === 'custom' ? 'checked' : ''} onchange="document.getElementById('class-custom-avail').classList.remove('hidden')" class="accent-[#010101]" />
+                <span>Custom Days &amp; Hours</span>
+              </label>
+            </div>
+
+            <div id="class-custom-avail" class="${availMode === 'custom' ? '' : 'hidden'} space-y-2.5 p-3 rounded-2xl card-mist">
+              <div>
+                <div class="font-extrabold mb-1.5">Available Days</div>
+                <div class="grid grid-cols-7 gap-1">
+                  ${dowLabels.map((lbl, i) => `
+                    <label class="flex flex-col items-center gap-1 py-1.5 rounded-xl card-white cursor-pointer text-[10px] font-extrabold">
+                      <span>${lbl}</span>
+                      <input type="checkbox" name="availDay" value="${i}" ${availDays.includes(i) ? 'checked' : ''} class="w-4 h-4 accent-[#010101]" />
+                    </label>
+                  `).join('')}
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block font-bold text-[var(--text-muted)] mb-1">Start Time (EST)</label>
+                  <input type="time" name="availableStart" value="${availStart}" class="w-full px-3 py-2 rounded-xl card-white font-bold" />
+                </div>
+                <div>
+                  <label class="block font-bold text-[var(--text-muted)] mb-1">End Time (EST)</label>
+                  <input type="time" name="availableEnd" value="${availEnd}" class="w-full px-3 py-2 rounded-xl card-white font-bold" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
+            ${existing ? 'Save Session Changes' : 'Add Session Class'}
           </button>
         </form>
       `);
@@ -2163,19 +2232,26 @@
 
     function saveClassType(e, editId) {
       e.preventDefault();
-      const dur = Number(e.target.duration.value);
+      const f = e.target;
+      const dur = Number(f.duration.value);
       const durationLabel = dur >= 60 && dur % 60 === 0 ? `${dur / 60}h` : `${dur}m`;
+      const availabilityMode = f.availabilityMode?.value === 'custom' ? 'custom' : 'coach';
+      const checkedDays = Array.from(f.querySelectorAll('input[name="availDay"]:checked')).map(el => Number(el.value));
       const payload = {
-        title: e.target.title.value.trim(),
-        type: e.target.type.value,
+        title: f.title.value.trim(),
+        type: f.type.value,
         duration: dur,
         durationLabel,
-        price: Number(e.target.price.value),
-        location: e.target.location.value.trim(),
-        desc: e.target.desc.value.trim() || 'Fastpitch training session with Coach Gina.',
+        price: Number(f.price.value),
+        location: f.location.value.trim(),
+        desc: f.desc.value.trim() || 'Fastpitch training session with Coach Gina.',
         allowCredit: false,
+        availabilityMode,
+        availableDays: availabilityMode === 'custom' ? checkedDays : [1, 2, 3, 4, 5, 6],
+        availableStart: availabilityMode === 'custom' ? (f.availableStart?.value || '') : '',
+        availableEnd: availabilityMode === 'custom' ? (f.availableEnd?.value || '') : '',
         img: (() => {
-          const t = (e.target.title.value + ' ' + e.target.type.value).toLowerCase();
+          const t = (f.title.value + ' ' + f.type.value).toLowerCase();
           if (t.includes('small group')) return 'assets/images/fastpitch-group.jpg';
           if (t.includes('catch')) return 'assets/images/fastpitch-catcher.jpg';
           if (t.includes('slap') || t.includes('clinic') || t.includes('camp')) return 'assets/images/fastpitch-slapper.jpg';
@@ -2192,7 +2268,7 @@
       }
       closeModal();
       render();
-      showToast(editId ? `Updated "${payload.title}" (${durationLabel}) — synced to Booking!` : `Added "${payload.title}" (${durationLabel}) to Booking!`);
+      showToast(editId ? `Updated "${payload.title}" (${durationLabel}) — synced!` : `Added "${payload.title}" (${durationLabel})!`);
     }
 
     function deleteClassType(id) {
@@ -2281,40 +2357,119 @@
       `;
     }
 
-    function renderCoachClassTypes() {
-      return `
-        <div class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 class="text-lg font-extrabold tracking-tight">Class Types &amp; Session Lengths</h2>
-              <p class="text-xs text-[var(--text-muted)]">Add new lesson types or adjust lengths &amp; pricing — updates Athlete Booking live</p>
-            </div>
-            <button onclick="openClassTypeModal(null)" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm">+ Add Class Type</button>
-          </div>
+    function formatSessionAvailabilitySummary(t) {
+      if (t.availabilityMode !== 'custom') return 'Matches Coach Gina’s Schedule';
+      const dowNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const days = (Array.isArray(t.availableDays) ? t.availableDays : []).map(i => dowNames[i]).filter(Boolean);
+      const dayText = days.length ? days.join(', ') : 'No days selected';
+      const timeText = t.availableStart && t.availableEnd
+        ? ` • ${fmt24To12Short(t.availableStart)}–${fmt24To12Short(t.availableEnd)} EST`
+        : '';
+      return `${dayText}${timeText}`;
+    }
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            ${state.cal.eventTypes.map(t => `
-              <div class="surface-soft rounded-[24px] p-4 flex flex-col justify-between gap-3">
-                <div class="space-y-1.5">
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="px-2.5 py-0.5 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold">${t.durationLabel} (${t.duration} min)</span>
-                    <span class="text-sm font-extrabold tabular-nums">$${t.price}</span>
+    function renderCoachClassTypes(filterCat = 'all') {
+      const all = state.cal.eventTypes || [];
+      const list = filterCat === 'all' ? all : all.filter(t => t.type === filterCat);
+      return `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          ${list.length ? list.map(t => `
+            <div class="card-white rounded-[26px] overflow-hidden flex flex-col justify-between">
+              <div>
+                <div class="relative h-32">
+                  <img src="${t.img || 'assets/images/fastpitch-hitter.jpg'}" alt="${t.title}" class="w-full h-full object-cover" loading="lazy" decoding="async" />
+                  <div class="absolute inset-0 bg-gradient-to-t from-[#010101]/80 via-[#010101]/20 to-transparent"></div>
+                  <div class="absolute top-3 left-3 flex items-center gap-1.5">
+                    <span class="px-2.5 py-1 rounded-full bg-[#010101]/85 text-[#D5FF5F] text-[10px] font-extrabold">${t.durationLabel} (${t.duration} min)</span>
+                    <span class="px-2.5 py-1 rounded-full bg-white/90 text-[#010101] text-[10px] font-extrabold">${t.type}</span>
                   </div>
-                  <div class="font-extrabold text-sm">${t.title}</div>
-                  <div class="text-xs text-[var(--text-muted)]">${t.type} • Clover or Cash</div>
-                  <p class="text-xs text-[var(--text-muted)] leading-relaxed">${t.desc}</p>
+                  <div class="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-sm font-extrabold tabular-nums shadow">
+                    $${t.price}
+                  </div>
                 </div>
-                <div class="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border-subtle)]">
-                  <button onclick="copyCalLink('${t.slug}')" class="text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">${uiIcon('link')} Copy Link</button>
-                  <div class="flex items-center gap-1.5">
-                    <button onclick="openClassTypeModal('${t.id}')" class="px-3 py-1.5 rounded-xl card-white text-xs font-extrabold cursor-pointer">Edit Length / Price</button>
-                    <button onclick="deleteClassType('${t.id}')" class="px-2.5 py-1.5 rounded-xl card-white text-xs font-bold text-[var(--text-muted)] hover:text-red-500 cursor-pointer">✕</button>
+                <div class="p-4 space-y-2.5">
+                  <div>
+                    <div class="font-extrabold text-base leading-snug">${t.title}</div>
+                    <div class="text-[11px] text-[var(--text-muted)] font-semibold mt-0.5">${t.location || 'Gina Fuchs Elite Facility'} • Clover or Cash</div>
+                  </div>
+                  <p class="text-xs text-[var(--text-muted)] leading-relaxed">${t.desc}</p>
+                  <div class="surface-soft rounded-2xl p-2.5 flex items-center justify-between gap-2 text-[11px]">
+                    <div class="min-w-0">
+                      <span class="font-extrabold uppercase tracking-wider text-[10px] text-[#4E6075] dark:text-[#9AC0D6]">Availability</span>
+                      <div class="font-bold truncate mt-0.5">${formatSessionAvailabilitySummary(t)}</div>
+                    </div>
+                    <button onclick="openClassTypeModal('${t.id}')" class="px-2.5 py-1 rounded-xl card-white text-[10px] font-extrabold shrink-0 cursor-pointer hover:border-[#010101]">Change</button>
                   </div>
                 </div>
               </div>
+              <div class="px-4 pb-4 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">
+                <button onclick="copyCalLink('${t.slug}')" class="text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer inline-flex items-center gap-1">${uiIcon('link')} Copy Link</button>
+                <div class="flex items-center gap-1.5">
+                  <button onclick="openClassTypeModal('${t.id}')" class="px-3 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Edit</button>
+                  <button onclick="deleteClassType('${t.id}')" title="Remove session class" class="px-3 py-1.5 rounded-xl surface-soft text-xs font-extrabold text-red-600 dark:text-red-400 hover:bg-red-500/10 cursor-pointer">Remove</button>
+                </div>
+              </div>
+            </div>
+          `).join('') : `
+            <div class="md:col-span-2 card-white rounded-[26px] p-8 text-center space-y-2.5">
+              <div class="font-extrabold text-sm">No session classes in this category yet</div>
+              <button onclick="openClassTypeModal(null)" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Add Session Class</button>
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    function renderCoachSessions() {
+      const filterCat = state.sessionsPageFilter || 'all';
+      const all = state.cal.eventTypes || [];
+      const privates = all.filter(t => t.type === '1-on-1 Private').length;
+      const groupsClinics = all.length - privates;
+      const cats = [
+        { id: 'all', label: `All (${all.length})` },
+        { id: '1-on-1 Private', label: '1-on-1 Privates' },
+        { id: 'Small Group', label: 'Small Groups' },
+        { id: 'Camp / Clinic', label: 'Camps & Clinics' }
+      ];
+
+      return `
+        <div class="card-mist rounded-[28px] p-5 sm:p-6 space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Lesson &amp; Class Catalog</div>
+              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">Sessions</h1>
+              <p class="text-xs text-[var(--text-muted)] mt-0.5">Add, remove, or set custom days &amp; hours for every lesson class</p>
+            </div>
+            <button onclick="openClassTypeModal(null)" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition self-start sm:self-auto">
+              + Add Session Class
+            </button>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2.5">
+            <div class="card-white rounded-2xl p-3.5">
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Total Classes</div>
+              <div class="text-2xl font-extrabold mt-0.5">${all.length}</div>
+            </div>
+            <div class="card-white rounded-2xl p-3.5">
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">1-on-1 Privates</div>
+              <div class="text-2xl font-extrabold mt-0.5">${privates}</div>
+            </div>
+            <div class="card-white rounded-2xl p-3.5">
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Groups / Clinics</div>
+              <div class="text-2xl font-extrabold mt-0.5">${groupsClinics}</div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            ${cats.map(c => `
+              <button onclick="state.sessionsPageFilter='${c.id}'; render(false);" class="px-3.5 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap transition cursor-pointer ${filterCat === c.id ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'card-white text-[var(--text-muted)]'}">
+                ${c.label}
+              </button>
             `).join('')}
           </div>
         </div>
+
+        ${renderCoachClassTypes(filterCat)}
       `;
     }
 
@@ -5913,6 +6068,7 @@ create policy "Allow media update" on storage.objects
       if (state.role === 'coach') {
         if (state.coachTab === 'today') root.innerHTML = renderCoachToday();
         else if (state.coachTab === 'schedule') root.innerHTML = renderCoachSchedule();
+        else if (state.coachTab === 'sessions') root.innerHTML = renderCoachSessions();
         else if (state.coachTab === 'athletes') root.innerHTML = renderCoachAthletes();
         else if (state.coachTab === 'recap') root.innerHTML = renderCoachRecapPage();
         else if (state.coachTab === 'video') root.innerHTML = renderCoachVideo();
