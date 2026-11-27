@@ -3070,7 +3070,7 @@
             </div>
             <button onclick="setTab('athletes')" class="card-white rounded-2xl p-3.5 text-left hover:border-[#010101] transition cursor-pointer">
               <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Athletes</div>
-              <div class="text-2xl font-extrabold mt-0.5">${state.athletes.length}</div>
+              <div class="text-2xl font-extrabold mt-0.5">${state.athletes.filter(a => !a.archived).length}</div>
               <div class="text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-bold">View Roster →</div>
             </button>
           </div>
@@ -3835,6 +3835,33 @@
       }
     }
 
+    function archiveAthlete(athId) {
+      const ath = state.athletes.find(a => a.id === athId);
+      if (!ath) return;
+      ath.archived = true;
+      ath.archivedAt = new Date().toISOString();
+      ath._modifiedAt = Date.now();
+      state.cal.cart = (state.cal.cart || []).filter(item => item.athleteId !== athId);
+      if (state.rosterView === 'detail' && state.selectedAthleteId === athId) {
+        state.rosterView = 'list';
+      }
+      render();
+      showToast(`Archived ${ath.name} — notes & videos preserved.`);
+    }
+
+    function unarchiveAthlete(athId) {
+      const ath = state.athletes.find(a => a.id === athId);
+      if (!ath) return;
+      ath.archived = false;
+      ath.archivedAt = null;
+      ath._modifiedAt = Date.now();
+      if (state.rosterFilter === 'archived' && !state.athletes.some(a => a.archived)) {
+        state.rosterFilter = 'all';
+      }
+      render();
+      showToast(`Restored ${ath.name} to active roster!`);
+    }
+
     function setRosterSort(col) {
       if (state.rosterSortCol === col) state.rosterSortDir = state.rosterSortDir === 'asc' ? 'desc' : 'asc';
       else { state.rosterSortCol = col; state.rosterSortDir = 'asc'; }
@@ -3845,11 +3872,12 @@
     function getFilteredRosterAthletes() {
       const q = (state.rosterSearch || '').trim().toLowerCase();
       const f = state.rosterFilter || 'all';
+      const todayIso = getTodayIsoEst();
       const todayNames = new Set(
-        state.sessions.filter(s => s.dayKey === 'Thu 26' || s.day.includes('Today')).flatMap(s => s.athletes || [])
+        state.sessions.filter(s => s.dateIso === todayIso || s.dayKey === 'Thu 26' || (s.day || '').includes('Today')).flatMap(s => s.athletes || [])
       );
       const todayIds = new Set(
-        state.sessions.filter(s => s.dayKey === 'Thu 26' || s.day.includes('Today')).map(s => s.athleteId).filter(Boolean)
+        state.sessions.filter(s => s.dateIso === todayIso || s.dayKey === 'Thu 26' || (s.day || '').includes('Today')).map(s => s.athleteId).filter(Boolean)
       );
       const draftIds = new Set(state.sessionRecaps.filter(r => r.isDraft).map(r => r.athleteId));
       const col = state.rosterSortCol || 'name';
@@ -3857,10 +3885,16 @@
 
       return state.athletes
         .filter(a => {
-          if (f === 'today' && !(todayIds.has(a.id) || todayNames.has(a.name))) return false;
-          if (f === 'waiver' && a.waiverSigned) return false;
-          if (f === 'drafts' && !draftIds.has(a.id)) return false;
-          if (['10U', '12U', '14U', '16U', '18U'].includes(f) && a.ageGroup !== f) return false;
+          const isArchived = Boolean(a.archived);
+          if (f === 'archived') {
+            if (!isArchived) return false;
+          } else {
+            if (isArchived) return false;
+            if (f === 'today' && !(todayIds.has(a.id) || todayNames.has(a.name))) return false;
+            if (f === 'waiver' && a.waiverSigned) return false;
+            if (f === 'drafts' && !draftIds.has(a.id)) return false;
+            if (['10U', '12U', '14U', '16U', '18U'].includes(f) && a.ageGroup !== f) return false;
+          }
           if (q) {
             const hay = `${a.name} ${a.parentName} ${a.position} ${a.ageGroup} ${a.team || ''}`.toLowerCase();
             if (!hay.includes(q)) return false;
@@ -3876,6 +3910,7 @@
 
     function renderRosterRowsHtml() {
       const list = getFilteredRosterAthletes();
+      const activeTotal = state.athletes.filter(a => !a.archived).length;
       if (!list.length) {
         if (state.athletes.length === 0) {
           return `
@@ -3891,9 +3926,9 @@
         }
         return `
           <div class="card-white rounded-[28px] p-8 text-center space-y-2">
-            <div class="text-sm font-extrabold">No athletes match "${state.rosterSearch || state.rosterFilter}"</div>
-            <p class="text-xs text-[var(--text-muted)]">Try clearing your search or switching age group filters.</p>
-            <button onclick="state.rosterSearch=''; state.rosterFilter='all'; render();" class="mt-1 px-4 py-2 rounded-full bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Show All ${state.athletes.length} Athletes</button>
+            <div class="text-sm font-extrabold">${state.rosterFilter === 'archived' && !state.rosterSearch ? 'No archived athletes' : `No athletes match "${state.rosterSearch || state.rosterFilter}"`}</div>
+            <p class="text-xs text-[var(--text-muted)]">${state.rosterFilter === 'archived' ? 'Archived athletes appear here with all their session notes and videos preserved.' : 'Try clearing your search or switching age group filters.'}</p>
+            <button onclick="state.rosterSearch=''; state.rosterFilter='all'; render(false);" class="mt-1 px-4 py-2 rounded-full bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Show All ${activeTotal} Active Athletes</button>
           </div>
         `;
       }
@@ -3922,16 +3957,18 @@
               <tbody class="divide-y divide-[var(--border-subtle)] text-xs">
                 ${list.map(a => {
                   const hasDraft = draftIds.has(a.id);
+                  const isArchived = Boolean(a.archived);
                   return `
-                    <tr onclick="openCoachAthleteDetail('${a.id}')" class="hover:bg-white/50 dark:hover:bg-white/5 transition cursor-pointer">
+                    <tr onclick="openCoachAthleteDetail('${a.id}')" class="hover:bg-white/50 dark:hover:bg-white/5 transition cursor-pointer ${isArchived ? 'opacity-75' : ''}">
                       <td class="py-3 pl-4 pr-2">
                         <div class="flex items-center gap-2.5 min-w-0">
-                          <div class="relative w-8 h-8 rounded-xl bg-[#010101] text-[#D5FF5F] font-extrabold text-[11px] flex items-center justify-center shrink-0">
+                          <div class="relative w-8 h-8 rounded-xl ${isArchived ? 'surface-soft text-[var(--text-muted)]' : 'bg-[#010101] text-[#D5FF5F]'} font-extrabold text-[11px] flex items-center justify-center shrink-0">
                             ${a.initials}
                           </div>
                           <div class="min-w-0">
                             <div class="flex items-center gap-1.5">
                               <span class="font-extrabold text-[13px] truncate">${a.name}</span>
+                              ${isArchived ? `<span class="px-1.5 py-0.5 rounded surface-soft text-[var(--text-muted)] text-[9px] font-extrabold shrink-0">ARCHIVED</span>` : ''}
                               ${hasDraft ? `<span class="px-1.5 py-0.5 rounded bg-[#D5FF5F] text-[#010101] text-[9px] font-extrabold shrink-0">DRAFT</span>` : ''}
                             </div>
                             ${[a.position, a.team, a.parentName].filter(Boolean).length ? `<div class="md:hidden text-[11px] text-[var(--text-muted)] truncate">${[a.position, a.team, a.parentName].filter(Boolean).join(' • ')}</div>` : ''}
@@ -3955,9 +3992,13 @@
                       </td>
                       <td class="py-3 pl-2 pr-4 text-right whitespace-nowrap" onclick="event.stopPropagation()">
                         <div class="inline-flex items-center gap-1.5">
-                          <button onclick="openEditAthleteModal('${a.id}')" title="Edit Athlete Info" aria-label="Edit ${a.name}" class="w-8 h-8 rounded-xl surface-soft text-xs font-extrabold inline-flex items-center justify-center cursor-pointer hover:border-[#010101]">${uiIcon('edit')}</button>
-                          <button onclick="openSessionRecapModal('${a.id}', null)" title="Session Notes" class="px-2.5 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer">Notes</button>
-                          <button onclick="openAddSessionForAthleteModal('${a.id}')" title="Add Session" aria-label="Add session for ${a.name}" class="w-8 h-8 rounded-xl surface-soft text-xs font-extrabold inline-flex items-center justify-center cursor-pointer">+</button>
+                          ${isArchived ? `
+                            <button onclick="unarchiveAthlete('${a.id}')" class="px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer hover:brightness-95">Restore</button>
+                          ` : `
+                            <button onclick="openEditAthleteModal('${a.id}')" title="Edit Athlete Info" aria-label="Edit ${a.name}" class="w-8 h-8 rounded-xl surface-soft text-xs font-extrabold inline-flex items-center justify-center cursor-pointer hover:border-[#010101]">${uiIcon('edit')}</button>
+                            <button onclick="openSessionRecapModal('${a.id}', null)" title="Session Notes" class="px-2.5 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer">Notes</button>
+                            <button onclick="openAddSessionForAthleteModal('${a.id}')" title="Add Session" aria-label="Add session for ${a.name}" class="w-8 h-8 rounded-xl surface-soft text-xs font-extrabold inline-flex items-center justify-center cursor-pointer">+</button>
+                          `}
                         </div>
                       </td>
                     </tr>
@@ -4630,16 +4671,19 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
       // DIRECTORY MODE (Built for 50+ Athletes!)
       if (state.rosterView !== 'detail') {
+        const activeCount = state.athletes.filter(a => !a.archived).length;
+        const archivedCount = state.athletes.filter(a => a.archived).length;
         const draftCount = new Set(state.sessionRecaps.filter(r => r.isDraft).map(r => r.athleteId)).size;
         const filters = [
-          { id: 'all', label: `All (${state.athletes.length})` },
+          { id: 'all', label: `Active (${activeCount})` },
           { id: 'today', label: 'Today' },
           { id: '10U', label: '10U' },
           { id: '12U', label: '12U' },
           { id: '14U', label: '14U' },
           { id: '16U', label: '16U' },
           { id: '18U', label: '18U' },
-          ...(draftCount ? [{ id: 'drafts', label: `Drafts (${draftCount})` }] : [])
+          ...(draftCount ? [{ id: 'drafts', label: `Drafts (${draftCount})` }] : []),
+          { id: 'archived', label: `Archived (${archivedCount})` }
         ];
         const filteredCount = getFilteredRosterAthletes().length;
 
@@ -4649,7 +4693,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h1 class="text-2xl font-extrabold tracking-tight">Athlete Roster</h1>
-                <p class="text-xs text-[var(--text-muted)]"><span id="roster-match-count">${filteredCount} of ${state.athletes.length}</span> active players • Tap any row for full profile &amp; notes</p>
+                <p class="text-xs text-[var(--text-muted)]"><span id="roster-match-count">${filteredCount} of ${state.rosterFilter === 'archived' ? archivedCount : activeCount}</span> ${state.rosterFilter === 'archived' ? 'archived' : 'active'} players • Tap any row for full profile &amp; notes</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 <button onclick="openAddAthleteModal(null)" class="px-4 py-2.5 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition">
@@ -4666,7 +4710,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                   type="search"
                   value="${(state.rosterSearch || '').replace(/"/g, '&quot;')}"
                   oninput="updateRosterSearch(this.value)"
-                  placeholder="Search ${state.athletes.length} athletes by name, parent, position, or team…"
+                  placeholder="Search ${state.rosterFilter === 'archived' ? archivedCount + ' archived' : activeCount + ' active'} athletes by name, parent, position, or team…"
                   class="w-full pl-10 pr-4 py-2.5 rounded-2xl card-white text-[16px] sm:text-sm font-medium"
                 />
               </div>
@@ -4687,12 +4731,13 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       }
 
       // PLAYER DETAIL MODE
+      const activeTotal = state.athletes.filter(a => !a.archived).length;
       const recaps = getSortedRecapsForAthlete(sel.id, true);
       const athSessions = state.sessions.filter(s => s.athleteId === sel.id || (s.athletes && s.athletes.includes(sel.name)));
       return `
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <button onclick="state.rosterView='list'; render();" class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-full card-white text-xs font-extrabold cursor-pointer">
-            ← All Athletes (${state.athletes.length})
+          <button onclick="state.rosterView='list'; render(false);" class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-full card-white text-xs font-extrabold cursor-pointer">
+            ← All Athletes (${activeTotal})
           </button>
           <div class="flex flex-wrap items-center gap-2">
             <button onclick="openEditAthleteModal('${sel.id}')" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5 hover:border-[#010101]">${uiIcon('edit')} Edit Info</button>
@@ -4706,10 +4751,13 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           <div class="lg:col-span-5 space-y-4">
             <div class="card-mist rounded-[28px] p-6 space-y-4">
               <div class="flex items-center justify-between gap-2">
-                ${sel.ageGroup || sel.gradYear
-                  ? `<span class="px-3 py-1 rounded-full bg-white text-[#010101] text-xs font-extrabold">${[sel.ageGroup, sel.gradYear ? `Class of ${sel.gradYear}` : ''].filter(Boolean).join(' • ')}</span>`
-                  : `<span class="px-3 py-1 rounded-full bg-white/70 text-[#010101] text-xs font-extrabold">Athlete Profile</span>`
-                }
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  ${sel.ageGroup || sel.gradYear
+                    ? `<span class="px-3 py-1 rounded-full bg-white text-[#010101] text-xs font-extrabold">${[sel.ageGroup, sel.gradYear ? `Class of ${sel.gradYear}` : ''].filter(Boolean).join(' • ')}</span>`
+                    : `<span class="px-3 py-1 rounded-full bg-white/70 text-[#010101] text-xs font-extrabold">Athlete Profile</span>`
+                  }
+                  ${sel.archived ? `<span class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold">ARCHIVED</span>` : ''}
+                </div>
                 <button onclick="openEditAthleteModal('${sel.id}')" title="Edit Athlete Info" class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold cursor-pointer inline-flex items-center gap-1">${uiIcon('edit')} Edit</button>
               </div>
               <div>
@@ -4733,13 +4781,24 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                   <button onclick="openAddSessionForAthleteModal('${sel.id}')" class="px-3 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold cursor-pointer transition">
                     + Add Session
                   </button>
-                  <button onclick="state.activeSiblingId='${sel.id}'; state.role='parent'; state.parentTab='home'; render(); showToast('Viewing ${sel.name}’s Athlete Page');" class="px-3 py-1.5 rounded-xl bg-white/80 dark:bg-white/10 text-[11px] font-extrabold cursor-pointer hover:bg-white transition inline-flex items-center gap-1">
+                  <button onclick="state.activeSiblingId='${sel.id}'; state.role='parent'; state.parentTab='home'; render(false); showToast('Viewing ${sel.name}’s Athlete Page');" class="px-3 py-1.5 rounded-xl bg-white/80 dark:bg-white/10 text-[11px] font-extrabold cursor-pointer hover:bg-white transition inline-flex items-center gap-1">
                     ${uiIcon('eye')} View Page
                   </button>
                 </div>
-                <button onclick="openRemoveAthleteModal('${sel.id}')" class="px-3 py-1.5 rounded-xl text-[11px] font-extrabold text-red-600 dark:text-red-400 hover:bg-red-500/10 cursor-pointer transition">
-                  Remove
-                </button>
+                <div class="flex items-center gap-1.5">
+                  ${sel.archived ? `
+                    <button onclick="unarchiveAthlete('${sel.id}')" class="px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer hover:brightness-95 transition">
+                      Restore
+                    </button>
+                  ` : `
+                    <button onclick="archiveAthlete('${sel.id}')" class="px-3 py-1.5 rounded-xl bg-white/80 dark:bg-white/10 text-[11px] font-extrabold cursor-pointer hover:bg-white transition">
+                      Archive
+                    </button>
+                  `}
+                  <button onclick="openRemoveAthleteModal('${sel.id}')" class="px-3 py-1.5 rounded-xl text-[11px] font-extrabold text-red-600 dark:text-red-400 hover:bg-red-500/10 cursor-pointer transition">
+                    Remove
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -5689,7 +5748,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const defaultLesson = state.cal.eventTypes.find(t => t.id === presetLessonId) || state.cal.eventTypes[0];
       const defaultDur = Number(defaultLesson?.duration) || 60;
       const durations = [15, 30, 45, 60, 75, 90, 120, 180];
-      const hasAthletes = state.athletes.length > 0;
+      const activeAthletes = state.athletes.filter(a => !a.archived);
+      const hasAthletes = activeAthletes.length > 0;
       openModal(`
         <div class="flex items-start justify-between gap-2">
           <div>
@@ -5735,7 +5795,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               </div>
               <select name="athleteId" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
                 <option value="">Open Session (TBD / Group Sign-ups)</option>
-                ${state.athletes.map(a => `<option value="${a.id}">${a.name}${a.ageGroup ? ` (${a.ageGroup})` : ''}</option>`).join('')}
+                ${activeAthletes.map(a => `<option value="${a.id}">${a.name}${a.ageGroup ? ` (${a.ageGroup})` : ''}</option>`).join('')}
               </select>
             </div>
           ` : `
@@ -5999,9 +6059,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v2.6.0';
+    const APP_VERSION = 'v2.7.0';
     const APP_BUILD_DATE = 'Nov 26, 2026';
-    const APP_RELEASE_NOTES = 'Coach Reschedule / Cancel sessions, reorderable Home & Sync v2';
+    const APP_RELEASE_NOTES = 'Archive/Restore athletes, Reschedule/Cancel sessions & Sync v2';
 
     function reloadLatestAppVersion() {
       try {
