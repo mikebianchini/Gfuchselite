@@ -5281,13 +5281,13 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           updateSyncIndicators(false, 'Check SQL');
           return;
         }
-        if (data?.data && (data.data.athletes?.length || data.data.sessions?.length || data.data.sessionRecaps?.length)) {
+        if (data?.data && Array.isArray(data.data.athletes)) {
           applySyncedState(data.data);
           saveLocalState();
           updateSyncIndicators(true, 'Synced');
           render(false);
         } else if (state.athletes.length || state.sessions.length || state.sessionRecaps.length) {
-          // Cloud is empty, local has imported athletes — push up immediately!
+          // Cloud row does not exist yet, push local state up
           await pushStateToSupabase(true);
         } else {
           updateSyncIndicators(true, 'Synced');
