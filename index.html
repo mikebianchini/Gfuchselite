@@ -896,7 +896,7 @@
         ? [
             { id: 'today', label: 'Home', fullLabel: 'Home', icon: icons.home },
             { id: 'schedule', label: 'Schedule', fullLabel: 'Schedule', icon: icons.calendar },
-            { id: 'sessions', label: 'Sessions', fullLabel: 'Sessions', icon: icons.sessions },
+            { id: 'sessions', label: 'Lessons', fullLabel: 'Lessons', icon: icons.sessions },
             { id: 'athletes', label: 'Athletes', fullLabel: 'Athletes', icon: icons.athletes },
             { id: 'payments', label: 'Payments', fullLabel: 'Payments', icon: icons.wallet },
             { id: 'messaging', label: 'Messages', fullLabel: 'Messages', icon: icons.chat, badge: unread },
@@ -1412,12 +1412,16 @@
         const shortDayKey = dayParts[0] + ' ' + item.iso.split('-')[2].replace(/^0/, '');
         state.sessions.unshift({
           id: 'ses-' + Date.now() + Math.random().toString(36).slice(2, 5),
+          lessonId: item.evt.id,
+          lessonTitle: item.evt.title,
           dateIso: item.iso,
           dayKey: shortDayKey,
           day: item.dayNice,
           time: item.timeDisplay,
+          durationMin: Number(item.evt.duration) || 45,
           duration: item.evt.durationLabel.toUpperCase(),
           type: item.evt.type,
+          location: item.evt.location || '',
           focus: focusNote ? `${item.evt.title} — ${focusNote}` : item.evt.title,
           athletes: [item.athleteName],
           athleteId: item.athleteId,
@@ -1425,7 +1429,8 @@
           status: 'Confirmed',
           payment: isCash ? `Cash Due ($${itemPrice})` : `Clover Paid ($${itemPrice})`,
           price: itemPrice,
-          img: item.evt.img
+          img: item.evt.img,
+          _modifiedAt: Date.now()
         });
 
         confirmedItems.push({
@@ -1717,7 +1722,7 @@
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h1 class="text-2xl font-extrabold tracking-tight">Book Sessions</h1>
-            <p class="text-xs text-[var(--text-muted)]">Add multiple dates or class types to your cart &amp; check out in one step</p>
+            <p class="text-xs text-[var(--text-muted)]">Choose a lesson below, then pick your session dates &amp; times in one step</p>
           </div>
           ${state.cal.cart.length > 0 ? `<button onclick="state.cal.step='details'; render();" class="px-3.5 py-2 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">${uiIcon('cart')} Cart (${state.cal.cart.length})</button>` : ''}
         </div>
@@ -1837,7 +1842,7 @@
           </div>
           <div class="grid grid-cols-2 gap-2.5">
             <div class="surface-soft rounded-2xl p-3">
-              <div class="text-[11px] text-[var(--text-muted)]">Buffer Between Lessons</div>
+              <div class="text-[11px] text-[var(--text-muted)]">Buffer Between Sessions</div>
               <div class="font-extrabold text-sm mt-0.5">${state.cal.availability.bufferMin} min</div>
             </div>
             <div class="surface-soft rounded-2xl p-3">
@@ -1880,7 +1885,7 @@
             <div class="text-xs font-semibold text-[#4E6075] dark:text-[#9AC0D6]">🍀 Clover &amp; Cash receipts saved automatically</div>
           </div>
           <div class="card-white rounded-[28px] p-5 space-y-1">
-            <div class="text-xs font-bold text-[var(--text-muted)]">Cash Due at Upcoming Lessons</div>
+            <div class="text-xs font-bold text-[var(--text-muted)]">Cash Due at Upcoming Sessions</div>
             <div class="text-3xl font-extrabold tabular-nums">$${pendingCash.toLocaleString()}</div>
             <div class="text-xs font-semibold text-[var(--text-muted)]">${pendingCash > 0 ? 'Bring cash to Coach Gina at check-in' : 'All caught up — $0 due!'}</div>
           </div>
@@ -2317,25 +2322,25 @@
       openModal(`
         <div class="flex items-center justify-between">
           <div>
-            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Session / Lesson Class</div>
-            <h3 class="font-extrabold text-base mt-0.5">${existing ? 'Edit Session & Availability' : 'Add New Session Class'}</h3>
+            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Lesson Type / Class</div>
+            <h3 class="font-extrabold text-base mt-0.5">${existing ? 'Edit Lesson & Availability' : 'Add New Lesson'}</h3>
           </div>
           <button type="button" onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
         </div>
         <form onsubmit="saveClassType(event, '${existing ? existing.id : ''}')" class="space-y-3 text-xs">
           <div>
-            <label class="block text-[var(--text-muted)] font-bold mb-1">Session / Class Name *</label>
-            <input name="title" value="${existing ? existing.title.replace(/"/g, '&quot;') : ''}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold text-sm" placeholder="e.g., 45m Power Hitting Private" required />
+            <label class="block text-[var(--text-muted)] font-bold mb-1">Lesson Name *</label>
+            <input name="title" value="${existing ? existing.title.replace(/"/g, '&quot;') : ''}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold text-sm" placeholder="e.g., Individual Slapping Lesson, Small Group Hitting" required />
           </div>
           <div class="grid grid-cols-2 gap-2.5">
             <div>
-              <label class="block text-[var(--text-muted)] font-bold mb-1">Category</label>
+              <label class="block text-[var(--text-muted)] font-bold mb-1">Lesson Format</label>
               <select name="type" class="w-full px-3 py-2.5 rounded-2xl surface-soft font-semibold">
                 ${['1-on-1 Private', 'Small Group', 'Camp / Clinic'].map(t => `<option ${existing?.type === t ? 'selected' : ''}>${t}</option>`).join('')}
               </select>
             </div>
             <div>
-              <label class="block text-[var(--text-muted)] font-bold mb-1">Session Length</label>
+              <label class="block text-[var(--text-muted)] font-bold mb-1">Default Session Length</label>
               <select name="duration" class="w-full px-3 py-2.5 rounded-2xl surface-soft font-semibold">
                 ${durations.map(m => `<option value="${m}" ${(existing?.duration || 45) === m ? 'selected' : ''}>${m >= 60 && m % 60 === 0 ? `${m / 60}h (${m} min)` : `${m} min`}</option>`).join('')}
               </select>
@@ -2360,12 +2365,12 @@
           </div>
           <div>
             <label class="block text-[var(--text-muted)] font-bold mb-1">Description</label>
-            <textarea name="desc" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="What players work on in this session...">${existing ? existing.desc : ''}</textarea>
+            <textarea name="desc" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="What players work on in this lesson...">${existing ? existing.desc : ''}</textarea>
           </div>
 
-          <!-- Per-Session Availability Selector -->
+          <!-- Per-Lesson Session Availability Selector -->
           <div class="pt-2 border-t border-[var(--border-subtle)] space-y-2.5">
-            <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">When Is This Session Available?</div>
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">When Can Sessions Be Booked?</div>
             <div class="grid grid-cols-2 gap-2">
               <label class="flex items-center gap-2 p-2.5 rounded-2xl surface-soft cursor-pointer font-bold">
                 <input type="radio" name="availabilityMode" value="coach" ${availMode !== 'custom' ? 'checked' : ''} onchange="document.getElementById('class-custom-avail').classList.add('hidden')" class="accent-[#010101]" />
@@ -2403,7 +2408,7 @@
           </div>
 
           <button type="submit" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
-            ${existing ? 'Save Session Changes' : 'Add Session Class'}
+            ${existing ? 'Save Lesson Changes' : 'Add Lesson'}
           </button>
         </form>
       `);
@@ -2427,7 +2432,7 @@
         cashPrice,
         cardPrice,
         location: f.location.value.trim(),
-        desc: f.desc.value.trim() || 'Fastpitch training session with Coach Gina.',
+        desc: f.desc.value.trim() || 'Fastpitch training lesson with Coach Gina.',
         allowCredit: false,
         availabilityMode,
         availableDays: availabilityMode === 'custom' ? checkedDays : [1, 2, 3, 4, 5, 6],
@@ -2451,19 +2456,19 @@
       }
       closeModal();
       render();
-      showToast(editId ? `Updated "${payload.title}" (${durationLabel}) — synced!` : `Added "${payload.title}" (${durationLabel})!`);
+      showToast(editId ? `Updated lesson "${payload.title}" (${durationLabel}) — synced!` : `Added lesson "${payload.title}" (${durationLabel})!`);
     }
 
     function deleteClassType(id) {
       if (state.cal.eventTypes.length <= 1) {
-        showToast('Keep at least one class type active.');
+        showToast('Keep at least one lesson active.');
         return;
       }
       recordDeletedId('eventTypes', id);
       state.cal.eventTypes = state.cal.eventTypes.filter(x => x.id !== id);
       if (state.cal.eventTypeId === id) state.cal.eventTypeId = state.cal.eventTypes[0].id;
       render();
-      showToast('Class type removed.');
+      showToast('Lesson removed.');
     }
 
     function renderCoachBlocksEditor() {
@@ -2552,12 +2557,28 @@
       return `${dayText}${timeText}`;
     }
 
+    function getSessionsForLesson(lesson) {
+      if (!lesson) return [];
+      const titleLow = (lesson.title || '').toLowerCase();
+      return (state.sessions || [])
+        .filter(s => {
+          if (s.status === 'Canceled') return false;
+          if (s.lessonId && s.lessonId === lesson.id) return true;
+          if (s.lessonTitle && s.lessonTitle.toLowerCase() === titleLow) return true;
+          if (!s.lessonId && titleLow && (s.focus || '').toLowerCase().startsWith(titleLow)) return true;
+          return false;
+        })
+        .sort((a, b) => String(a.dateIso || '').localeCompare(String(b.dateIso || '')) || String(a.time || '').localeCompare(String(b.time || '')));
+    }
+
     function renderCoachClassTypes(filterCat = 'all') {
       const all = state.cal.eventTypes || [];
       const list = filterCat === 'all' ? all : all.filter(t => t.type === filterCat);
       return `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          ${list.length ? list.map(t => `
+          ${list.length ? list.map(t => {
+            const lessonSessions = getSessionsForLesson(t);
+            return `
             <div class="card-white rounded-[26px] overflow-hidden flex flex-col justify-between">
               <div>
                 <div class="relative h-32">
@@ -2579,10 +2600,28 @@
                   <p class="text-xs text-[var(--text-muted)] leading-relaxed">${t.desc}</p>
                   <div class="surface-soft rounded-2xl p-2.5 flex items-center justify-between gap-2 text-[11px]">
                     <div class="min-w-0">
-                      <span class="font-extrabold uppercase tracking-wider text-[10px] text-[#4E6075] dark:text-[#9AC0D6]">Availability</span>
+                      <span class="font-extrabold uppercase tracking-wider text-[10px] text-[#4E6075] dark:text-[#9AC0D6]">Booking Availability</span>
                       <div class="font-bold truncate mt-0.5">${formatSessionAvailabilitySummary(t)}</div>
                     </div>
                     <button onclick="openClassTypeModal('${t.id}')" class="px-2.5 py-1 rounded-xl card-white text-[10px] font-extrabold shrink-0 cursor-pointer hover:border-[#010101]">Change</button>
+                  </div>
+                  <!-- Scheduled Sessions under this Lesson -->
+                  <div class="surface-soft rounded-2xl p-2.5 space-y-2 text-[11px]">
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="font-extrabold uppercase tracking-wider text-[10px] text-[#4E6075] dark:text-[#9AC0D6]">Scheduled Sessions (${lessonSessions.length})</span>
+                      <button onclick="openAddSessionModal(null, '${t.id}')" class="px-2.5 py-1 rounded-xl bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold shrink-0 cursor-pointer hover:brightness-95">+ Add Session</button>
+                    </div>
+                    ${lessonSessions.length ? `
+                      <div class="space-y-1">
+                        ${lessonSessions.slice(0, 3).map(s => `
+                          <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl card-white">
+                            <span class="font-extrabold truncate">${s.day || s.dateIso || 'Scheduled'} • ${s.time} (${s.duration})</span>
+                            <span class="text-[10px] font-bold text-[var(--text-muted)] truncate max-w-[120px]">${(s.athletes && s.athletes.length) ? s.athletes.join(', ') : 'Open Session'}</span>
+                          </div>
+                        `).join('')}
+                        ${lessonSessions.length > 3 ? `<button onclick="setTab('schedule')" class="text-[10px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer pl-1">+${lessonSessions.length - 3} more on Schedule →</button>` : ''}
+                      </div>
+                    ` : `<div class="text-[11px] text-[var(--text-muted)]">No sessions scheduled for this lesson yet.</div>`}
                   </div>
                 </div>
               </div>
@@ -2590,14 +2629,15 @@
                 <button onclick="copyCalLink('${t.slug}')" class="text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer inline-flex items-center gap-1">${uiIcon('link')} Copy Link</button>
                 <div class="flex items-center gap-1.5">
                   <button onclick="openClassTypeModal('${t.id}')" class="px-3 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Edit</button>
-                  <button onclick="deleteClassType('${t.id}')" title="Remove session class" class="px-3 py-1.5 rounded-xl surface-soft text-xs font-extrabold text-red-600 dark:text-red-400 hover:bg-red-500/10 cursor-pointer">Remove</button>
+                  <button onclick="deleteClassType('${t.id}')" title="Remove lesson" class="px-3 py-1.5 rounded-xl surface-soft text-xs font-extrabold text-red-600 dark:text-red-400 hover:bg-red-500/10 cursor-pointer">Remove</button>
                 </div>
               </div>
             </div>
-          `).join('') : `
+          `;
+          }).join('') : `
             <div class="md:col-span-2 card-white rounded-[26px] p-8 text-center space-y-2.5">
-              <div class="font-extrabold text-sm">No session classes in this category yet</div>
-              <button onclick="openClassTypeModal(null)" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Add Session Class</button>
+              <div class="font-extrabold text-sm">No lessons in this category yet</div>
+              <button onclick="openClassTypeModal(null)" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Add Lesson</button>
             </div>
           `}
         </div>
@@ -2609,8 +2649,9 @@
       const all = state.cal.eventTypes || [];
       const privates = all.filter(t => t.type === '1-on-1 Private').length;
       const groupsClinics = all.length - privates;
+      const totalScheduledSessions = (state.sessions || []).filter(s => s.status !== 'Canceled').length;
       const cats = [
-        { id: 'all', label: `All (${all.length})` },
+        { id: 'all', label: `All Lessons (${all.length})` },
         { id: '1-on-1 Private', label: '1-on-1 Privates' },
         { id: 'Small Group', label: 'Small Groups' },
         { id: 'Camp / Clinic', label: 'Camps & Clinics' }
@@ -2620,27 +2661,32 @@
         <div class="card-mist rounded-[28px] p-5 sm:p-6 space-y-5">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Lesson &amp; Class Catalog</div>
-              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">Sessions</h1>
-              <p class="text-xs text-[var(--text-muted)] mt-0.5">Add, remove, or set custom days &amp; hours for every lesson class</p>
+              <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Lesson Types &amp; Classes</div>
+              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">Lessons</h1>
+              <p class="text-xs text-[var(--text-muted)] mt-0.5">Create lesson types (1-on-1, slapping, small groups) and schedule timed sessions for each lesson</p>
             </div>
-            <button onclick="openClassTypeModal(null)" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition self-start sm:self-auto">
-              + Add Session Class
-            </button>
+            <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+              <button onclick="openAddSessionModal()" class="px-4 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer shadow-sm hover:opacity-90 transition">
+                + Schedule Session
+              </button>
+              <button onclick="openClassTypeModal(null)" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition">
+                + Add Lesson
+              </button>
+            </div>
           </div>
 
           <div class="grid grid-cols-3 gap-2.5">
             <div class="card-white rounded-2xl p-3.5">
-              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Total Classes</div>
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Total Lessons</div>
               <div class="text-2xl font-extrabold mt-0.5">${all.length}</div>
             </div>
             <div class="card-white rounded-2xl p-3.5">
-              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">1-on-1 Privates</div>
-              <div class="text-2xl font-extrabold mt-0.5">${privates}</div>
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">1-on-1 / Groups</div>
+              <div class="text-2xl font-extrabold mt-0.5">${privates} / ${groupsClinics}</div>
             </div>
             <div class="card-white rounded-2xl p-3.5">
-              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Groups / Clinics</div>
-              <div class="text-2xl font-extrabold mt-0.5">${groupsClinics}</div>
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Scheduled Sessions</div>
+              <div class="text-2xl font-extrabold mt-0.5">${totalScheduledSessions}</div>
             </div>
           </div>
 
@@ -2697,19 +2743,24 @@
     }
 
     function renderCoachSessionRow(s, showDate = false) {
+      const lessonLabel = s.lessonTitle || s.focus;
+      const customFocus = s.lessonTitle && s.focus && s.focus !== s.lessonTitle ? s.focus : '';
+      const athDisplay = (s.athletes && s.athletes.length)
+        ? s.athletes.join(', ')
+        : `Open Session (0/${s.spotsMax || 1} spots)`;
       return `
         <div class="card-white rounded-[24px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div class="flex items-center gap-3.5 min-w-0">
             <img src="${s.img || 'assets/images/fastpitch-hitter.jpg'}" class="w-14 h-14 rounded-2xl object-cover shrink-0" alt="Fastpitch softball training" loading="lazy" decoding="async" />
             <div class="min-w-0">
               <div class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${showDate && s.day ? `${s.day} • ` : ''}${s.time} • ${s.duration} • ${s.type}</div>
-              <div class="font-extrabold text-sm truncate">${s.focus}</div>
-              <div class="text-xs text-[var(--text-muted)] truncate">${(s.athletes || []).join(', ')} • ${s.payment || 'Scheduled'}</div>
+              <div class="font-extrabold text-sm truncate">${lessonLabel}${customFocus ? ` — ${customFocus}` : ''}</div>
+              <div class="text-xs text-[var(--text-muted)] truncate">${athDisplay} • ${s.payment || 'Scheduled'}</div>
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-2 shrink-0">
-            <button onclick="openSessionRecapModal('${s.athleteId || ''}', '${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5">${uiIcon('note')} Notes</button>
-            <button onclick="openCalendarSyncModal('${s.id}')" title="Add lesson to Apple / Google / Outlook Calendar" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer hover:border-[#010101]">+ Cal</button>
+            ${s.athleteId ? `<button onclick="openSessionRecapModal('${s.athleteId}', '${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5">${uiIcon('note')} Notes</button>` : ''}
+            <button onclick="openCalendarSyncModal('${s.id}')" title="Add session to Apple / Google / Outlook Calendar" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer hover:border-[#010101]">+ Cal</button>
             ${s.status === 'Canceled' ? `<span class="px-2.5 py-1.5 rounded-xl bg-[#D6DFE2] text-[#010101] text-[11px] font-extrabold">Canceled</span>` : ''}
             ${s.athleteId ? `<button onclick="jumpToAthlete('${s.athleteId}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">Profile</button>` : ''}
           </div>
@@ -2933,7 +2984,7 @@
           ` : `
             <div class="card-white rounded-[24px] p-6 text-center space-y-2.5">
               <div class="font-extrabold text-sm">${activeDayFilter === 'all7' ? 'No sessions scheduled in the next 7 days' : 'No sessions on this day'}</div>
-              <p class="text-xs text-[var(--text-muted)]">Tap below to manually add a lesson to the schedule.</p>
+              <p class="text-xs text-[var(--text-muted)]">Tap below to schedule a session for any lesson.</p>
               <div class="pt-1">
                 <button onclick="openAddSessionModal('${activeDayFilter === 'all7' ? today.iso : activeDayFilter}')" class="px-4 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">+ Add Session</button>
               </div>
@@ -3292,47 +3343,63 @@
       showToast(`Removed ${ath.name} from roster.`);
     }
 
-    function openAddSessionForAthleteModal(athId, presetDate = null) {
+    function syncSessionDurationFromLesson(selectEl) {
+      const form = selectEl?.form;
+      if (!form || !form.durationMin) return;
+      const evt = state.cal.eventTypes.find(t => t.id === selectEl.value);
+      if (evt?.duration) form.durationMin.value = String(evt.duration);
+    }
+
+    function openAddSessionForAthleteModal(athId, presetDate = null, presetLessonId = null) {
       const ath = state.athletes.find(a => a.id === athId);
       if (!ath) return;
       const defaultDate = presetDate || getTodayIsoEst();
+      const defaultLesson = state.cal.eventTypes.find(t => t.id === presetLessonId) || state.cal.eventTypes[0];
+      const defaultDur = Number(defaultLesson?.duration) || 60;
+      const durations = [15, 30, 45, 60, 75, 90, 120, 180];
       openModal(`
         <div class="flex items-start justify-between gap-2">
           <div>
-            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Schedule for Player</div>
-            <h3 class="font-extrabold text-base mt-0.5">+ Add Session — ${ath.name}</h3>
+            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Schedule Session</div>
+            <h3 class="font-extrabold text-base mt-0.5">+ Schedule Session — ${ath.name}</h3>
           </div>
           <button type="button" onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
         </div>
 
         <form onsubmit="submitAddSessionForAthlete(event, '${ath.id}')" class="space-y-3 text-xs">
           <div>
-            <label class="block font-bold text-[var(--text-muted)] mb-1">Class Type &amp; Length *</label>
-            <select name="eventTypeId" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
-              ${state.cal.eventTypes.map(t => `<option value="${t.id}">${t.title} (${t.durationLabel} • ${formatDualPrice(t)})</option>`).join('')}
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Lesson *</label>
+            <select name="eventTypeId" onchange="syncSessionDurationFromLesson(this)" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
+              ${state.cal.eventTypes.map(t => `<option value="${t.id}" ${defaultLesson?.id === t.id ? 'selected' : ''}>${t.title} (${t.durationLabel} • ${formatDualPrice(t)})</option>`).join('')}
             </select>
           </div>
 
-          <div class="grid grid-cols-2 gap-2.5">
+          <div class="grid grid-cols-3 gap-2">
             <div>
               <label class="block font-bold text-[var(--text-muted)] mb-1">Date *</label>
-              <input name="date" type="date" value="${defaultDate}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm" required />
+              <input name="date" type="date" value="${defaultDate}" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs" required />
             </div>
             <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Start Time (EST) *</label>
-              <input name="time" type="time" value="16:00" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm" required />
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Start (EST) *</label>
+              <input name="time" type="time" value="16:00" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs" required />
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Length *</label>
+              <select name="durationMin" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs">
+                ${durations.map(m => `<option value="${m}" ${defaultDur === m ? 'selected' : ''}>${m >= 60 && m % 60 === 0 ? `${m / 60}h` : `${m}m`}</option>`).join('')}
+              </select>
             </div>
           </div>
 
           <div>
-            <label class="block font-bold text-[var(--text-muted)] mb-1">Session Focus (Optional)</label>
-            <input name="focus" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm" placeholder="e.g., Variability Hitting & Barrel Control" />
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Session Notes / Focus (Optional)</label>
+            <input name="focus" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm" placeholder="e.g., Footwork, Bunting & Live Pitch Slapping" />
           </div>
 
           <div>
             <label class="block font-bold text-[var(--text-muted)] mb-1">Payment Status</label>
             <select name="paymentMode" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
-              <option value="cash-pending">Cash at Lesson (Pending — Cash Price)</option>
+              <option value="cash-pending">Cash at Session (Pending — Cash Price)</option>
               <option value="cash-paid">Cash Collected ✓ (Cash Price)</option>
               <option value="clover-paid">Clover Card Paid ✓ (Card Price)</option>
               <option value="venmo-paid">Venmo / Zelle Logged ✓ (Cash Price)</option>
@@ -3341,14 +3408,14 @@
 
           <label class="flex items-center justify-between gap-3 p-3 rounded-2xl card-mist cursor-pointer">
             <div>
-              <div class="font-extrabold">Notify ${ath.parentName}</div>
-              <div class="text-[11px] text-[var(--text-muted)]">Sends date &amp; time confirmation to ${ath.parentPhone}</div>
+              <div class="font-extrabold">Notify ${ath.parentName || ath.name}</div>
+              <div class="text-[11px] text-[var(--text-muted)]">Logs session confirmation${ath.parentPhone ? ` for ${ath.parentPhone}` : ' in Coach Messages'}</div>
             </div>
             <input type="checkbox" name="notify" checked class="w-5 h-5 accent-[#010101]" />
           </label>
 
           <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
-            + Add Session to ${ath.name.split(' ')[0]}’s Profile
+            + Schedule Session for ${ath.name.split(' ')[0]}
           </button>
         </form>
       `);
@@ -3356,8 +3423,7 @@
 
     function submitAddSessionForAthlete(e, athId) {
       e.preventDefault();
-      const ath = state.athletes.find(a => a.id === athId);
-      if (!ath) return;
+      const ath = athId ? state.athletes.find(a => a.id === athId) : null;
       const f = e.target;
       const evt = state.cal.eventTypes.find(t => t.id === f.eventTypeId.value) || state.cal.eventTypes[0];
       const iso = f.date.value;
@@ -3369,66 +3435,80 @@
       const dObj = new Date(iso + 'T12:00:00');
       const dayNice = dObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       const dayKey = dObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }).replace(',', '');
+      const durMin = Number(f.durationMin?.value) || Number(evt?.duration) || 45;
+      const durLabel = durMin >= 60 && durMin % 60 === 0 ? `${durMin / 60}H` : `${durMin}M`;
       const focus = f.focus.value.trim() || evt.title;
       const payMode = f.paymentMode.value;
       const isCard = payMode === 'clover-paid';
       const appliedPrice = isCard ? getCardPrice(evt) : getCashPrice(evt);
-      const payLabel = payMode === 'cash-pending' ? `Cash at Lesson ($${appliedPrice})`
+      const payLabel = !ath ? `${formatDualPrice(evt)}`
+        : payMode === 'cash-pending' ? `Cash at Session ($${appliedPrice})`
         : payMode === 'cash-paid' ? `Cash Paid ($${appliedPrice})`
         : payMode === 'clover-paid' ? `Clover Paid ($${appliedPrice})`
         : `Venmo/Zelle ($${appliedPrice})`;
 
-      // 1. Add session to shared schedule (syncs to Coach Home, Coach Roster & Athlete Portal)
+      // 1. Add session linked to its parent Lesson
       state.sessions.unshift({
         id: 'ses-' + Date.now(),
+        lessonId: evt.id,
+        lessonTitle: evt.title,
         dateIso: iso,
         dayKey,
         day: dayNice,
         time: timeNice,
-        duration: evt.durationLabel.toUpperCase(),
+        durationMin: durMin,
+        duration: durLabel,
         type: evt.type,
+        location: evt.location || '',
         focus,
-        athletes: [ath.name],
-        athleteId: ath.id,
-        spotsMax: evt.type === 'Small Group' ? 6 : 1,
+        athletes: ath ? [ath.name] : [],
+        athleteId: ath ? ath.id : null,
+        spotsMax: evt.type === 'Small Group' ? 6 : evt.type === 'Camp / Clinic' ? 16 : 1,
         status: 'Confirmed',
         payment: payLabel,
         price: appliedPrice,
-        img: evt.img || getAthleteCoverImg(ath)
+        img: evt.img || (ath ? getAthleteCoverImg(ath) : 'assets/images/fastpitch-hitter.jpg'),
+        _modifiedAt: Date.now()
       });
 
       // 2. Block slot on Coach Gina's live booking calendar
       const slotKey = `${iso}@${hm}`;
       if (!state.cal.bookedSlots.includes(slotKey)) state.cal.bookedSlots.push(slotKey);
 
-      // 3. Log payment entry in Coach Payments
-      state.payments.unshift({
-        id: 'pay-' + Date.now(),
-        date: dObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        family: `${(ath.parentName || ath.name).split(' ').slice(-1)[0]} Family`,
-        item: `${focus} (${ath.name.split(' ')[0]})`,
-        amount: appliedPrice,
-        method: payMode === 'cash-pending' ? 'Cash at Lesson' : payMode === 'cash-paid' ? 'Cash (Collected ✓)' : payMode === 'clover-paid' ? 'Clover • Card' : 'Venmo / Zelle (Logged)',
-        status: payMode === 'cash-pending' ? 'Pending Cash' : 'Paid'
-      });
+      // 3. Log payment entry if an athlete is assigned
+      if (ath) {
+        state.payments.unshift({
+          id: 'pay-' + Date.now(),
+          date: dObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          family: `${(ath.parentName || ath.name).split(' ').slice(-1)[0]} Family`,
+          item: `${evt.title} (${ath.name.split(' ')[0]})`,
+          amount: appliedPrice,
+          method: payMode === 'cash-pending' ? 'Cash at Session' : payMode === 'cash-paid' ? 'Cash (Collected ✓)' : payMode === 'clover-paid' ? 'Clover • Card' : 'Venmo / Zelle (Logged)',
+          status: payMode === 'cash-pending' ? 'Pending Cash' : 'Paid',
+          _modifiedAt: Date.now()
+        });
+      }
 
       // 4. Optional confirmation message to parent
-      if (f.notify.checked) {
-        let thread = state.threads.find(t => t.parent === ath.parentName);
+      if (ath && f.notify?.checked) {
+        const parentKey = ath.parentName || ath.name;
+        let thread = state.threads.find(t => t.parent === parentKey);
         if (!thread) {
-          thread = { id: 'msg-' + Date.now(), parent: ath.parentName, athletes: ath.name, unread: 0, messages: [] };
+          thread = { id: 'msg-' + Date.now(), parent: parentKey, athletes: ath.name, unread: 0, messages: [] };
           state.threads.unshift(thread);
         }
         thread.messages.push({
           from: 'coach',
           time: 'Just now',
-          text: `Scheduled ${ath.name.split(' ')[0]} for ${focus} on ${dayNice} at ${timeNice} EST (${payLabel}). See you in the cage!`
+          text: `Scheduled ${ath.name.split(' ')[0]} for ${evt.title} session on ${dayNice} at ${timeNice} EST (${durLabel.toLowerCase()}, ${payLabel}). See you in the cage!`
         });
       }
 
       closeModal();
       render();
-      showToast(`Added ${focus} on ${dayNice} at ${timeNice} to ${ath.name.split(' ')[0]}’s profile!`);
+      showToast(ath
+        ? `Scheduled ${evt.title} session on ${dayNice} at ${timeNice} for ${ath.name.split(' ')[0]}!`
+        : `Scheduled ${evt.title} session on ${dayNice} at ${timeNice} (${durLabel.toLowerCase()})!`);
       if (state.cal?.calendarSync?.autoPrompt && state.sessions[0]?.id) {
         openCalendarSyncModal(state.sessions[0].id);
       }
@@ -5288,63 +5368,76 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     }
     function uploadParentVideo(e, athId) { e.preventDefault(); const ath = state.athletes.find(a => a.id === athId); state.videos.unshift({ id: 'v' + Date.now(), athleteId: ath.id, athleteName: ath.name, title: e.target.title.value, uploadedAt: 'Just now', status: 'Needs Review', img: 'assets/images/fastpitch-fielding.jpg', cues: [] }); render(); showToast('Clip uploaded!'); }
     function saveParentProfile(e, athId) { e.preventDefault(); const ath = state.athletes.find(a => a.id === athId); ath.emergencyContact = e.target.emergency.value; ath.medicalNotes = e.target.medical.value; ath.waiverSigned = true; ath.waiverDate = 'Today'; render(); showToast('Profile & waiver saved!'); }
-    function openAddSessionModal(presetDate = null) {
+    function openAddSessionModal(presetDate = null, presetLessonId = null) {
       const defaultDate = presetDate || getTodayIsoEst();
+      const defaultLesson = state.cal.eventTypes.find(t => t.id === presetLessonId) || state.cal.eventTypes[0];
+      const defaultDur = Number(defaultLesson?.duration) || 60;
+      const durations = [15, 30, 45, 60, 75, 90, 120, 180];
       const hasAthletes = state.athletes.length > 0;
       openModal(`
         <div class="flex items-start justify-between gap-2">
           <div>
-            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Manual Schedule</div>
-            <h3 class="font-extrabold text-base mt-0.5">+ Add Session</h3>
+            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Schedule a Timed Session</div>
+            <h3 class="font-extrabold text-base mt-0.5">+ Schedule Session</h3>
           </div>
           <button type="button" onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
         </div>
 
         <form onsubmit="submitQuickAddSession(event)" class="space-y-3 text-xs">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="font-bold text-[var(--text-muted)]">Lesson *</label>
+              <button type="button" onclick="closeModal(); openClassTypeModal(null);" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">+ New Lesson</button>
+            </div>
+            <select name="eventTypeId" onchange="syncSessionDurationFromLesson(this)" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
+              ${state.cal.eventTypes.map(t => `<option value="${t.id}" ${defaultLesson?.id === t.id ? 'selected' : ''}>${t.title} (${t.durationLabel} • ${formatDualPrice(t)})</option>`).join('')}
+            </select>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Date *</label>
+              <input name="date" type="date" value="${defaultDate}" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs" required />
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Start (EST) *</label>
+              <input name="time" type="time" value="16:00" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs" required />
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Length *</label>
+              <select name="durationMin" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs">
+                ${durations.map(m => `<option value="${m}" ${defaultDur === m ? 'selected' : ''}>${m >= 60 && m % 60 === 0 ? `${m / 60}h` : `${m}m`}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+
           ${hasAthletes ? `
             <div>
               <div class="flex items-center justify-between mb-1">
-                <label class="font-bold text-[var(--text-muted)]">Select Athlete *</label>
+                <label class="font-bold text-[var(--text-muted)]">Athlete (or Open Group Session)</label>
                 <button type="button" onclick="closeModal(); openAddAthleteModal(null);" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">+ New Athlete</button>
               </div>
-              <select name="athleteId" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm" required>
-                ${state.athletes.map(a => `<option value="${a.id}">${a.name} (${a.ageGroup || '14U'})</option>`).join('')}
+              <select name="athleteId" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
+                <option value="">Open Session (TBD / Group Sign-ups)</option>
+                ${state.athletes.map(a => `<option value="${a.id}">${a.name}${a.ageGroup ? ` (${a.ageGroup})` : ''}</option>`).join('')}
               </select>
             </div>
           ` : `
             <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Athlete Name * <span class="font-normal">(will be added to Roster)</span></label>
-              <input name="newAthleteName" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold text-sm" placeholder="e.g., Kylie Morgan" required />
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Athlete Name <span class="font-normal">(optional — leave blank for Open Session)</span></label>
+              <input name="newAthleteName" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold text-sm" placeholder="e.g., Kylie Morgan" />
             </div>
           `}
 
           <div>
-            <label class="block font-bold text-[var(--text-muted)] mb-1">Class Type &amp; Length *</label>
-            <select name="eventTypeId" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
-              ${state.cal.eventTypes.map(t => `<option value="${t.id}">${t.title} (${t.durationLabel} • ${formatDualPrice(t)})</option>`).join('')}
-            </select>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2.5">
-            <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Date *</label>
-              <input name="date" type="date" value="${defaultDate}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm" required />
-            </div>
-            <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Start Time (EST) *</label>
-              <input name="time" type="time" value="16:00" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm" required />
-            </div>
-          </div>
-
-          <div>
-            <label class="block font-bold text-[var(--text-muted)] mb-1">Session Focus (Optional)</label>
-            <input name="focus" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm" placeholder="e.g., Variability Hitting & Barrel Control" />
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Session Notes / Focus (Optional)</label>
+            <input name="focus" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm" placeholder="e.g., Slapping Footwork & Live Pitch Timing" />
           </div>
 
           <div>
             <label class="block font-bold text-[var(--text-muted)] mb-1">Payment Status</label>
             <select name="paymentMode" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
-              <option value="cash-pending">Cash at Lesson (Pending — Cash Price)</option>
+              <option value="cash-pending">Cash at Session (Pending — Cash Price)</option>
               <option value="cash-paid">Cash Collected ✓ (Cash Price)</option>
               <option value="clover-paid">Clover Card Paid ✓ (Card Price)</option>
               <option value="venmo-paid">Venmo / Zelle Logged ✓ (Cash Price)</option>
@@ -5354,7 +5447,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           <label class="flex items-center justify-between gap-3 p-3 rounded-2xl card-mist cursor-pointer">
             <div>
               <div class="font-extrabold">Send Parent Confirmation</div>
-              <div class="text-[11px] text-[var(--text-muted)]">Logs date &amp; time in Coach Messages</div>
+              <div class="text-[11px] text-[var(--text-muted)]">Logs session date &amp; time in Coach Messages (when athlete selected)</div>
             </div>
             <input type="checkbox" name="notify" checked class="w-5 h-5 accent-[#010101]" />
           </label>
@@ -5369,10 +5462,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     function submitQuickAddSession(e) {
       e.preventDefault();
       const f = e.target;
-      let athId = f.athleteId ? f.athleteId.value : null;
-      if (!athId && f.newAthleteName) {
+      let athId = f.athleteId ? (f.athleteId.value || null) : null;
+      if (!athId && f.newAthleteName && f.newAthleteName.value.trim()) {
         const name = f.newAthleteName.value.trim();
-        if (!name) return;
         const parts = name.split(/\s+/);
         const initials = ((parts[0]?.[0] || '') + (parts[1]?.[0] || parts[0]?.[1] || '')).toUpperCase() || 'EF';
         athId = 'ath-' + Date.now();
@@ -5381,29 +5473,29 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           initials,
           name,
           familyId: 'fam-' + Date.now(),
-          parentName: 'Parent / Guardian',
-          parentPhone: '(412) 555-0100',
-          ageGroup: '14U',
-          gradYear: 2030,
-          position: 'Hitter / Utility',
-          batsThrows: 'R / R',
-          team: 'Gina Fuchs Elite Fastpitch',
+          parentName: '',
+          parentPhone: '',
+          ageGroup: '',
+          gradYear: '',
+          position: '',
+          batsThrows: '',
+          team: '',
           height: '',
-          streakDays: 1,
+          streakDays: 0,
           weeklyReps: 0,
-          weeklyDuration: '0:00 hours',
+          weeklyDuration: '',
           waiverSigned: false,
           waiverDate: null,
-          emergencyContact: 'Not set yet',
-          medicalNotes: 'None reported',
+          emergencyContact: '',
+          medicalNotes: '',
           pitches: [],
           notes: [],
-          drills: []
+          drills: [],
+          _modifiedAt: Date.now()
         });
         if (!state.selectedAthleteId) state.selectedAthleteId = athId;
         if (!state.activeSiblingId) state.activeSiblingId = athId;
       }
-      if (!athId) return;
       submitAddSessionForAthlete(e, athId);
     }
 
@@ -5611,7 +5703,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 class="text-base font-extrabold">Facility Locations (${locations.length})</h2>
-                  <p class="text-xs text-[var(--text-muted)] mt-0.5">Add cages, indoor facilities, or fields — available to select on all session classes</p>
+                  <p class="text-xs text-[var(--text-muted)] mt-0.5">Add cages, indoor facilities, or fields — available to select on all lessons</p>
                 </div>
                 <button onclick="openLocationModal(null)" class="px-4 py-2 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition">
                   + Add Location
@@ -6492,7 +6584,7 @@ create policy "Allow media update" on storage.objects
 
         <label class="flex items-center justify-between gap-3 p-3.5 rounded-2xl card-mist cursor-pointer">
           <div>
-            <div class="font-extrabold text-xs">Available for Lessons</div>
+            <div class="font-extrabold text-xs">Available for Sessions</div>
             <div class="text-[11px] text-[var(--text-muted)]">${off ? 'Currently marked as Day Off / Closed' : `${blocks.length} open time block${blocks.length === 1 ? '' : 's'} set`}</div>
           </div>
           <input type="checkbox" ${!off ? 'checked' : ''} onchange="toggleDayAvailOpen(this.checked)" class="w-5 h-5 accent-[#010101]" />
@@ -6601,13 +6693,16 @@ create policy "Allow media update" on storage.objects
         mm = Number(m24[2]);
       }
 
-      // Parse duration like "45M", "60 MIN", "3H"
-      let durMin = 45;
-      const durStr = String(s.duration || '45M').toUpperCase();
-      const dm = durStr.match(/(\d+)\s*M/);
-      const dh = durStr.match(/(\d+)\s*H/);
-      if (dm) durMin = Number(dm[1]);
-      else if (dh) durMin = Number(dh[1]) * 60;
+      // Parse duration from durationMin or string like "45M", "60 MIN", "1H"
+      let durMin = Number(s.durationMin) || 0;
+      if (!durMin) {
+        durMin = 45;
+        const durStr = String(s.duration || '45M').toUpperCase();
+        const dm = durStr.match(/(\d+)\s*M/);
+        const dh = durStr.match(/(\d+)\s*H/);
+        if (dm) durMin = Number(dm[1]);
+        else if (dh) durMin = Number(dh[1]) * 60;
+      }
 
       const startDt = new Date(y, m - 1, d, hh, mm, 0);
       const endDt = new Date(startDt.getTime() + durMin * 60000);
@@ -6624,7 +6719,7 @@ create policy "Allow media update" on storage.objects
         .replace(/,/g, '\\,');
     }
 
-    function buildIcsCalendar(sessionsList, calName = 'Gina Fuchs Elite Fastpitch Lessons') {
+    function buildIcsCalendar(sessionsList, calName = 'Gina Fuchs Elite Fastpitch Schedule') {
       const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
       const defaultLoc = state.cal?.locations?.[0]?.name || 'Gina Fuchs Elite Facility';
       const lines = [
@@ -6643,11 +6738,13 @@ create policy "Allow media update" on storage.objects
         if (s.status === 'Canceled') return;
         const { startLocal, endLocal } = parseSessionDateTimeRange(s);
         const players = (s.athletes || []).join(', ');
-        const summary = players ? `${players} — ${s.focus || s.type || 'Fastpitch Lesson'}` : (s.focus || 'Fastpitch Lesson');
+        const lessonName = s.lessonTitle || s.focus || s.type || 'Fastpitch Lesson';
+        const summary = players ? `${lessonName} — ${players}` : lessonName;
         const desc = [
-          `Session: ${s.focus || s.type || 'Fastpitch Lesson'}`,
-          players ? `Athlete: ${players}` : '',
-          s.type ? `Type: ${s.type}` : '',
+          `Lesson: ${lessonName}`,
+          s.focus && s.focus !== lessonName ? `Session Focus: ${s.focus}` : '',
+          players ? `Athlete: ${players}` : 'Open Session',
+          s.type ? `Format: ${s.type}` : '',
           s.payment ? `Payment: ${s.payment}` : ''
         ].filter(Boolean).join('\n');
         const loc = s.location || defaultLoc;
@@ -6832,7 +6929,7 @@ create policy "Allow media update" on storage.objects
               <span class="px-2 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">AUTO-UPDATES ✓</span>
             </div>
             <p class="text-[11px] text-[var(--text-muted)] leading-relaxed">
-              Subscribe once — every time you add, edit, or cancel a lesson, this live feed updates automatically in <strong>Apple Calendar</strong>, <strong>Google Calendar</strong>, and <strong>Outlook</strong>.
+              Subscribe once — every time you add, edit, or cancel a session, this live feed updates automatically in <strong>Apple Calendar</strong>, <strong>Google Calendar</strong>, and <strong>Outlook</strong>.
             </p>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <a href="${webcalFeed}" class="py-2.5 px-3 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold text-center hover:opacity-90 transition">
@@ -6853,23 +6950,23 @@ create policy "Allow media update" on storage.objects
         <div class="p-3.5 rounded-2xl surface-soft flex items-center justify-between gap-3 text-xs">
           <div>
             <div class="font-extrabold">Manual Export (.ics)</div>
-            <div class="text-[11px] text-[var(--text-muted)]">${activeSessions.length} scheduled lesson${activeSessions.length === 1 ? '' : 's'} • Pittsburgh EST</div>
+            <div class="text-[11px] text-[var(--text-muted)]">${activeSessions.length} scheduled session${activeSessions.length === 1 ? '' : 's'} • Pittsburgh EST</div>
           </div>
           <button type="button" onclick="downloadAllLessonsIcs()" class="px-3.5 py-2 rounded-xl card-white text-xs font-extrabold cursor-pointer hover:border-[#010101] shrink-0">
             Download .ics
           </button>
         </div>
 
-        <!-- Upcoming Lessons Quick Add to Google / Apple -->
+        <!-- Upcoming Sessions Quick Add to Google / Apple -->
         ${!focusSession && activeSessions.length ? `
           <div class="space-y-2 text-xs">
-            <div class="font-extrabold">Quick-Add Individual Lessons</div>
+            <div class="font-extrabold">Quick-Add Individual Sessions</div>
             <div class="max-h-36 overflow-y-auto space-y-1.5">
               ${activeSessions.slice(0, 8).map(s => `
                 <div class="surface-soft rounded-2xl p-2.5 flex items-center justify-between gap-2">
                   <div class="min-w-0">
-                    <div class="font-extrabold truncate">${(s.athletes || []).join(', ') || s.focus}</div>
-                    <div class="text-[10px] text-[var(--text-muted)]">${s.day || s.dateIso || ''} • ${s.time}</div>
+                    <div class="font-extrabold truncate">${s.lessonTitle || s.focus}${(s.athletes && s.athletes.length) ? ` — ${s.athletes.join(', ')}` : ''}</div>
+                    <div class="text-[10px] text-[var(--text-muted)]">${s.day || s.dateIso || ''} • ${s.time} (${s.duration})</div>
                   </div>
                   <div class="flex items-center gap-1 shrink-0">
                     <a href="${getGoogleCalendarUrl(s)}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold">Google ↗</a>
@@ -6961,17 +7058,17 @@ create policy "Allow media update" on storage.objects
               </button>
             </div>
 
-            <!-- Scheduled Lessons for This Day -->
+            <!-- Scheduled Sessions for This Day -->
             <div class="lg:col-span-8 space-y-3">
               <div class="flex items-center justify-between">
-                <h2 class="text-base font-extrabold">Scheduled Lessons (${daySessions.length})</h2>
-                <button onclick="openAddSessionModal('${anchorIso}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Add Session</button>
+                <h2 class="text-base font-extrabold">Scheduled Sessions (${daySessions.length})</h2>
+                <button onclick="openAddSessionModal('${anchorIso}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Schedule Session</button>
               </div>
               ${daySessions.length ? daySessions.map(s => renderCoachSessionRow(s, false)).join('') : `
                 <div class="card-white rounded-[24px] p-8 text-center space-y-2.5">
-                  <div class="font-extrabold text-sm">No lessons scheduled on this day</div>
-                  <p class="text-xs text-[var(--text-muted)]">Tap below to manually add a lesson for ${anchorDt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.</p>
-                  <button onclick="openAddSessionModal('${anchorIso}')" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Add Session</button>
+                  <div class="font-extrabold text-sm">No sessions scheduled on this day</div>
+                  <p class="text-xs text-[var(--text-muted)]">Tap below to schedule a session for ${anchorDt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.</p>
+                  <button onclick="openAddSessionModal('${anchorIso}')" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Schedule Session</button>
                 </div>
               `}
             </div>
@@ -7102,7 +7199,7 @@ create policy "Allow media update" on storage.objects
               </div>
             </div>
             ${selSessions.length ? `<div class="space-y-2.5">${selSessions.map(s => renderCoachSessionRow(s, false)).join('')}</div>` : `
-              <div class="card-white rounded-2xl p-4 text-xs text-[var(--text-muted)] text-center">No lessons scheduled on this date yet.</div>
+              <div class="card-white rounded-2xl p-4 text-xs text-[var(--text-muted)] text-center">No sessions scheduled on this date yet.</div>
             `}
           </div>
         `;
@@ -7133,7 +7230,7 @@ create policy "Allow media update" on storage.objects
                   <div class="flex items-center justify-between">
                     <span class="font-extrabold text-sm">${mName}</span>
                     <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${monthSessionCount ? 'bg-[#D5FF5F] text-[#010101]' : 'surface-soft text-[var(--text-muted)]'}">
-                      ${monthSessionCount} lesson${monthSessionCount === 1 ? '' : 's'}
+                      ${monthSessionCount} session${monthSessionCount === 1 ? '' : 's'}
                     </span>
                   </div>
                   <div class="grid grid-cols-7 gap-0.5 text-center text-[9px] font-bold text-[var(--text-muted)]">
