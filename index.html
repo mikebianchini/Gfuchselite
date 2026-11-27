@@ -207,6 +207,83 @@
       transition: none;
     }
 
+    /* Thoughtful Calibrated Motion System (v3.4.0) */
+    @keyframes viewEnter {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .view-enter {
+      animation: viewEnter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes staggerItem {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .stagger-list > * {
+      animation: staggerItem 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .stagger-list > *:nth-child(1) { animation-delay: 0ms; }
+    .stagger-list > *:nth-child(2) { animation-delay: 35ms; }
+    .stagger-list > *:nth-child(3) { animation-delay: 70ms; }
+    .stagger-list > *:nth-child(4) { animation-delay: 105ms; }
+    .stagger-list > *:nth-child(5) { animation-delay: 140ms; }
+    .stagger-list > *:nth-child(n+6) { animation-delay: 165ms; }
+
+    @keyframes backdropFade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes sheetEnter {
+      from { opacity: 0; transform: translateY(28px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes modalEnter {
+      from { opacity: 0; transform: translateY(10px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    #modal-root.flex {
+      animation: backdropFade 180ms ease-out both;
+    }
+    .modal-sheet-enter {
+      animation: sheetEnter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    @media (min-width: 640px) {
+      .modal-sheet-enter {
+        animation: modalEnter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+    }
+
+    @keyframes toastPop {
+      from { opacity: 0; transform: translateY(12px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .toast-enter {
+      animation: toastPop 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes dockPop {
+      0% { transform: scale(0.9); }
+      60% { transform: scale(1.06); }
+      100% { transform: scale(1); }
+    }
+    .dock-active-pill {
+      animation: dockPop 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    button:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    @media (hover: hover) {
+      .card-interactive {
+        transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms ease;
+      }
+      .card-interactive:hover {
+        transform: translateY(-2px);
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: 0.01ms !important;
@@ -398,7 +475,26 @@
       pin: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 21s-6-5.3-6-10a6 6 0 1112 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2"/>',
       globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/>',
       link: '<path stroke-linecap="round" stroke-linejoin="round" d="M10 13a5 5 0 007.07 0l2.12-2.12a5 5 0 00-7.07-7.07L10.5 5.4M14 11a5 5 0 00-7.07 0l-2.12 2.12a5 5 0 007.07 7.07l1.62-1.62"/>',
-      softball: '<circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M8.5 5.5c2 2.5 2 10.5 0 13M15.5 5.5c-2 2.5-2 10.5 0 13"/>'
+      softball: '<circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M8.5 5.5c2 2.5 2 10.5 0 13M15.5 5.5c-2 2.5-2 10.5 0 13"/>',
+      calendar: '<rect x="3" y="4" width="18" height="17" rx="2.5"/><path stroke-linecap="round" d="M8 2v4m8-4v4M3 9h18"/>',
+      clock: '<circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2"/>',
+      repeat: '<path stroke-linecap="round" stroke-linejoin="round" d="M17 2l4 4-4 4"/><path stroke-linecap="round" d="M3 11V9a4 4 0 014-4h14"/><path stroke-linecap="round" stroke-linejoin="round" d="M7 22l-4-4 4-4"/><path stroke-linecap="round" d="M21 13v2a4 4 0 01-4 4H3"/>',
+      users: '<path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="3.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a3.5 3.5 0 010 6.75"/>',
+      user: '<path stroke-linecap="round" stroke-linejoin="round" d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+      target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
+      bell: '<path stroke-linecap="round" stroke-linejoin="round" d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>',
+      download: '<path stroke-linecap="round" stroke-linejoin="round" d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
+      check: '<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>',
+      checkCircle: '<circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M8.5 12.5l2.5 2.5 4.5-5"/>',
+      alertTriangle: '<path stroke-linecap="round" stroke-linejoin="round" d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4m0 4h.01"/>',
+      chevronRight: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6"/>',
+      plus: '<path stroke-linecap="round" d="M12 5v14M5 12h14"/>',
+      arrowLeft: '<path stroke-linecap="round" stroke-linejoin="round" d="M19 12H5m6-6l-6 6 6 6"/>',
+      send: '<path stroke-linecap="round" stroke-linejoin="round" d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>',
+      trash: '<path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6h12z"/>',
+      refresh: '<path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-2.64-6.36L21 8m0-5v5h-5"/>',
+      sliders: '<path stroke-linecap="round" d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/>',
+      dollar: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 2v20M17 6.5c0-1.93-2.24-3.5-5-3.5s-5 1.57-5 3.5S9.24 10 12 10s5 1.57 5 3.5S14.76 17 12 17s-5-1.57-5-3.5"/>'
     };
     function uiIcon(name, cls = 'w-3.5 h-3.5') {
       return `<svg class="${cls} inline-block shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">${UI_SVGS[name] || ''}</svg>`;
@@ -806,8 +902,12 @@
 
     function showToast(msg) {
       const el = document.getElementById('toast');
-      el.textContent = msg;
-      el.classList.remove('hidden');
+      if (!el) return;
+      const esc = String(msg ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      el.innerHTML = `<span class="inline-flex items-center gap-2">${uiIcon('checkCircle', 'w-4 h-4 shrink-0')}<span>${esc}</span></span>`;
+      el.classList.remove('hidden', 'toast-enter');
+      void el.offsetWidth;
+      el.classList.add('toast-enter');
       clearTimeout(window._toastTimer);
       window._toastTimer = setTimeout(() => el.classList.add('hidden'), 3200);
     }
@@ -822,7 +922,7 @@
     function openModal(html, noPad = false) {
       const m = document.getElementById('modal-root');
       const handle = noPad ? '' : '<div class="sm:hidden w-10 h-1 rounded-full bg-[var(--text-muted)]/30 mx-auto -mt-1 mb-1"></div>';
-      m.innerHTML = `<div class="card-white rounded-t-[32px] sm:rounded-[30px] max-w-md w-full ${noPad ? 'overflow-hidden' : 'p-5 sm:p-6 pb-8 sm:pb-6 space-y-4'} shadow-2xl max-h-[90dvh] overflow-y-auto">${handle}${html}</div>`;
+      m.innerHTML = `<div class="modal-sheet-enter card-white rounded-t-[32px] sm:rounded-[30px] max-w-md w-full ${noPad ? 'overflow-hidden' : 'p-5 sm:p-6 pb-8 sm:pb-6 space-y-4'} shadow-2xl max-h-[90dvh] overflow-y-auto">${handle}${html}</div>`;
       m.classList.remove('hidden');
       m.classList.add('flex');
       m.onclick = (e) => { if (e.target === m) closeModal(); };
@@ -1019,7 +1119,7 @@
         const active = item.id === activeTab;
         return `
           <button onclick="setTab('${item.id}')" ${active ? 'aria-current="page"' : ''} class="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-h-[48px] rounded-2xl transition cursor-pointer ${active ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}">
-            <span class="relative p-1.5 rounded-xl transition ${active ? 'bg-[#D5FF5F] text-[#010101] shadow-sm' : ''}">
+            <span class="relative p-1.5 rounded-xl transition ${active ? 'bg-[#D5FF5F] text-[#010101] shadow-sm dock-active-pill' : ''}">
               ${item.icon}
               ${item.badge ? `<span class="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[9px] font-extrabold flex items-center justify-center">${item.badge}</span>` : ''}
             </span>
@@ -3384,28 +3484,29 @@
       return `
         <div class="swipe-row relative overflow-hidden rounded-[24px]" data-swipe-type="session" data-swipe-id="${s.id}" data-athlete-id="${s.athleteId || ''}" data-canceled="${isCanceled ? '1' : '0'}">
           <div class="lg:hidden absolute inset-0 flex items-center justify-between px-5 pointer-events-none select-none" aria-hidden="true">
-            <span class="swipe-rail-left inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold opacity-0 transition-opacity">${s.athleteId && !isCanceled ? 'Notes →' : 'Manage →'}</span>
+            <span class="swipe-rail-left inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold opacity-0 transition-opacity">${s.athleteId && !isCanceled ? `${uiIcon('note')} Notes →` : `${uiIcon('sliders')} Manage →`}</span>
             <span class="swipe-rail-right inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold opacity-0 transition-opacity">← ${isCanceled ? 'Restore / Delete' : 'Reschedule / Cancel'}</span>
           </div>
-          <div class="swipe-card relative card-white rounded-[24px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isCanceled ? 'opacity-65' : ''}" style="touch-action: pan-y;">
+          <div class="swipe-card card-interactive relative card-white rounded-[24px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isCanceled ? 'opacity-65' : ''}" style="touch-action: pan-y;">
             <div class="flex items-center gap-3.5 min-w-0">
               <img src="${s.img || 'assets/images/fastpitch-hitter.jpg'}" class="w-14 h-14 rounded-2xl object-cover shrink-0 ${isCanceled ? 'grayscale' : ''}" alt="Fastpitch softball training" loading="lazy" decoding="async" />
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">
-                  <span>${showDate && s.day ? `${s.day} • ` : ''}${s.time} • ${s.duration} • ${s.type}</span>
-                  ${unpaidInfo.total > 0 && !isCanceled ? `<button type="button" onclick="event.stopPropagation(); state.paymentFilterUnpaid=true; setTab('payments');" class="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold cursor-pointer">$${unpaidInfo.total} due</button>` : ''}
-                  ${isAttendanceFlag ? `<span class="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold">${s.status}</span>` : ''}
+                  <span class="inline-flex items-center gap-1">${uiIcon('clock', 'w-3 h-3')} ${showDate && s.day ? `${s.day} • ` : ''}${s.time} • ${s.duration} • ${s.type}</span>
+                  ${s.recurrenceGroupId ? `<span title="Recurring standing slot" class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full surface-soft text-[10px] font-bold">${uiIcon('repeat', 'w-2.5 h-2.5')}</span>` : ''}
+                  ${unpaidInfo.total > 0 && !isCanceled ? `<button type="button" onclick="event.stopPropagation(); state.paymentFilterUnpaid=true; setTab('payments');" class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold cursor-pointer">${uiIcon('dollar', 'w-2.5 h-2.5')}${unpaidInfo.total} due</button>` : ''}
+                  ${isAttendanceFlag ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold">${uiIcon('alertTriangle', 'w-2.5 h-2.5')} ${s.status}</span>` : ''}
                 </div>
                 <div class="font-extrabold text-sm truncate ${isCanceled ? 'line-through' : ''}">${lessonLabel}${customFocus ? ` — ${customFocus}` : ''}</div>
                 <div class="text-xs text-[var(--text-muted)] truncate">${athDisplay} • ${s.payment || 'Scheduled'}</div>
-                ${briefCue && !isCanceled ? `<div class="text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-semibold truncate mt-0.5">${primaryAth?.currentFocus ? 'Focus:' : 'Last:'} ${esc(briefCue)}</div>` : ''}
+                ${briefCue && !isCanceled ? `<div class="inline-flex items-center gap-1 text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-semibold truncate max-w-full mt-0.5">${uiIcon('target', 'w-3 h-3 shrink-0')}<span class="truncate">${primaryAth?.currentFocus ? 'Focus:' : 'Last:'} ${esc(briefCue)}</span></div>` : ''}
               </div>
             </div>
             <div class="flex flex-wrap items-center gap-2 shrink-0">
               ${s.athleteId && !isCanceled ? `<button onclick="openSessionRecapModal('${s.athleteId}', '${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5">${uiIcon('note')} Notes</button>` : ''}
-              <button onclick="openManageSessionModal('${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101]">${isCanceled ? 'Restore / Delete' : 'Reschedule / Cancel'}</button>
+              <button onclick="openManageSessionModal('${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101] inline-flex items-center gap-1.5">${uiIcon('calendar')} ${isCanceled ? 'Restore / Delete' : 'Reschedule'}</button>
               ${isCanceled ? `<span class="px-2.5 py-1.5 rounded-xl bg-red-500/15 text-red-600 dark:text-red-400 text-[11px] font-extrabold">Canceled</span>` : ''}
-              ${s.athleteId ? `<button onclick="jumpToAthlete('${s.athleteId}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">Profile</button>` : ''}
+              ${s.athleteId ? `<button onclick="jumpToAthlete('${s.athleteId}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer inline-flex items-center gap-1.5">${uiIcon('user')} Profile</button>` : ''}
             </div>
           </div>
         </div>
@@ -3494,19 +3595,19 @@
         metrics: `
           <div class="card-white rounded-[24px] grid grid-cols-3 divide-x divide-[var(--border-subtle)] overflow-hidden">
             <button onclick="scheduleSelectDate('${today.iso}', 'day'); setTab('schedule');" class="p-3.5 sm:p-4 text-left hover:bg-white/40 dark:hover:bg-white/5 cursor-pointer">
-              <div class="text-[13px] font-semibold text-[var(--text-muted)]">Today</div>
+              <div class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-muted)]">${uiIcon('calendar', 'w-3.5 h-3.5 text-[#4E6075] dark:text-[#9AC0D6]')} Today</div>
               <div class="text-2xl font-extrabold tabular-nums mt-0.5">${todaySessions.length}</div>
-              <div class="text-xs text-[#4E6075] dark:text-[#9AC0D6] font-bold mt-0.5">Day view →</div>
+              <div class="inline-flex items-center gap-0.5 text-xs text-[#4E6075] dark:text-[#9AC0D6] font-bold mt-0.5">Day view ${uiIcon('chevronRight', 'w-3 h-3')}</div>
             </button>
             <button onclick="state.schedule.view='week'; setTab('schedule');" class="p-3.5 sm:p-4 text-left hover:bg-white/40 dark:hover:bg-white/5 cursor-pointer">
-              <div class="text-[13px] font-semibold text-[var(--text-muted)]">Next 7 days</div>
+              <div class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-muted)]">${uiIcon('clock', 'w-3.5 h-3.5 text-[#4E6075] dark:text-[#9AC0D6]')} Next 7 days</div>
               <div class="text-2xl font-extrabold tabular-nums mt-0.5">${totalNext7Count}</div>
-              <div class="text-xs text-[#4E6075] dark:text-[#9AC0D6] font-bold mt-0.5">Week view →</div>
+              <div class="inline-flex items-center gap-0.5 text-xs text-[#4E6075] dark:text-[#9AC0D6] font-bold mt-0.5">Week view ${uiIcon('chevronRight', 'w-3 h-3')}</div>
             </button>
             <button onclick="setTab('athletes')" class="p-3.5 sm:p-4 text-left hover:bg-white/40 dark:hover:bg-white/5 cursor-pointer">
-              <div class="text-[13px] font-semibold text-[var(--text-muted)]">Athletes</div>
+              <div class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-muted)]">${uiIcon('users', 'w-3.5 h-3.5 text-[#4E6075] dark:text-[#9AC0D6]')} Athletes</div>
               <div class="text-2xl font-extrabold tabular-nums mt-0.5">${activeAthletesCount}</div>
-              <div class="text-xs text-[#4E6075] dark:text-[#9AC0D6] font-bold mt-0.5">Roster →</div>
+              <div class="inline-flex items-center gap-0.5 text-xs text-[#4E6075] dark:text-[#9AC0D6] font-bold mt-0.5">Roster ${uiIcon('chevronRight', 'w-3 h-3')}</div>
             </button>
           </div>
         `,
@@ -5332,8 +5433,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                     ? `<span class="px-3 py-1 rounded-full bg-white text-[#010101] text-xs font-extrabold">${[sel.ageGroup, sel.gradYear ? `Class of ${sel.gradYear}` : ''].filter(Boolean).join(' • ')}</span>`
                     : `<span class="px-3 py-1 rounded-full bg-white/70 text-[#010101] text-xs font-extrabold">Athlete Profile</span>`
                   }
-                  <span class="px-2.5 py-1 rounded-full text-[11px] font-bold ${seenInfo.isAtRisk ? 'bg-amber-400/25 text-amber-900 dark:text-amber-200' : 'bg-white/70 dark:bg-white/10 text-[var(--text-muted)]'}">Last seen: ${seenInfo.label}</span>
-                  ${unpaidInfo.total > 0 ? `<button type="button" onclick="state.paymentFilterUnpaid=true; setTab('payments');" class="px-2.5 py-1 rounded-full bg-amber-400/25 text-amber-900 dark:text-amber-200 text-[11px] font-extrabold cursor-pointer">$${unpaidInfo.total} due</button>` : ''}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${seenInfo.isAtRisk ? 'bg-amber-400/25 text-amber-900 dark:text-amber-200' : 'bg-white/70 dark:bg-white/10 text-[var(--text-muted)]'}">${uiIcon('clock', 'w-3 h-3')} Last seen: ${seenInfo.label}</span>
+                  ${unpaidInfo.total > 0 ? `<button type="button" onclick="state.paymentFilterUnpaid=true; setTab('payments');" class="inline-flex items-center gap-0.5 px-2.5 py-1 rounded-full bg-amber-400/25 text-amber-900 dark:text-amber-200 text-[11px] font-extrabold cursor-pointer">${uiIcon('dollar', 'w-3 h-3')}${unpaidInfo.total} due</button>` : ''}
                   ${sel.archived ? `<span class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold">ARCHIVED</span>` : ''}
                 </div>
                 <button onclick="openEditAthleteModal('${sel.id}')" title="Edit Athlete Info" class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold cursor-pointer inline-flex items-center gap-1">${uiIcon('edit')} Edit</button>
@@ -5349,7 +5450,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               <!-- Pinned Current Focus / Season Goal -->
               <div class="card-white rounded-2xl p-3.5 space-y-1">
                 <div class="flex items-center justify-between gap-2">
-                  <span class="text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">Pinned Current Focus</span>
+                  <span class="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('target', 'w-3.5 h-3.5')} Pinned Current Focus</span>
                   <button type="button" onclick="openEditCurrentFocusModal('${sel.id}')" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">${sel.currentFocus ? 'Edit' : '+ Set Focus'}</button>
                 </div>
                 <p class="text-xs ${sel.currentFocus ? 'font-semibold leading-relaxed' : 'text-[var(--text-muted)]'}">
@@ -5358,8 +5459,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               </div>
 
               ${attendanceFlags.length ? `
-                <div class="text-xs px-3 py-2 rounded-2xl bg-amber-400/15 text-amber-900 dark:text-amber-200 font-semibold">
-                  Attendance note: ${attendanceFlags.filter(s => s.status === 'No-Show').length} No-Show · ${attendanceFlags.filter(s => s.status === 'Late Cancel').length} Late Cancel
+                <div class="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-2xl bg-amber-400/15 text-amber-900 dark:text-amber-200 font-semibold">
+                  ${uiIcon('alertTriangle', 'w-3.5 h-3.5 shrink-0')}
+                  <span>Attendance note: ${attendanceFlags.filter(s => s.status === 'No-Show').length} No-Show · ${attendanceFlags.filter(s => s.status === 'Late Cancel').length} Late Cancel</span>
                 </div>
               ` : ''}
 
@@ -6102,14 +6204,17 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
           <!-- 5. Post-Lesson Wrap-Up (Payment, Rebook +7d & Group Share) -->
           <div class="card-white rounded-[28px] p-5 space-y-3 text-xs">
-            <div class="font-extrabold text-sm tracking-tight">Lesson Wrap-Up</div>
+            <div class="inline-flex items-center gap-1.5 font-extrabold text-sm tracking-tight">${uiIcon('sliders', 'w-4 h-4 text-[#4E6075] dark:text-[#9AC0D6]')} Lesson Wrap-Up</div>
 
             <!-- Inline Payment Logging -->
             <div class="surface-soft rounded-2xl p-3.5 space-y-2.5">
               <label class="flex items-center justify-between gap-3 cursor-pointer">
-                <div>
-                  <div class="font-extrabold">Log Payment with Note</div>
-                  <div class="text-[11px] text-[var(--text-muted)]">Automatically records this lesson in Payments</div>
+                <div class="flex items-center gap-2.5">
+                  <span class="w-8 h-8 rounded-xl card-white flex items-center justify-center text-[#4E6075] dark:text-[#9AC0D6] shrink-0">${uiIcon('cash', 'w-4 h-4')}</span>
+                  <div>
+                    <div class="font-extrabold">Log Payment with Note</div>
+                    <div class="text-[11px] text-[var(--text-muted)]">Automatically records this lesson in Payments</div>
+                  </div>
                 </div>
                 <input type="checkbox" name="wrapLogPayment" onchange="document.getElementById('wrap-pay-fields')?.classList.toggle('hidden', !this.checked)" class="w-5 h-5 accent-[#010101]" />
               </label>
@@ -6138,9 +6243,12 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
             ${ses ? `
               <label class="flex items-center justify-between gap-3 p-3.5 rounded-2xl surface-soft cursor-pointer">
-                <div>
-                  <div class="font-extrabold">Rebook Same Time Next Week (+7d)</div>
-                  <div class="text-[11px] text-[var(--text-muted)]">Books ${ses.time} next week automatically if open</div>
+                <div class="flex items-center gap-2.5">
+                  <span class="w-8 h-8 rounded-xl card-white flex items-center justify-center text-[#4E6075] dark:text-[#9AC0D6] shrink-0">${uiIcon('repeat', 'w-4 h-4')}</span>
+                  <div>
+                    <div class="font-extrabold">Rebook Same Time Next Week (+7d)</div>
+                    <div class="text-[11px] text-[var(--text-muted)]">Books ${ses.time} next week automatically if open</div>
+                  </div>
                 </div>
                 <input type="checkbox" name="wrapRebookNextWeek" class="w-5 h-5 accent-[#010101]" />
               </label>
@@ -6149,9 +6257,12 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             ${groupAthletes.length > 1 ? `
               <div class="surface-soft rounded-2xl p-3.5 space-y-2.5">
                 <label class="flex items-center justify-between gap-3 cursor-pointer">
-                  <div>
-                    <div class="font-extrabold">Share Group Note to All ${groupAthletes.length} Athletes</div>
-                    <div class="text-[11px] text-[var(--text-muted)]">${groupAthletes.map(a => a.name.split(' ')[0]).join(', ')}</div>
+                  <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-xl card-white flex items-center justify-center text-[#4E6075] dark:text-[#9AC0D6] shrink-0">${uiIcon('users', 'w-4 h-4')}</span>
+                    <div>
+                      <div class="font-extrabold">Share Group Note to All ${groupAthletes.length} Athletes</div>
+                      <div class="text-[11px] text-[var(--text-muted)]">${groupAthletes.map(a => a.name.split(' ')[0]).join(', ')}</div>
+                    </div>
                   </div>
                   <input type="checkbox" name="wrapShareGroup" checked onchange="document.getElementById('wrap-group-cues')?.classList.toggle('hidden', !this.checked)" class="w-5 h-5 accent-[#010101]" />
                 </label>
@@ -6181,8 +6292,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                 <input type="checkbox" name="sendNow" checked class="w-5 h-5 accent-[#010101]" />
               </label>
             </div>
-            <button type="submit" class="w-full py-4 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
-              ${groupAthletes.length > 1 ? `Send Group Recap (${groupAthletes.length} Athletes) →` : `Send Recap to ${ath.name.split(' ')[0]} & ${(ath.parentName || 'Parent').split(' ')[0]} →`}
+            <button type="submit" class="w-full py-4 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition inline-flex items-center justify-center gap-2">
+              ${uiIcon('send', 'w-4 h-4')}
+              <span>${groupAthletes.length > 1 ? `Send Group Recap (${groupAthletes.length} Athletes)` : `Send Recap to ${ath.name.split(' ')[0]} & ${(ath.parentName || 'Parent').split(' ')[0]}`}</span>
             </button>
           </div>
         </form>
@@ -6438,8 +6550,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             <p class="text-[13px] text-[var(--text-muted)] mt-0.5">Clover Checkout, Cash, Venmo &amp; Zelle tracking</p>
           </div>
           <div class="flex items-center gap-2">
-            <button type="button" onclick="exportPaymentsCsv()" class="px-3.5 py-2.5 rounded-2xl card-white text-[13px] font-extrabold cursor-pointer hover:border-[#010101]">Export CSV</button>
-            <button onclick="openLogPaymentModal()" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-[13px] font-extrabold cursor-pointer shadow-sm hover:brightness-95">+ Log Payment</button>
+            <button type="button" onclick="exportPaymentsCsv()" class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl card-white text-[13px] font-extrabold cursor-pointer hover:border-[#010101]">${uiIcon('download', 'w-3.5 h-3.5')} Export CSV</button>
+            <button onclick="openLogPaymentModal()" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-[13px] font-extrabold cursor-pointer shadow-sm hover:brightness-95">${uiIcon('plus', 'w-3.5 h-3.5')} Log Payment</button>
           </div>
         </div>
 
@@ -6469,12 +6581,12 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div class="space-y-3">
             <div class="card-mist rounded-[24px] p-5 space-y-1.5">
-              <div class="text-[13px] font-bold text-[var(--text-muted)]">Collected (${periodLabel})</div>
+              <div class="inline-flex items-center gap-1.5 text-[13px] font-bold text-[var(--text-muted)]">${uiIcon('cash', 'w-4 h-4 text-[#4E6075] dark:text-[#9AC0D6]')} Collected (${periodLabel})</div>
               <div class="text-3xl font-extrabold tabular-nums">$${collected.toLocaleString()}</div>
               <div class="text-xs text-[var(--text-muted)]">Card, Apple Pay, Cash, Venmo &amp; Zelle</div>
             </div>
             <div class="card-white rounded-[24px] p-5 space-y-1.5">
-              <div class="text-[13px] font-bold text-[var(--text-muted)]">Unpaid / Pending (${periodLabel})</div>
+              <div class="inline-flex items-center gap-1.5 text-[13px] font-bold text-[var(--text-muted)]">${uiIcon('clock', 'w-4 h-4 text-amber-600 dark:text-amber-400')} Unpaid / Pending (${periodLabel})</div>
               <div class="text-2xl font-extrabold tabular-nums">$${pendingCash.toLocaleString()}</div>
               <div class="text-xs text-[var(--text-muted)]">${pendingCash > 0 ? 'Tap Remind to copy text, or swipe to mark Paid' : 'No unpaid sessions in this period'}</div>
             </div>
@@ -6485,6 +6597,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               <h2 class="text-base font-extrabold">${unpaidOnly ? 'Unpaid Transactions' : 'Transactions'}</h2>
               <span class="text-[13px] font-semibold text-[var(--text-muted)] tabular-nums">${visiblePayments.length} ${visiblePayments.length === 1 ? 'entry' : 'entries'}</span>
             </div>
+            <div class="space-y-2.5 stagger-list">
             ${visiblePayments.length ? visiblePayments.map(p => {
               const unpaid = isUnpaid(p);
               return `
@@ -6493,13 +6606,13 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                     <span class="swipe-rail-left px-2.5 py-1 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold opacity-0 transition-opacity">${unpaid ? 'Mark Paid ✓ →' : 'Mark Unpaid →'}</span>
                     <span class="swipe-rail-right px-2.5 py-1 rounded-xl bg-red-600 text-white text-[11px] font-extrabold opacity-0 transition-opacity">← Delete</span>
                   </div>
-                  <div class="swipe-card relative surface-soft rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-2.5 text-xs" style="touch-action: pan-y;">
+                  <div class="swipe-card card-interactive relative surface-soft rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-2.5 text-xs" style="touch-action: pan-y;">
                     <div class="min-w-0">
                       <div class="font-extrabold truncate">${p.family} — ${p.item}</div>
                       <div class="text-[var(--text-muted)]">${p.date} • ${p.method}</div>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
-                      ${unpaid ? `<button type="button" onclick="copyPaymentReminder('${p.id}')" class="px-2.5 py-1 rounded-lg card-white text-[10px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:border-[#010101]">Remind</button>` : ''}
+                      ${unpaid ? `<button type="button" onclick="copyPaymentReminder('${p.id}')" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg card-white text-[10px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:border-[#010101]">${uiIcon('bell', 'w-3 h-3')} Remind</button>` : ''}
                       <div class="inline-flex items-center rounded-xl p-0.5 card-white">
                         <button type="button" onclick="setPaymentPaidStatus('${p.id}', true)" class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold cursor-pointer transition ${!unpaid ? 'bg-[#D5FF5F] text-[#010101]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}">
                           Paid ✓
@@ -6509,12 +6622,13 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                         </button>
                       </div>
                       <div class="font-extrabold tabular-nums min-w-[48px] text-right">${unpaid ? '' : '+'}$${p.amount}</div>
-                      <button type="button" onclick="deletePayment('${p.id}')" title="Delete transaction" aria-label="Delete transaction" class="w-7 h-7 rounded-xl card-white text-[11px] font-extrabold text-red-600 dark:text-red-400 hover:bg-red-500/10 flex items-center justify-center cursor-pointer transition">✕</button>
+                      <button type="button" onclick="deletePayment('${p.id}')" title="Delete transaction" aria-label="Delete transaction" class="w-7 h-7 rounded-xl card-white text-red-600 dark:text-red-400 hover:bg-red-500/10 flex items-center justify-center cursor-pointer transition">${uiIcon('trash', 'w-3.5 h-3.5')}</button>
                     </div>
                   </div>
                 </div>
               `;
             }).join('') : `<div class="surface-soft rounded-2xl p-6 text-center text-xs text-[var(--text-muted)]">No transactions match this filter.</div>`}
+            </div>
           </div>
         </div>
       `;
@@ -6991,9 +7105,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.3.2';
+    const APP_VERSION = 'v3.4.0';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Pre-lesson brief, Wrap-Up loop, recurring & group sessions, roster health & payment filters';
+    const APP_RELEASE_NOTES = 'Thoughtful SVG icon system, smooth view transitions, modal springs & tactile micro-interactions';
 
     function reloadLatestAppVersion() {
       try {
@@ -8640,9 +8754,13 @@ create policy "Allow media update" on storage.objects
       `;
     }
 
+    let _lastRenderedViewKey = '';
     function render(shouldSync = true) {
       renderChrome();
       const root = document.getElementById('app-root');
+      const viewKey = state.role === 'coach'
+        ? `coach:${state.coachTab}:${state.coachTab === 'athletes' ? state.rosterView + ':' + (state.selectedAthleteId || '') : ''}`
+        : `parent:${state.parentTab}`;
       if (state.role === 'coach') {
         if (state.coachTab === 'today') root.innerHTML = renderCoachToday();
         else if (state.coachTab === 'schedule') root.innerHTML = renderCoachSchedule();
@@ -8660,6 +8778,12 @@ create policy "Allow media update" on storage.objects
         else if (state.parentTab === 'video') root.innerHTML = renderParentVideo();
         else if (state.parentTab === 'waiver') root.innerHTML = renderParentWaiver();
         else if (state.parentTab === 'profile') root.innerHTML = renderAthleteProfile();
+      }
+      if (viewKey !== _lastRenderedViewKey && root) {
+        _lastRenderedViewKey = viewKey;
+        root.classList.remove('view-enter');
+        void root.offsetWidth;
+        root.classList.add('view-enter');
       }
       if (shouldSync && !_sbHydrating) {
         saveLocalState();
