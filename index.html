@@ -7185,6 +7185,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           privateCoachNote: mem.privateCoachNote || '',
           homework: mem.homework || GINA_HOMEWORK_DEFAULT,
           tags: mem.tags || [],
+          clips: Array.isArray(mem.clips) ? mem.clips.filter(c => c && c.url && !String(c.url).startsWith('blob:')) : [],
           savedAt: mem.sentAt || 'Just now'
         };
       }
@@ -7305,9 +7306,13 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       if (ses && ath) ensureSessionNoteForSession(ses, ath);
       const saved = loadSavedRecapDraft(ath.id, ses ? ses.id : null);
       _recapDraftTags = saved?.tags ? [...saved.tags] : [];
-      _recapDraftVideoUrl = null;
-      _recapDraftVideoName = null;
-      _recapDraftClips = [];
+      _recapDraftClips = Array.isArray(saved?.clips)
+        ? saved.clips.filter(c => c && c.url && !String(c.url).startsWith('blob:')).map(c => ({ ...c, cloud: true, uploading: false }))
+        : [];
+      _recapDraftVideoUrl = _recapDraftClips[0]?.url || null;
+      _recapDraftVideoName = _recapDraftClips.length === 0 ? null
+        : _recapDraftClips.length === 1 ? _recapDraftClips[0].title
+        : `${_recapDraftClips.length} clips attached`;
       _recapActiveStation = 'tee';
       state.role = 'coach';
       state.coachTab = 'recap';
@@ -7336,22 +7341,99 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       render();
     }
 
-    function handleRecapVideoFile(input, station = 'general') {
+    function previewRecapDraftClip(idx) {
+      const clip = _recapDraftClips[idx];
+      if (!clip || !clip.url) return;
+      const isImage = clip.isVideo === false || /\.(png|jpe?g|gif|webp|heic)$/i.test(clip.title || '');
+      openModal(`
+        <div class="overflow-hidden rounded-[28px] bg-[#010101]">
+          <div class="relative bg-[#010101] flex items-center justify-center min-h-[220px]">
+            ${isImage
+              ? `<img src="${clip.url}" alt="${clip.title || 'Session clip'}" class="w-full max-h-[68vh] object-contain" />`
+              : `<video src="${clip.url}" controls autoplay playsinline class="w-full max-h-[68vh] object-contain"></video>`}
+            <button type="button" onclick="closeModal()" aria-label="Close" class="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center bg-[#010101]/75 text-white text-xs font-bold cursor-pointer">✕</button>
+          </div>
+          <div class="p-4 bg-[var(--bg-card)] flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-xs font-extrabold truncate">${clip.title || 'Session Clip'}</div>
+              <div class="text-[11px] font-semibold text-[var(--text-muted)]">
+                ${clip.stationLabel || 'Session'} • ${clip.uploading ? 'Uploading to cloud…' : clip.cloud ? 'Saved in Supabase Cloud ✓' : 'Local preview only'}
+              </div>
+            </div>
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer shrink-0">Done</button>
+          </div>
+        </div>
+      `, true);
+    }
+
+    async function handleRecapVideoFile(input, station = 'general') {
       const files = Array.from(input.files || []);
       if (!files.length) return;
       autoSaveRecapDraft(true);
       const stationNames = { tee: 'Tee', ft: 'Front Toss', machine: 'Machine', general: 'Session' };
       const stLabel = stationNames[station] || 'Session';
+      const ath = state.athletes.find(a => a.id === (_recapActiveAthId || state.selectedAthleteId));
+      const vidImg = ath ? getAthleteCoverImg(ath) : 'assets/images/fastpitch-hitter.jpg';
+      const MAX_FREE_BYTES = 50 * 1024 * 1024; // 50 MB Supabase free-tier per-file cap
+
+      const added = [];
       files.forEach(file => {
-        const url = URL.createObjectURL(file);
+        const localUrl = URL.createObjectURL(file);
+        const isVideo = /\.(mp4|mov|m4v|webm|3gp|avi)$/i.test(file.name) || (file.type || '').startsWith('video/');
         const rawTitle = file.name || `${stLabel} Clip ${_recapDraftClips.length + 1}`;
-        _recapDraftClips.push({ title: rawTitle, station, stationLabel: stLabel, url, img: 'assets/images/fastpitch-hitter.jpg' });
+        const clipObj = {
+          title: rawTitle,
+          station,
+          stationLabel: stLabel,
+          isVideo,
+          url: localUrl,
+          img: isVideo ? vidImg : localUrl,
+          uploading: true,
+          cloud: false
+        };
+        _recapDraftClips.push(clipObj);
+        added.push({ file, clipObj });
       });
+
       _recapDraftVideoUrl = _recapDraftClips[0].url;
       _recapDraftVideoName = _recapDraftClips.length === 1 ? _recapDraftClips[0].title : `${_recapDraftClips.length} clips attached`;
       if (['tee', 'ft', 'machine'].includes(station)) _recapActiveStation = station;
+      if (input) input.value = '';
       render(false);
-      showToast(`Added ${files.length} ${stLabel} clip${files.length === 1 ? '' : 's'}!`);
+      showToast(`Uploading ${files.length} ${stLabel} clip${files.length === 1 ? '' : 's'} to cloud…`);
+
+      let cloudCount = 0;
+      let oversizeCount = 0;
+      const folderSlug = `session-videos-${ath?.name || 'athlete'}-${station}`;
+      for (const { file, clipObj } of added) {
+        if (file.size > MAX_FREE_BYTES) {
+          oversizeCount++;
+          clipObj.uploading = false;
+          clipObj.cloud = false;
+          continue;
+        }
+        const res = await uploadMediaToSupabase(file, folderSlug);
+        clipObj.uploading = false;
+        if (res.cloud && res.url) {
+          clipObj.url = res.url;
+          if (!clipObj.isVideo) clipObj.img = res.url;
+          clipObj.cloud = true;
+          cloudCount++;
+        } else {
+          clipObj.cloud = false;
+        }
+      }
+
+      _recapDraftVideoUrl = _recapDraftClips[0]?.url || null;
+      autoSaveRecapDraft(true);
+      render(true);
+      if (oversizeCount > 0) {
+        showToast(`${oversizeCount} clip exceeded 50 MB limit — trim shorter to save to cloud.`);
+      } else if (cloudCount === added.length) {
+        showToast(`Saved ${cloudCount} ${stLabel} clip${cloudCount === 1 ? '' : 's'} to Supabase Cloud ✓`);
+      } else {
+        showToast('Saved locally — check Supabase Storage permissions to sync video.');
+      }
     }
 
     let _recapActiveStation = 'tee';
@@ -7465,8 +7547,15 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               <div class="flex flex-wrap gap-1.5">
                 ${stationClips.map(c => `
                   <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl surface-soft text-[11px] font-extrabold">
-                    ${uiIcon('video', 'w-3 h-3 text-[#4E6075] dark:text-[#D5FF5F]')}
-                    <span class="max-w-[150px] truncate">${formatClipLabel(c.title, c._idx)}</span>
+                    <button type="button" onclick="previewRecapDraftClip(${c._idx})" class="inline-flex items-center gap-1.5 cursor-pointer hover:underline">
+                      ${uiIcon('video', 'w-3 h-3 text-[#4E6075] dark:text-[#D5FF5F]')}
+                      <span class="max-w-[140px] truncate">${formatClipLabel(c.title, c._idx)}</span>
+                      ${c.uploading
+                        ? `<span class="text-[10px] font-bold text-[#4E6075] dark:text-[#D5FF5F] animate-pulse">Uploading…</span>`
+                        : c.cloud
+                          ? `<span class="text-[10px] font-extrabold text-emerald-600 dark:text-[#D5FF5F]" title="Saved in Supabase Cloud">✓</span>`
+                          : ''}
+                    </button>
                     <button type="button" onclick="removeRecapDraftClip(${c._idx})" aria-label="Remove clip" class="text-[var(--text-muted)] hover:text-red-500 cursor-pointer ml-0.5">✕</button>
                   </span>
                 `).join('')}
@@ -9079,9 +9168,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.11.3';
+    const APP_VERSION = 'v3.12.0';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Session Notes Studio header now displays lesson title, date, time, duration, location, and group roster';
+    const APP_RELEASE_NOTES = 'Session Notes Studio videos now upload directly to Supabase Storage cloud with live progress, persistent cross-device playback, and tap-to-preview';
 
     function reloadLatestAppVersion() {
       try {
