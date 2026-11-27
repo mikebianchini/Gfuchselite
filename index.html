@@ -7171,69 +7171,89 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div class="space-y-3">
-            <div class="card-mist rounded-[24px] p-5 space-y-1.5">
-              <div class="inline-flex items-center gap-1.5 text-[13px] font-bold text-[var(--text-muted)]">${uiIcon('cash', 'w-4 h-4 text-[#4E6075] dark:text-[#9AC0D6]')} Collected (${periodLabel})</div>
-              <div class="text-3xl font-extrabold tabular-nums">$${collected.toLocaleString()}</div>
-              <div class="text-xs text-[var(--text-muted)]">Card, Apple Pay, Cash, Venmo &amp; Zelle</div>
-            </div>
-            <div class="card-white rounded-[24px] p-5 space-y-1.5">
-              <div class="inline-flex items-center gap-1.5 text-[13px] font-bold text-[var(--text-muted)]">${uiIcon('clock', 'w-4 h-4 text-amber-600 dark:text-amber-400')} Unpaid / Pending (${periodLabel})</div>
-              <div class="text-2xl font-extrabold tabular-nums">$${pendingCash.toLocaleString()}</div>
-              <div class="text-xs text-[var(--text-muted)]">${pendingCash > 0 ? 'Tap Remind to copy text, or swipe to mark Paid' : 'No unpaid sessions in this period'}</div>
-            </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="card-mist rounded-[24px] p-5 space-y-1.5">
+            <div class="inline-flex items-center gap-1.5 text-[13px] font-bold text-[var(--text-muted)]">${uiIcon('cash', 'w-4 h-4 text-[#4E6075] dark:text-[#9AC0D6]')} Collected (${periodLabel})</div>
+            <div class="text-3xl font-extrabold tabular-nums">$${collected.toLocaleString()}</div>
+            <div class="text-xs text-[var(--text-muted)]">Card, Apple Pay, Cash, Venmo &amp; Zelle</div>
           </div>
+          <div class="card-white rounded-[24px] p-5 space-y-1.5">
+            <div class="inline-flex items-center gap-1.5 text-[13px] font-bold text-[var(--text-muted)]">${uiIcon('clock', 'w-4 h-4 text-amber-600 dark:text-amber-400')} Unpaid / Pending (${periodLabel})</div>
+            <div class="text-3xl font-extrabold tabular-nums">$${pendingCash.toLocaleString()}</div>
+            <div class="text-xs text-[var(--text-muted)]">${pendingCash > 0 ? 'Tap Paid ✓ to pick method, or Remind to copy text' : 'No unpaid sessions in this period'}</div>
+          </div>
+        </div>
 
-          <div class="lg:col-span-2 card-white rounded-[28px] p-5 space-y-3">
-            <div class="flex justify-between items-center">
-              <h2 class="text-base font-extrabold">${unpaidOnly ? 'Unpaid Transactions' : 'Transactions'}</h2>
-              <span class="text-[13px] font-semibold text-[var(--text-muted)] tabular-nums">${visiblePayments.length} ${visiblePayments.length === 1 ? 'entry' : 'entries'}</span>
-            </div>
-            <div class="space-y-2.5 stagger-list">
-            ${visiblePayments.length ? visiblePayments.map(p => {
-              const unpaid = isUnpaid(p);
-              const hasNotes = Boolean((p.internalNote || '').trim() || (p.externalNote || '').trim());
-              const escP = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-              return `
-                <div class="swipe-row relative overflow-hidden rounded-2xl" data-swipe-type="payment" data-swipe-id="${p.id}" data-unpaid="${unpaid ? '1' : '0'}">
-                  <div class="lg:hidden absolute inset-0 flex items-center justify-between px-4 pointer-events-none select-none" aria-hidden="true">
-                    <span class="swipe-rail-left px-2.5 py-1 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold opacity-0 transition-opacity">${unpaid ? 'Mark Paid ✓ →' : 'Mark Unpaid →'}</span>
-                    <span class="swipe-rail-right px-2.5 py-1 rounded-xl bg-red-600 text-white text-[11px] font-extrabold opacity-0 transition-opacity">← Delete</span>
-                  </div>
-                  <div class="swipe-card card-interactive relative surface-soft rounded-2xl p-3.5 space-y-2 text-xs" style="touch-action: pan-y;">
-                    <div class="flex flex-wrap items-center justify-between gap-2.5">
-                      <div class="min-w-0">
-                        <div class="font-extrabold truncate">${p.family} — ${p.item}</div>
-                        <div class="inline-flex items-center gap-1 text-[var(--text-muted)]">${uiIcon('clock', 'w-3 h-3 shrink-0')} <span>${formatPaymentTimestamp(p)} • ${p.method}</span></div>
-                      </div>
-                      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap">
-                        <button type="button" onclick="openPaymentNotesModal('${p.id}')" title="Add / edit internal &amp; external notes" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-extrabold cursor-pointer transition ${hasNotes ? 'bg-[#010101] text-[#D5FF5F]' : 'card-white text-[var(--text-muted)] hover:text-[var(--text-main)]'}">${uiIcon('note', 'w-3 h-3')} ${hasNotes ? 'Notes' : '+ Note'}</button>
-                        ${unpaid ? `<button type="button" onclick="copyPaymentReminder('${p.id}')" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg card-white text-[10px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:border-[#010101]">${uiIcon('bell', 'w-3 h-3')} Remind</button>` : ''}
-                        <div class="inline-flex items-center rounded-xl p-0.5 card-white">
-                          <button type="button" onclick="setPaymentPaidStatus('${p.id}', true)" class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold cursor-pointer transition ${!unpaid ? 'bg-[#D5FF5F] text-[#010101]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}">
-                            Paid ✓
-                          </button>
-                          <button type="button" onclick="setPaymentPaidStatus('${p.id}', false)" class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold cursor-pointer transition ${unpaid ? 'bg-[#010101] text-[#D5FF5F]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}">
-                            Unpaid
-                          </button>
-                        </div>
-                        <div class="font-extrabold tabular-nums min-w-[48px] text-right">${unpaid ? '' : '+'}$${p.amount}</div>
-                        <button type="button" onclick="deletePayment('${p.id}')" title="Delete transaction" aria-label="Delete transaction" class="w-7 h-7 rounded-xl card-white text-red-600 dark:text-red-400 hover:bg-red-500/10 flex items-center justify-center cursor-pointer transition">${uiIcon('trash', 'w-3.5 h-3.5')}</button>
-                      </div>
-                    </div>
-                    ${hasNotes ? `
-                      <div class="pt-1.5 border-t border-[var(--border-subtle)] space-y-1 text-[11px]">
-                        ${p.externalNote ? `<div class="flex items-start gap-1.5"><span class="px-1.5 py-0.5 rounded bg-[#D5FF5F]/70 text-[#010101] text-[9px] font-extrabold shrink-0">EXTERNAL</span><span class="text-[var(--text-main)] font-medium">${escP(p.externalNote)}</span></div>` : ''}
-                        ${p.internalNote ? `<div class="flex items-start gap-1.5"><span class="px-1.5 py-0.5 rounded bg-[#010101]/10 dark:bg-white/15 text-[var(--text-muted)] text-[9px] font-extrabold shrink-0">INTERNAL</span><span class="text-[var(--text-muted)]">${escP(p.internalNote)}</span></div>` : ''}
-                      </div>
-                    ` : ''}
-                  </div>
-                </div>
-              `;
-            }).join('') : `<div class="surface-soft rounded-2xl p-6 text-center text-xs text-[var(--text-muted)]">No transactions match this filter.</div>`}
-            </div>
+        <div class="card-white rounded-[28px] overflow-hidden">
+          <div class="px-5 py-4 flex justify-between items-center border-b border-[var(--border-subtle)]">
+            <h2 class="text-base font-extrabold">${unpaidOnly ? 'Unpaid Transactions' : 'Transactions'}</h2>
+            <span class="text-[13px] font-semibold text-[var(--text-muted)] tabular-nums">${visiblePayments.length} ${visiblePayments.length === 1 ? 'entry' : 'entries'}</span>
           </div>
+          ${visiblePayments.length ? `
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-[var(--border-subtle)] bg-white/40 dark:bg-white/5 text-[13px] font-bold text-[var(--text-muted)]">
+                    <th class="py-3 pl-5 pr-3">Family / Lesson</th>
+                    <th class="py-3 px-3 whitespace-nowrap hidden md:table-cell">Date &amp; Time</th>
+                    <th class="py-3 px-3 whitespace-nowrap hidden sm:table-cell">Method</th>
+                    <th class="py-3 px-3 whitespace-nowrap">Status</th>
+                    <th class="py-3 px-3 text-right whitespace-nowrap">Amount</th>
+                    <th class="py-3 pl-3 pr-5 text-right whitespace-nowrap">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-[var(--border-subtle)] text-xs">
+                  ${visiblePayments.map(p => {
+                    const unpaid = isUnpaid(p);
+                    const hasNotes = Boolean((p.internalNote || '').trim() || (p.externalNote || '').trim());
+                    const escP = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    const tsText = formatPaymentTimestamp(p);
+                    return `
+                      <tr class="hover:bg-white/40 dark:hover:bg-white/5 transition align-top">
+                        <td class="py-3.5 pl-5 pr-3">
+                          <div class="font-extrabold text-[13px]">${escP(p.family)}</div>
+                          <div class="text-[var(--text-muted)]">${escP(p.item)}</div>
+                          <div class="md:hidden text-[11px] text-[var(--text-muted)] mt-0.5">${escP(tsText)} <span class="sm:hidden">• ${escP(p.method)}</span></div>
+                          ${hasNotes ? `
+                            <div class="mt-1.5 space-y-1 text-[11px]">
+                              ${p.externalNote ? `<div class="flex items-start gap-1.5"><span class="px-1.5 py-0.5 rounded bg-[#D5FF5F]/70 text-[#010101] text-[9px] font-extrabold shrink-0">EXTERNAL</span><span class="font-medium">${escP(p.externalNote)}</span></div>` : ''}
+                              ${p.internalNote ? `<div class="flex items-start gap-1.5"><span class="px-1.5 py-0.5 rounded bg-[#010101]/10 dark:bg-white/15 text-[var(--text-muted)] text-[9px] font-extrabold shrink-0">INTERNAL</span><span class="text-[var(--text-muted)]">${escP(p.internalNote)}</span></div>` : ''}
+                            </div>
+                          ` : ''}
+                        </td>
+                        <td class="py-3.5 px-3 whitespace-nowrap hidden md:table-cell text-[var(--text-muted)] font-medium">
+                          ${escP(tsText)}
+                        </td>
+                        <td class="py-3.5 px-3 whitespace-nowrap hidden sm:table-cell">
+                          <span class="px-2.5 py-1 rounded-full surface-soft text-[11px] font-bold">${escP(p.method)}</span>
+                        </td>
+                        <td class="py-3.5 px-3 whitespace-nowrap">
+                          <div class="inline-flex items-center rounded-xl p-0.5 surface-soft">
+                            <button type="button" onclick="setPaymentPaidStatus('${p.id}', true)" class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold cursor-pointer transition ${!unpaid ? 'bg-[#D5FF5F] text-[#010101]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}">
+                              Paid ✓
+                            </button>
+                            <button type="button" onclick="setPaymentPaidStatus('${p.id}', false)" class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold cursor-pointer transition ${unpaid ? 'bg-[#010101] text-[#D5FF5F]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}">
+                              Unpaid
+                            </button>
+                          </div>
+                        </td>
+                        <td class="py-3.5 px-3 text-right whitespace-nowrap font-extrabold tabular-nums text-[13px]">
+                          ${unpaid ? '' : '+'}$${p.amount}
+                        </td>
+                        <td class="py-3.5 pl-3 pr-5 text-right whitespace-nowrap">
+                          <div class="inline-flex items-center gap-1.5">
+                            <button type="button" onclick="openPaymentNotesModal('${p.id}')" title="Add / edit internal &amp; external notes" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[10px] font-extrabold cursor-pointer transition ${hasNotes ? 'bg-[#010101] text-[#D5FF5F]' : 'surface-soft text-[var(--text-muted)] hover:text-[var(--text-main)]'}">${uiIcon('note', 'w-3 h-3')} ${hasNotes ? 'Notes' : '+ Note'}</button>
+                            ${unpaid ? `<button type="button" onclick="copyPaymentReminder('${p.id}')" title="Copy payment reminder" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl surface-soft text-[10px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:border-[#010101]">${uiIcon('bell', 'w-3 h-3')} Remind</button>` : ''}
+                            <button type="button" onclick="deletePayment('${p.id}')" title="Delete transaction" aria-label="Delete transaction" class="w-7 h-7 rounded-xl surface-soft text-red-600 dark:text-red-400 hover:bg-red-500/10 inline-flex items-center justify-center cursor-pointer transition">${uiIcon('trash', 'w-3.5 h-3.5')}</button>
+                          </div>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : `<div class="p-8 text-center text-xs text-[var(--text-muted)]">No transactions match this filter.</div>`}
         </div>
       `;
     }
@@ -7804,7 +7824,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.6.1';
+    const APP_VERSION = 'v3.6.2';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Optimized for Coach Gina’s daily flow: Today-first schedule, per-session plans, 1-tap previous session review & live camera video recording';
 
