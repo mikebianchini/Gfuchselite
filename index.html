@@ -5872,6 +5872,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                       </button>
                     </div>
                     <div class="font-extrabold tabular-nums min-w-[48px] text-right">${unpaid ? '' : '+'}$${p.amount}</div>
+                    <button type="button" onclick="deletePayment('${p.id}')" title="Delete transaction" aria-label="Delete transaction" class="w-7 h-7 rounded-xl card-white text-[11px] font-extrabold text-red-600 dark:text-red-400 hover:bg-red-500/10 flex items-center justify-center cursor-pointer transition">✕</button>
                   </div>
                 </div>
               `;
@@ -5972,6 +5973,27 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     }
     function markCashPaid(payId) {
       setPaymentPaidStatus(payId, true);
+    }
+    function deletePayment(payId, confirmed = false) {
+      const p = state.payments.find(x => x.id === payId);
+      if (!p) return;
+      if (!confirmed) {
+        openDoubleConfirmModal({
+          tag: 'Delete Transaction',
+          title: `Delete $${p.amount} transaction for ${p.family}?`,
+          detail: `${p.item} (${p.date} • ${p.method}). Deleting this will remove it from your Payments history and totals across all synced devices.`,
+          step1Label: 'Continue to Delete',
+          step2Title: 'Final Confirmation — Delete Transaction',
+          step2Detail: `This cannot be undone. Confirm one more time to permanently delete this $${p.amount} entry.`,
+          step2Label: 'Yes, Delete Transaction',
+          onConfirm: () => deletePayment(payId, true)
+        });
+        return;
+      }
+      recordDeletedId('payments', payId);
+      state.payments = state.payments.filter(x => x.id !== payId);
+      render();
+      showToast(`Deleted $${p.amount} transaction (${p.family}).`);
     }
     function uploadParentVideo(e, athId) { e.preventDefault(); const ath = state.athletes.find(a => a.id === athId); state.videos.unshift({ id: 'v' + Date.now(), athleteId: ath.id, athleteName: ath.name, title: e.target.title.value, uploadedAt: 'Just now', status: 'Needs Review', img: 'assets/images/fastpitch-fielding.jpg', cues: [] }); render(); showToast('Clip uploaded!'); }
     function saveParentProfile(e, athId) { e.preventDefault(); const ath = state.athletes.find(a => a.id === athId); ath.emergencyContact = e.target.emergency.value; ath.medicalNotes = e.target.medical.value; ath.waiverSigned = true; ath.waiverDate = 'Today'; render(); showToast('Profile & waiver saved!'); }
@@ -6305,9 +6327,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v2.9.0';
+    const APP_VERSION = 'v2.9.1';
     const APP_BUILD_DATE = 'Nov 26, 2026';
-    const APP_RELEASE_NOTES = 'Clean formatted imported notes, Paid/Unpaid toggle & Sync v2';
+    const APP_RELEASE_NOTES = 'Delete transactions (double-confirm), clean notes & Sync v2';
 
     function reloadLatestAppVersion() {
       try {
