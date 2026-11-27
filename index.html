@@ -685,6 +685,56 @@
       return state.athletes.find(a => a.id === state.activeSiblingId) || state.athletes[0] || GUEST_ATHLETE;
     }
 
+    function getRecapSortTimestamp(r) {
+      if (!r) return 0;
+      if (r.isDraft) return Number.MAX_SAFE_INTEGER;
+      // Newly created session notes always sort newest-first via createdAt
+      if (r.createdAt) {
+        const ts = typeof r.createdAt === 'number' ? r.createdAt : Date.parse(r.createdAt);
+        if (!Number.isNaN(ts)) return ts;
+      }
+      // Imported session notes sort by their imported date
+      const raw = String(r.date || '').trim();
+      if (!raw) return 0;
+      if (/^today$/i.test(raw)) return Date.now();
+      // Match M/D/YY, M-D-YY, M/D/YYYY, M-D-YYYY (even with trailing text like "11-3-26- group...")
+      const mFull = raw.match(/(?:^|\b)(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\b|$)/);
+      if (mFull) {
+        const mo = Number(mFull[1]);
+        const dy = Number(mFull[2]);
+        let yr = Number(mFull[3]);
+        if (yr < 100) yr += 2000;
+        if (mo >= 1 && mo <= 12 && dy >= 1 && dy <= 31) {
+          return new Date(yr, mo - 1, dy, 12, 0, 0).getTime();
+        }
+      }
+      // Match M/D or M-D without year (e.g. "9-29" or "10/15")
+      const mShort = raw.match(/^(\d{1,2})[\/\-](\d{1,2})(?:\b|$)/);
+      if (mShort) {
+        const mo = Number(mShort[1]);
+        const dy = Number(mShort[2]);
+        if (mo >= 1 && mo <= 12 && dy >= 1 && dy <= 31) {
+          const yr = new Date().getFullYear();
+          return new Date(yr, mo - 1, dy, 12, 0, 0).getTime();
+        }
+      }
+      // Fallback: ISO YYYY-MM-DD or "Nov 26, 2026"
+      const parsed = Date.parse(raw);
+      if (!Number.isNaN(parsed)) return parsed;
+      return 0;
+    }
+
+    function getSortedRecapsForAthlete(athId, includeDrafts = false) {
+      return state.sessionRecaps
+        .filter(r => r.athleteId === athId && (includeDrafts || !r.isDraft))
+        .slice()
+        .sort((a, b) => {
+          const diff = getRecapSortTimestamp(b) - getRecapSortTimestamp(a);
+          if (diff !== 0) return diff;
+          return String(b.id || '').localeCompare(String(a.id || ''));
+        });
+    }
+
     const icons = {
       calendar: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
       athletes: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
@@ -1037,7 +1087,7 @@
             </div>
 
             ${(() => {
-              const recaps = state.sessionRecaps.filter(r => r.athleteId === ath.id && !r.isDraft);
+              const recaps = getSortedRecapsForAthlete(ath.id, false);
               const latest = recaps[0];
               if (!latest) return '';
               return `
@@ -1844,7 +1894,7 @@
 
     function renderParentVideo() {
       const ath = getActiveAthlete();
-      const recaps = state.sessionRecaps.filter(r => r.athleteId === ath.id && !r.isDraft);
+      const recaps = getSortedRecapsForAthlete(ath.id, false);
       return `
         ${renderSiblingBar()}
         <div class="flex flex-wrap items-center justify-between gap-2">
@@ -2001,7 +2051,7 @@
 
     function renderAthleteProfile() {
       const ath = ensureAthleteProfileExtras(getActiveAthlete());
-      const recaps = state.sessionRecaps.filter(r => r.athleteId === ath.id && !r.isDraft);
+      const recaps = getSortedRecapsForAthlete(ath.id, false);
       const coverImg = getAthleteCoverImg(ath);
 
       return `
@@ -4173,7 +4223,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       }
 
       // PLAYER DETAIL MODE
-      const recaps = state.sessionRecaps.filter(r => r.athleteId === sel.id);
+      const recaps = getSortedRecapsForAthlete(sel.id, true);
       const athSessions = state.sessions.filter(s => s.athleteId === sel.id || (s.athletes && s.athletes.includes(sel.name)));
       return `
         <div class="flex flex-wrap items-center justify-between gap-2">
@@ -4718,7 +4768,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         machine: '',
         homework: GINA_HOMEWORK_DEFAULT
       };
-      const prevRecap = state.sessionRecaps.find(r => r.athleteId === ath.id && !r.isDraft);
+      const prevRecap = getSortedRecapsForAthlete(ath.id, false)[0];
       const allTags = ['Barrel Control', 'Variability', 'Approach', 'Exit Velo', 'Timing', 'Slapping', 'Footwork', 'Pop Time'];
       const teeQuick = ['Extensions 3/3/3', 'Swing 3/3/3'];
       const ftQuick = ['Shorty baseballs', 'Baseball bat baseballs', 'Regular bat softballs'];
@@ -4932,7 +4982,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         videoUrl: _recapDraftVideoUrl,
         clips,
         sentTo: sendNow ? `${ath.parentName} (SMS + App)` : 'Saved Private',
-        sentAt: 'Just now'
+        sentAt: 'Just now',
+        createdAt: Date.now()
       };
 
       // 1. Replace any auto-saved draft with the finalized recap & clear localStorage draft
