@@ -383,8 +383,10 @@
     const state = {
       role: 'coach',
       parentTab: 'home',
-      coachTab: 'athletes',
+      coachTab: 'today',
       coachScheduleMode: 'bookings', // 'bookings' | 'blocks' | 'classes'
+      coachSettingsTab: 'general', // 'general' | 'blocks' | 'classes'
+      homeDayFilter: 'all7', // 'all7' | YYYY-MM-DD
       selectedDay: 'Thu 26',
       selectedAthleteId: null,
       rosterView: 'list', // 'list' | 'detail'
@@ -620,6 +622,7 @@
       home: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
       plus: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>`,
       shield: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>`,
+      settings: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
       arrowBtn: `<span class="glass-pill-hero inline-flex items-center gap-2 pl-3.5 pr-1.5 py-1.5 rounded-full text-[#010101] text-xs font-extrabold">GO <span class="w-6 h-6 rounded-full bg-[#010101] text-[#D5FF5F] inline-flex items-center justify-center text-xs">→</span></span>`
     };
 
@@ -738,15 +741,14 @@
       }
 
       const unread = state.threads.reduce((s, t) => s + t.unread, 0);
-      const pendingVids = state.videos.filter(v => v.status === 'Needs Review').length;
 
       const navItems = isCoach
         ? [
-            { id: 'today', label: 'Today', fullLabel: 'Today & Schedule', icon: icons.calendar },
-            { id: 'athletes', label: 'Athletes', fullLabel: 'Athletes & PRs', icon: icons.athletes },
-            { id: 'video', label: 'Video', fullLabel: 'Video Lab', icon: icons.video, badge: pendingVids },
-            { id: 'payments', label: 'Pay', fullLabel: 'Payments', icon: icons.wallet },
-            { id: 'messaging', label: 'Inbox', fullLabel: 'Messages & Waivers', icon: icons.chat, badge: unread }
+            { id: 'today', label: 'Home', fullLabel: 'Home', icon: icons.home },
+            { id: 'athletes', label: 'Athletes', fullLabel: 'Athletes', icon: icons.athletes },
+            { id: 'payments', label: 'Payments', fullLabel: 'Payments', icon: icons.wallet },
+            { id: 'messaging', label: 'Messages', fullLabel: 'Messages', icon: icons.chat, badge: unread },
+            { id: 'settings', label: 'Settings', fullLabel: 'Settings', icon: icons.settings }
           ]
         : [
             { id: 'home', label: 'Train', fullLabel: 'Training Hub', icon: icons.home },
@@ -2320,118 +2322,302 @@
       `;
     }
 
-    function renderCoachToday() {
-      const totalRev = state.payments.reduce((s, p) => s + p.amount, 0);
-      const daySessions = state.sessions.filter(s => s.dayKey === state.selectedDay);
-      const displaySessions = daySessions.length ? daySessions : state.sessions;
+    function getTodayIsoEst() {
+      try {
+        const parts = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'America/New_York',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).formatToParts(new Date());
+        const y = parts.find(p => p.type === 'year')?.value;
+        const m = parts.find(p => p.type === 'month')?.value;
+        const d = parts.find(p => p.type === 'day')?.value;
+        if (y && m && d) return `${y}-${m}-${d}`;
+      } catch (_) {}
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    }
 
-      const modeTabs = `
-        <div class="flex flex-wrap items-center gap-2">
-          ${[
-            { id: 'bookings', label: '📅 Daily Bookings' },
-            { id: 'blocks', label: '🧱 Adjustable Blocks' },
-            { id: 'classes', label: '⏱️ Class Types & Lengths' }
-          ].map(m => `
-            <button onclick="state.coachScheduleMode='${m.id}'; render();" class="px-4 py-2.5 rounded-full text-xs font-extrabold transition cursor-pointer ${state.coachScheduleMode === m.id ? 'bg-[#010101] text-[#D5FF5F] shadow-md' : 'card-white text-[var(--text-muted)]'}">
-              ${m.label}
-            </button>
-          `).join('')}
+    function getRolling7Days() {
+      const todayIso = getTodayIsoEst();
+      const base = new Date(todayIso + 'T12:00:00');
+      const days = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(base.getTime() + i * 86400000);
+        const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const dow = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+        const num = String(d.getDate());
+        const shortLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const dayKey = d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }).replace(',', '');
+        days.push({ iso, dow, num, shortLabel, dayKey, isToday: i === 0 });
+      }
+      return days;
+    }
+
+    function sessionMatchesDay(s, d) {
+      if (!s || !d) return false;
+      if (s.dateIso) return s.dateIso === d.iso;
+      return s.dayKey === d.dayKey || s.day === d.shortLabel;
+    }
+
+    function renderCoachSessionRow(s, showDate = false) {
+      return `
+        <div class="card-white rounded-[24px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3.5 min-w-0">
+            <img src="${s.img || 'assets/images/fastpitch-hitter.jpg'}" class="w-14 h-14 rounded-2xl object-cover shrink-0" alt="Fastpitch softball training" loading="lazy" decoding="async" />
+            <div class="min-w-0">
+              <div class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${showDate && s.day ? `${s.day} • ` : ''}${s.time} • ${s.duration} • ${s.type}</div>
+              <div class="font-extrabold text-sm truncate">${s.focus}</div>
+              <div class="text-xs text-[var(--text-muted)] truncate">${(s.athletes || []).join(', ')} • ${s.payment || 'Scheduled'}</div>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <button onclick="openSessionRecapModal('${s.athleteId || ''}', '${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5">${uiIcon('note')} Notes</button>
+            ${s.status !== 'Completed' && s.status !== 'Canceled'
+              ? `<button onclick="completeSession('${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">Check In</button>`
+              : `<span class="px-2.5 py-1.5 rounded-xl bg-[#D6DFE2] text-[#010101] text-[11px] font-extrabold">${s.status}</span>`
+            }
+            ${s.athleteId ? `<button onclick="jumpToAthlete('${s.athleteId}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">Profile</button>` : ''}
+          </div>
         </div>
       `;
+    }
+
+    function renderCoachToday() {
+      const days = getRolling7Days();
+      const today = days[0];
+      const todayFullLabel = new Date(today.iso + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+      const todaySessions = state.sessions.filter(s => sessionMatchesDay(s, today));
+      const next7DaysWithSessions = days.map(d => ({
+        ...d,
+        sessions: state.sessions.filter(s => sessionMatchesDay(s, d))
+      }));
+      const totalNext7Count = next7DaysWithSessions.reduce((sum, d) => sum + d.sessions.length, 0);
+
+      // Build dynamic Important Actions Needed list
+      const pendingCash = state.payments.filter(p => p.status === 'Pending Cash');
+      const pendingCashTotal = pendingCash.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      const unsignedWaivers = state.athletes.filter(a => !a.waiverSigned);
+      const draftRecaps = state.sessionRecaps.filter(r => r.isDraft);
+      const unreadCount = state.threads.reduce((sum, t) => sum + (Number(t.unread) || 0), 0);
+
+      const actionItems = [];
+      if (pendingCash.length > 0) {
+        actionItems.push({
+          badge: `$${pendingCashTotal.toLocaleString()}`,
+          badgeCls: 'bg-amber-400/20 text-amber-800 dark:text-amber-300',
+          title: `${pendingCash.length} Pending Cash Payment${pendingCash.length === 1 ? '' : 's'}`,
+          sub: 'Collect cash at lesson or mark as paid in Payments.',
+          btnLabel: 'Review Payments',
+          onClick: `setTab('payments')`
+        });
+      }
+      if (unsignedWaivers.length > 0) {
+        actionItems.push({
+          badge: `${unsignedWaivers.length}`,
+          badgeCls: 'bg-rose-500/15 text-rose-700 dark:text-rose-300',
+          title: `${unsignedWaivers.length} Unsigned Facility Waiver${unsignedWaivers.length === 1 ? '' : 's'}`,
+          sub: unsignedWaivers.slice(0, 3).map(a => a.name).join(', ') + (unsignedWaivers.length > 3 ? ` +${unsignedWaivers.length - 3} more` : ''),
+          btnLabel: 'View Roster',
+          onClick: `state.rosterFilter='waiver'; state.rosterView='list'; setTab('athletes');`
+        });
+      }
+      if (draftRecaps.length > 0) {
+        const latestDraft = draftRecaps[0];
+        actionItems.push({
+          badge: `${draftRecaps.length} Draft${draftRecaps.length === 1 ? '' : 's'}`,
+          badgeCls: 'bg-[#D5FF5F] text-[#010101]',
+          title: `${draftRecaps.length} Auto-Saved Session Note Draft${draftRecaps.length === 1 ? '' : 's'}`,
+          sub: 'Finish & share with parent when ready.',
+          btnLabel: 'Continue Note',
+          onClick: latestDraft.athleteId
+            ? `openSessionRecapModal('${latestDraft.athleteId}', '${latestDraft.sessionId || ''}', '${latestDraft.id}')`
+            : `state.rosterFilter='drafts'; state.rosterView='list'; setTab('athletes');`
+        });
+      }
+      if (unreadCount > 0) {
+        actionItems.push({
+          badge: `${unreadCount} New`,
+          badgeCls: 'bg-[#010101] text-[#D5FF5F]',
+          title: `${unreadCount} Unread Parent Message${unreadCount === 1 ? '' : 's'}`,
+          sub: 'Reply in Coach Messages.',
+          btnLabel: 'Open Messages',
+          onClick: `setTab('messaging')`
+        });
+      }
+      if (state.waitlist.length > 0) {
+        actionItems.push({
+          badge: `${state.waitlist.length}`,
+          badgeCls: 'bg-[#D6DFE2] text-[#010101]',
+          title: `${state.waitlist.length} Athlete${state.waitlist.length === 1 ? '' : 's'} on Waitlist`,
+          sub: 'Offer open cage slots via 1-tap text.',
+          btnLabel: 'Offer Slot',
+          onClick: `notifyWaitlist('${state.waitlist[0].id}')`
+        });
+      }
+
+      const activeDayFilter = state.homeDayFilter || 'all7';
+      const filtered7Days = activeDayFilter === 'all7'
+        ? next7DaysWithSessions.filter(d => d.sessions.length > 0)
+        : next7DaysWithSessions.filter(d => d.iso === activeDayFilter);
 
       return `
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          <div class="lg:col-span-5 card-mist rounded-[28px] p-5 sm:p-6 flex flex-col justify-between gap-4">
+        <!-- Coach Home Header + Quick Add Actions -->
+        <div class="card-mist rounded-[28px] p-5 sm:p-6 space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-extrabold tracking-tight">Coach Hub</h1>
-                <span class="px-3 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-xs font-extrabold">$${totalRev.toLocaleString()}</span>
-              </div>
-              <p class="text-xs font-semibold text-[var(--text-muted)] mt-1">Single facility • ${state.cal.availability.bufferMin}m buffer • ${state.cal.availability.minNoticeHours}h notice</p>
-              <div class="mt-3">${performanceAreaChart()}</div>
+              <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${todayFullLabel} • Pittsburgh EST</div>
+              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">Coach Gina • Home</h1>
             </div>
-            <div class="grid grid-cols-3 gap-2">
-              <button onclick="openAddSessionModal()" class="py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Session</button>
-              <button onclick="state.coachScheduleMode='blocks'; render();" class="py-2.5 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Edit Blocks</button>
-              <button onclick="openWeatherModal()" class="py-2.5 rounded-2xl bg-[#010101] text-white text-xs font-extrabold cursor-pointer">SMS Blast</button>
+            <div class="flex flex-wrap items-center gap-2.5">
+              <button onclick="openAddAthleteModal(null)" class="px-4 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer shadow-sm hover:opacity-90 transition inline-flex items-center gap-1.5">
+                + Add Athlete
+              </button>
+              <button onclick="openAddSessionModal()" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition inline-flex items-center gap-1.5">
+                + Add Session
+              </button>
             </div>
           </div>
 
-          <!-- Next Session Hero Photo Card -->
-          <div class="lg:col-span-7 relative rounded-[28px] overflow-hidden min-h-[260px] shadow-lg">
-            <img src="assets/images/fastpitch-hitter.jpg" alt="Up Next Session" class="absolute inset-0 w-full h-full object-cover" / loading="lazy" decoding="async">
-            <div class="absolute inset-0 bg-gradient-to-b from-[#010101]/70 via-[#010101]/25 to-[#010101]/80"></div>
-            <div class="relative h-full p-6 flex flex-col justify-between text-white">
-              <div class="flex items-start justify-between">
-                <div>
-                  <span class="px-2.5 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">UP NEXT • 4:00 PM</span>
-                  <div class="text-2xl font-extrabold mt-2">Hitting Mechanics &amp; Exit Velo</div>
-                  <div class="text-xs text-[#D6DFE2]">Chloe Miller (14U) • 45 min • Clover Paid ($75)</div>
-                </div>
-                <button onclick="completeSession('ses-1')" class="cursor-pointer">${icons.arrowBtn}</button>
-              </div>
-              <div class="flex items-center gap-2 text-xs text-[#D6DFE2]">
-                <span>Waitlist Queue: <strong class="text-[#D5FF5F]">${state.waitlist.length} waiting</strong></span>
-                <span>•</span>
-                <span>${state.cal.eventTypes.length} active class types</span>
-              </div>
+          <!-- At-a-Glance Metrics -->
+          <div class="grid grid-cols-3 gap-2.5 sm:gap-3">
+            <div class="card-white rounded-2xl p-3.5">
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Today</div>
+              <div class="text-2xl font-extrabold mt-0.5">${todaySessions.length}</div>
+              <div class="text-[11px] text-[var(--text-muted)] font-semibold">session${todaySessions.length === 1 ? '' : 's'}</div>
             </div>
+            <div class="card-white rounded-2xl p-3.5">
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Next 7 Days</div>
+              <div class="text-2xl font-extrabold mt-0.5">${totalNext7Count}</div>
+              <div class="text-[11px] text-[var(--text-muted)] font-semibold">scheduled</div>
+            </div>
+            <button onclick="setTab('athletes')" class="card-white rounded-2xl p-3.5 text-left hover:border-[#010101] transition cursor-pointer">
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Athletes</div>
+              <div class="text-2xl font-extrabold mt-0.5">${state.athletes.length}</div>
+              <div class="text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-bold">View Roster →</div>
+            </button>
           </div>
         </div>
 
-        ${modeTabs}
+        <!-- Important Actions Needed -->
+        <div class="card-white rounded-[28px] p-5 sm:p-6 space-y-3.5">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-base font-extrabold tracking-tight">Important Actions Needed</h2>
+              <p class="text-xs text-[var(--text-muted)]">Pending payments, unsigned waivers, draft notes &amp; unread messages</p>
+            </div>
+            <span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold ${actionItems.length ? 'bg-[#010101] text-[#D5FF5F]' : 'bg-[#D5FF5F] text-[#010101]'}">
+              ${actionItems.length ? `${actionItems.length} Action${actionItems.length === 1 ? '' : 's'}` : 'All Caught Up ✓'}
+            </span>
+          </div>
 
-        ${state.coachScheduleMode === 'blocks' ? renderCoachBlocksEditor() : state.coachScheduleMode === 'classes' ? renderCoachClassTypes() : `
-          <!-- 7-Day Date Strip -->
+          ${actionItems.length ? `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              ${actionItems.map(item => `
+                <div class="surface-soft rounded-2xl p-4 flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${item.badgeCls}">${item.badge}</span>
+                      <span class="font-extrabold text-xs sm:text-sm truncate">${item.title}</span>
+                    </div>
+                    <div class="text-[11px] text-[var(--text-muted)] mt-1 truncate">${item.sub}</div>
+                  </div>
+                  <button onclick="${item.onClick}" class="px-3 py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold shrink-0 cursor-pointer hover:opacity-90 transition">
+                    ${item.btnLabel}
+                  </button>
+                </div>
+              `).join('')}
+            </div>
+          ` : `
+            <div class="surface-soft rounded-2xl p-4 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-[#D5FF5F] text-[#010101] flex items-center justify-center font-extrabold text-sm shrink-0">✓</div>
+                <div>
+                  <div class="font-extrabold text-sm">You’re all caught up!</div>
+                  <div class="text-xs text-[var(--text-muted)]">No pending cash payments, unsigned waivers, draft notes, or unread messages.</div>
+                </div>
+              </div>
+            </div>
+          `}
+        </div>
+
+        <!-- Today's Schedule -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-extrabold tracking-tight">Today’s Schedule</h2>
+              <p class="text-xs text-[var(--text-muted)]">${todayFullLabel}</p>
+            </div>
+            <button onclick="openAddSessionModal('${today.iso}')" class="px-3.5 py-2 rounded-xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101] transition">+ Add Today</button>
+          </div>
+
+          ${todaySessions.length ? `
+            <div class="space-y-3">
+              ${todaySessions.map(s => renderCoachSessionRow(s, false)).join('')}
+            </div>
+          ` : `
+            <div class="card-white rounded-[24px] p-6 text-center space-y-2.5">
+              <div class="font-extrabold text-sm">No sessions scheduled for today</div>
+              <p class="text-xs text-[var(--text-muted)]">Add a 1-on-1 private or small group session to today’s cage schedule.</p>
+              <div class="pt-1">
+                <button onclick="openAddSessionModal('${today.iso}')" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Add Session for Today</button>
+              </div>
+            </div>
+          `}
+        </div>
+
+        <!-- Next 7 Days Schedule -->
+        <div class="space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="text-lg font-extrabold tracking-tight">Next 7 Days</h2>
+              <p class="text-xs text-[var(--text-muted)]">${days[0].shortLabel} – ${days[6].shortLabel}</p>
+            </div>
+            <button onclick="state.homeDayFilter='all7'; render(false);" class="px-3.5 py-1.5 rounded-full text-xs font-extrabold cursor-pointer transition ${activeDayFilter === 'all7' ? 'bg-[#010101] text-[#D5FF5F]' : 'surface-soft text-[var(--text-muted)]'}">
+              All 7 Days (${totalNext7Count})
+            </button>
+          </div>
+
+          <!-- 7-Day Rolling Strip -->
           <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-            ${state.weekDays.map(d => {
-              const active = d.key === state.selectedDay;
+            ${next7DaysWithSessions.map(d => {
+              const isSelected = activeDayFilter === d.iso;
+              const count = d.sessions.length;
               return `
-                <button onclick="state.selectedDay='${d.key}'; render();" class="flex flex-col items-center justify-center min-w-[64px] py-3 rounded-2xl border transition cursor-pointer ${active ? 'bg-[#010101] text-[#D5FF5F] border-[#010101] font-extrabold' : 'card-white text-[var(--text-muted)]'}">
-                  <span class="text-[10px] font-bold">${d.dow}</span>
-                  <span class="text-lg font-extrabold leading-tight mt-0.5">${d.num}</span>
-                  <span class="w-1.5 h-1.5 rounded-full mt-1 ${d.dot ? 'bg-[#D5FF5F]' : 'bg-transparent'}"></span>
+                <button onclick="state.homeDayFilter='${d.iso}'; render(false);" class="flex flex-col items-center justify-center min-w-[68px] py-3 px-2 rounded-2xl border transition cursor-pointer ${isSelected ? 'bg-[#010101] text-[#D5FF5F] border-[#010101] font-extrabold shadow-md' : 'card-white text-[var(--text-muted)] hover:border-[#010101]'}">
+                  <span class="text-[10px] font-bold">${d.isToday ? 'TODAY' : d.dow}</span>
+                  <span class="text-lg font-extrabold leading-tight mt-0.5 ${isSelected ? 'text-[#D5FF5F]' : 'text-[var(--text-main)]'}">${d.num}</span>
+                  <span class="mt-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${count ? (isSelected ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#D5FF5F]/80 text-[#010101]') : 'opacity-40'}">${count ? count : '—'}</span>
                 </button>
               `;
             }).join('')}
           </div>
 
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            <div class="lg:col-span-2 space-y-3">
-              ${displaySessions.map(s => `
-                <div class="card-white rounded-[24px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div class="flex items-center gap-3.5 min-w-0">
-                    <img src="${s.img}" class="w-16 h-16 rounded-2xl object-cover shrink-0" / alt="Fastpitch softball training" loading="lazy" decoding="async">
-                    <div class="min-w-0">
-                      <div class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${s.time} • ${s.duration} • ${s.type}</div>
-                      <div class="font-extrabold text-sm truncate">${s.focus}</div>
-                      <div class="text-xs text-[var(--text-muted)] truncate">${s.athletes.join(', ')} • ${s.payment}</div>
-                    </div>
+          <!-- 7-Day Agenda List -->
+          ${filtered7Days.some(d => d.sessions.length > 0) ? `
+            <div class="space-y-4">
+              ${filtered7Days.map(d => d.sessions.length ? `
+                <div class="space-y-2.5">
+                  <div class="flex items-center justify-between px-1">
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${d.isToday ? `Today • ${d.shortLabel}` : d.shortLabel}</span>
+                    <span class="text-[11px] font-bold text-[var(--text-muted)]">${d.sessions.length} session${d.sessions.length === 1 ? '' : 's'}</span>
                   </div>
-                  <div class="flex flex-wrap items-center gap-2 shrink-0">
-                    <button onclick="openSessionRecapModal('${s.athleteId || 'ath-1'}', '${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">${uiIcon('note')} Log Recap &amp; Send</button>
-                    ${s.status !== 'Completed' && s.status !== 'Canceled'
-                      ? `<button onclick="completeSession('${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">Check In</button>`
-                      : `<span class="px-2.5 py-1.5 rounded-xl bg-[#D6DFE2] text-[#010101] text-[11px] font-extrabold">${s.status}</span>`
-                    }
-                    ${s.athleteId ? `<button onclick="jumpToAthlete('${s.athleteId}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">Profile</button>` : ''}
-                  </div>
+                  ${d.sessions.map(s => renderCoachSessionRow(s, false)).join('')}
                 </div>
-              `).join('')}
+              ` : '').join('')}
             </div>
-
-            <div class="card-white rounded-[28px] p-5 space-y-3">
-              <div class="flex items-center justify-between"><h2 class="text-sm font-extrabold">Waitlist Fill</h2><span class="px-2.5 py-0.5 rounded-full bg-[#D6DFE2] text-[#010101] text-[10px] font-extrabold">1-TAP SMS</span></div>
-              ${state.waitlist.map(w => `
-                <div class="surface-soft rounded-2xl p-3.5 space-y-2">
-                  <div class="flex justify-between text-xs"><span class="font-extrabold">${w.athlete}</span><span class="font-bold text-[#4E6075] dark:text-[#9AC0D6]">${w.status}</span></div>
-                  <div class="text-[11px] text-[var(--text-muted)]">${w.parent} • ${w.requested}</div>
-                  <button onclick="notifyWaitlist('${w.id}')" class="w-full py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Text Open Slot Offer</button>
-                </div>
-              `).join('')}
+          ` : `
+            <div class="card-white rounded-[24px] p-6 text-center space-y-2.5">
+              <div class="font-extrabold text-sm">${activeDayFilter === 'all7' ? 'No sessions scheduled in the next 7 days' : 'No sessions on this day'}</div>
+              <p class="text-xs text-[var(--text-muted)]">Tap below to manually add a lesson to the schedule.</p>
+              <div class="pt-1">
+                <button onclick="openAddSessionModal('${activeDayFilter === 'all7' ? today.iso : activeDayFilter}')" class="px-4 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">+ Add Session</button>
+              </div>
             </div>
-          </div>
-        `}
+          `}
+        </div>
       `;
     }
 
@@ -2633,10 +2819,10 @@
       showToast(`Removed ${ath.name} from roster.`);
     }
 
-    function openAddSessionForAthleteModal(athId) {
+    function openAddSessionForAthleteModal(athId, presetDate = null) {
       const ath = state.athletes.find(a => a.id === athId);
       if (!ath) return;
-      const defaultDate = '2026-11-27';
+      const defaultDate = presetDate || getTodayIsoEst();
       openModal(`
         <div class="flex items-start justify-between gap-2">
           <div>
@@ -2717,9 +2903,10 @@
         : payMode === 'clover-paid' ? `Clover Paid ($${evt.price})`
         : `Venmo/Zelle ($${evt.price})`;
 
-      // 1. Add session to shared schedule (syncs to Coach Today, Coach Roster & Athlete Portal)
+      // 1. Add session to shared schedule (syncs to Coach Home, Coach Roster & Athlete Portal)
       state.sessions.unshift({
         id: 'ses-' + Date.now(),
+        dateIso: iso,
         dayKey,
         day: dayNice,
         time: timeNice,
@@ -3881,6 +4068,15 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
     function renderCoachRecapPage() {
       const ath = state.athletes.find(a => a.id === (_recapActiveAthId || state.selectedAthleteId)) || state.athletes[0];
+      if (!ath) {
+        return `
+          <div class="card-white rounded-[28px] p-8 text-center space-y-3">
+            <h2 class="text-lg font-extrabold">No Athletes Yet</h2>
+            <p class="text-xs text-[var(--text-muted)]">Add an athlete first to log session notes.</p>
+            <button onclick="openAddAthleteModal(null)" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Add Athlete</button>
+          </div>
+        `;
+      }
       _recapActiveAthId = ath.id;
       const ses = _recapActiveSesId ? state.sessions.find(s => s.id === _recapActiveSesId) : null;
       const saved = loadSavedRecapDraft(ath.id);
@@ -4326,7 +4522,298 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     }
     function uploadParentVideo(e, athId) { e.preventDefault(); const ath = state.athletes.find(a => a.id === athId); state.videos.unshift({ id: 'v' + Date.now(), athleteId: ath.id, athleteName: ath.name, title: e.target.title.value, uploadedAt: 'Just now', status: 'Needs Review', img: 'assets/images/fastpitch-fielding.jpg', cues: [] }); render(); showToast('Clip uploaded!'); }
     function saveParentProfile(e, athId) { e.preventDefault(); const ath = state.athletes.find(a => a.id === athId); ath.emergencyContact = e.target.emergency.value; ath.medicalNotes = e.target.medical.value; ath.waiverSigned = true; ath.waiverDate = 'Today'; render(); showToast('Profile & waiver saved!'); }
-    function openAddSessionModal() { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">New Session</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); closeModal(); showToast('Session added!');" class="space-y-3 text-xs"><input class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="Session focus..." required /><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Save to Schedule</button></form>`); }
+    function openAddSessionModal(presetDate = null) {
+      const defaultDate = presetDate || getTodayIsoEst();
+      const hasAthletes = state.athletes.length > 0;
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Manual Schedule</div>
+            <h3 class="font-extrabold text-base mt-0.5">+ Add Session</h3>
+          </div>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+
+        <form onsubmit="submitQuickAddSession(event)" class="space-y-3 text-xs">
+          ${hasAthletes ? `
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="font-bold text-[var(--text-muted)]">Select Athlete *</label>
+                <button type="button" onclick="closeModal(); openAddAthleteModal(null);" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">+ New Athlete</button>
+              </div>
+              <select name="athleteId" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm" required>
+                ${state.athletes.map(a => `<option value="${a.id}">${a.name} (${a.ageGroup || '14U'})</option>`).join('')}
+              </select>
+            </div>
+          ` : `
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Athlete Name * <span class="font-normal">(will be added to Roster)</span></label>
+              <input name="newAthleteName" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold text-sm" placeholder="e.g., Kylie Morgan" required />
+            </div>
+          `}
+
+          <div>
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Class Type &amp; Length *</label>
+            <select name="eventTypeId" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
+              ${state.cal.eventTypes.map(t => `<option value="${t.id}">${t.title} (${t.durationLabel} • $${t.price})</option>`).join('')}
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Date *</label>
+              <input name="date" type="date" value="${defaultDate}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm" required />
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Start Time (EST) *</label>
+              <input name="time" type="time" value="16:00" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm" required />
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Session Focus (Optional)</label>
+            <input name="focus" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm" placeholder="e.g., Variability Hitting & Barrel Control" />
+          </div>
+
+          <div>
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Payment Status</label>
+            <select name="paymentMode" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
+              <option value="cash-pending">Cash at Lesson (Pending)</option>
+              <option value="cash-paid">Cash Collected ✓</option>
+              <option value="clover-paid">Clover Paid ✓</option>
+              <option value="venmo-paid">Venmo / Zelle Logged ✓</option>
+            </select>
+          </div>
+
+          <label class="flex items-center justify-between gap-3 p-3 rounded-2xl card-mist cursor-pointer">
+            <div>
+              <div class="font-extrabold">Send Parent Confirmation</div>
+              <div class="text-[11px] text-[var(--text-muted)]">Logs date &amp; time in Coach Messages</div>
+            </div>
+            <input type="checkbox" name="notify" checked class="w-5 h-5 accent-[#010101]" />
+          </label>
+
+          <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
+            Save Session to Schedule
+          </button>
+        </form>
+      `);
+    }
+
+    function submitQuickAddSession(e) {
+      e.preventDefault();
+      const f = e.target;
+      let athId = f.athleteId ? f.athleteId.value : null;
+      if (!athId && f.newAthleteName) {
+        const name = f.newAthleteName.value.trim();
+        if (!name) return;
+        const parts = name.split(/\s+/);
+        const initials = ((parts[0]?.[0] || '') + (parts[1]?.[0] || parts[0]?.[1] || '')).toUpperCase() || 'EF';
+        athId = 'ath-' + Date.now();
+        state.athletes.unshift({
+          id: athId,
+          initials,
+          name,
+          familyId: 'fam-' + Date.now(),
+          parentName: 'Parent / Guardian',
+          parentPhone: '(412) 555-0100',
+          ageGroup: '14U',
+          gradYear: 2030,
+          position: 'Hitter / Utility',
+          batsThrows: 'R / R',
+          team: 'Gina Fuchs Elite Fastpitch',
+          height: '',
+          streakDays: 1,
+          weeklyReps: 0,
+          weeklyDuration: '0:00 hours',
+          waiverSigned: false,
+          waiverDate: null,
+          emergencyContact: 'Not set yet',
+          medicalNotes: 'None reported',
+          pitches: [],
+          notes: [],
+          drills: []
+        });
+        if (!state.selectedAthleteId) state.selectedAthleteId = athId;
+        if (!state.activeSiblingId) state.activeSiblingId = athId;
+      }
+      if (!athId) return;
+      submitAddSessionForAthlete(e, athId);
+    }
+
+    function copyShareableBookingLink() {
+      const url = window.location.href.split('#')[0];
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(url).then(() => showToast('App link copied to clipboard!'));
+      } else {
+        showToast('Link ready to share!');
+      }
+    }
+
+    function exportAppBackup() {
+      try {
+        const payload = JSON.stringify({
+          exportedAt: new Date().toISOString(),
+          athletes: state.athletes,
+          sessions: state.sessions,
+          sessionRecaps: state.sessionRecaps,
+          payments: state.payments,
+          threads: state.threads,
+          waitlist: state.waitlist,
+          cal: state.cal
+        }, null, 2);
+        const blob = new Blob([payload], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `gfuchs-elite-backup-${getTodayIsoEst()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast('Backup JSON downloaded!');
+      } catch (_) {
+        showToast('Unable to export backup on this browser.');
+      }
+    }
+
+    function renderCoachSettings() {
+      const tab = state.coachSettingsTab || 'general';
+      const isDark = document.documentElement.classList.contains('dark');
+      const { url } = getSupabaseCreds();
+
+      return `
+        <div class="card-mist rounded-[28px] p-5 sm:p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">App Configuration</div>
+              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">Settings</h1>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              ${[
+                { id: 'general', label: 'General' },
+                { id: 'blocks', label: 'Calendar Blocks' },
+                { id: 'classes', label: 'Class Types' }
+              ].map(t => `
+                <button onclick="state.coachSettingsTab='${t.id}'; render(false);" class="px-4 py-2 rounded-full text-xs font-extrabold transition cursor-pointer ${tab === t.id ? 'bg-[#010101] text-[#D5FF5F] shadow-md' : 'card-white text-[var(--text-muted)]'}">
+                  ${t.label}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+        ${tab === 'blocks' ? renderCoachBlocksEditor() : tab === 'classes' ? renderCoachClassTypes() : `
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <!-- Cloud Sync Card -->
+            <div class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <h2 class="text-base font-extrabold">Multi-Device Cloud Sync</h2>
+                  <p class="text-xs text-[var(--text-muted)] mt-0.5">Real-time sync across MacBook, iPhone &amp; iPad via Supabase</p>
+                </div>
+                <span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold inline-flex items-center gap-1.5 ${window._sbConnected ? 'bg-[#D5FF5F] text-[#010101]' : 'surface-soft text-[var(--text-muted)]'}">
+                  <span class="w-2 h-2 rounded-full ${window._sbConnected ? 'bg-[#010101]' : 'bg-amber-400'}"></span>
+                  ${window._sbConnected ? 'Live' : 'Offline'}
+                </span>
+              </div>
+              <div class="surface-soft rounded-2xl p-3.5 text-xs space-y-1">
+                <div class="font-bold text-[var(--text-muted)]">Connected Project</div>
+                <div class="font-extrabold truncate">${url || 'Not configured'}</div>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button onclick="pushStateToSupabase(true); showToast('Synced to cloud!');" class="flex-1 py-2.5 px-4 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Sync Now</button>
+                <button onclick="openCloudSyncModal()" class="flex-1 py-2.5 px-4 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Configure Sync</button>
+              </div>
+            </div>
+
+            <!-- Facility, Timezone & Appearance -->
+            <div class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
+              <div>
+                <h2 class="text-base font-extrabold">Facility &amp; Display</h2>
+                <p class="text-xs text-[var(--text-muted)] mt-0.5">Single facility settings &amp; visual appearance</p>
+              </div>
+
+              <div class="space-y-2.5 text-xs">
+                <div class="surface-soft rounded-2xl p-3.5 flex items-center justify-between gap-3">
+                  <div>
+                    <div class="font-extrabold">Timezone</div>
+                    <div class="text-[var(--text-muted)]">Pittsburgh • Eastern Time (America/New_York)</div>
+                  </div>
+                  <span class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold">EST</span>
+                </div>
+
+                <div class="surface-soft rounded-2xl p-3.5 flex items-center justify-between gap-3">
+                  <div>
+                    <div class="font-extrabold">Time Format</div>
+                    <div class="text-[var(--text-muted)]">Displayed on schedules &amp; booking slots</div>
+                  </div>
+                  <div class="inline-flex rounded-xl p-0.5 card-white">
+                    <button onclick="state.cal.timeFormat='12h'; render();" class="px-2.5 py-1 rounded-lg text-[11px] font-extrabold cursor-pointer ${state.cal.timeFormat !== '24h' ? 'bg-[#010101] text-[#D5FF5F]' : 'text-[var(--text-muted)]'}">12h</button>
+                    <button onclick="state.cal.timeFormat='24h'; render();" class="px-2.5 py-1 rounded-lg text-[11px] font-extrabold cursor-pointer ${state.cal.timeFormat === '24h' ? 'bg-[#010101] text-[#D5FF5F]' : 'text-[var(--text-muted)]'}">24h</button>
+                  </div>
+                </div>
+
+                <div class="surface-soft rounded-2xl p-3.5 flex items-center justify-between gap-3">
+                  <div>
+                    <div class="font-extrabold">Appearance</div>
+                    <div class="text-[var(--text-muted)]">${isDark ? 'Dark Liquid Glass' : 'Light Liquid Glass'}</div>
+                  </div>
+                  <button onclick="toggleTheme(); render(false);" class="px-3.5 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold cursor-pointer">
+                    Switch to ${isDark ? 'Light' : 'Dark'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Booking Rules & Policies -->
+            <div class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
+              <div>
+                <h2 class="text-base font-extrabold">Booking Buffer &amp; Notice</h2>
+                <p class="text-xs text-[var(--text-muted)] mt-0.5">Controls spacing between sessions &amp; minimum booking lead time</p>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3 text-xs">
+                <div class="surface-soft rounded-2xl p-3.5 space-y-2">
+                  <div class="font-extrabold">Session Buffer</div>
+                  <select onchange="state.cal.availability.bufferMin=Number(this.value); render(); showToast('Buffer updated!');" class="w-full px-3 py-2 rounded-xl card-white font-extrabold text-xs">
+                    ${[0, 10, 15, 30].map(m => `<option value="${m}" ${state.cal.availability.bufferMin === m ? 'selected' : ''}>${m} minutes</option>`).join('')}
+                  </select>
+                </div>
+                <div class="surface-soft rounded-2xl p-3.5 space-y-2">
+                  <div class="font-extrabold">Minimum Notice</div>
+                  <select onchange="state.cal.availability.minNoticeHours=Number(this.value); render(); showToast('Notice window updated!');" class="w-full px-3 py-2 rounded-xl card-white font-extrabold text-xs">
+                    ${[6, 12, 24, 48].map(h => `<option value="${h}" ${state.cal.availability.minNoticeHours === h ? 'selected' : ''}>${h} hours</option>`).join('')}
+                  </select>
+                </div>
+              </div>
+
+              <button onclick="copyShareableBookingLink()" class="w-full py-2.5 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101] transition">
+                Copy Shareable App Link
+              </button>
+            </div>
+
+            <!-- Data, Apple Notes Import & Backup -->
+            <div class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
+              <div>
+                <h2 class="text-base font-extrabold">Data &amp; Apple Notes Import</h2>
+                <p class="text-xs text-[var(--text-muted)] mt-0.5">Import athlete notes from Apple Notes or download a local JSON backup</p>
+              </div>
+
+              <div class="space-y-2.5">
+                <button onclick="openAppleNotesImporterModal()" class="w-full py-3 px-4 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer hover:opacity-90 transition">
+                  Import Athletes &amp; Notes from Apple Notes
+                </button>
+                <button onclick="exportAppBackup()" class="w-full py-3 px-4 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101] transition">
+                  Download JSON Backup (${state.athletes.length} Athletes • ${state.sessions.length} Sessions)
+                </button>
+              </div>
+            </div>
+          </div>
+        `}
+      `;
+    }
+
     function openWeatherModal() { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">SMS / Weather Broadcast</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); closeModal(); showToast('SMS Broadcast sent!');" class="space-y-3 text-xs"><textarea rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="Message all booked families..." required></textarea><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Send Broadcast</button></form>`); }
     function openAddMetricModal(id) { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">Log Performance PR</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); state.athletes.find(x=>x.id==='${id}').primaryMetricValue=this.v.value; closeModal(); render(); showToast('PR saved!');" class="space-y-3 text-xs"><input name="v" placeholder="e.g., 59.5" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" required /><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Save PR</button></form>`); }
     function openAddDrillModal(id) { openModal(`<div class="flex justify-between"><h3 class="font-extrabold text-sm">Assign Homework Drill</h3><button onclick="closeModal()" class="text-xs">✕</button></div><form onsubmit="event.preventDefault(); state.athletes.find(x=>x.id==='${id}').drills.unshift({id:'d'+Date.now(),title:this.t.value,reps:'25 reps',focus:'Mechanics',done:false,img:'assets/images/fastpitch-fielding.jpg'}); closeModal(); render(); showToast('Drill assigned!');" class="space-y-3 text-xs"><input name="t" placeholder="Drill title..." class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" required /><button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold">Assign Drill</button></form>`); }
@@ -4509,6 +4996,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
   updated_at timestamptz not null default now()
 );
 
+grant all on public.gfuchs_state to anon, authenticated;
+
 alter table public.gfuchs_state enable row level security;
 
 create policy "Allow app sync" on public.gfuchs_state
@@ -4588,6 +5077,7 @@ alter publication supabase_realtime add table public.gfuchs_state;`;
         else if (state.coachTab === 'video') root.innerHTML = renderCoachVideo();
         else if (state.coachTab === 'payments') root.innerHTML = renderCoachPayments();
         else if (state.coachTab === 'messaging') root.innerHTML = renderCoachMessaging();
+        else if (state.coachTab === 'settings') root.innerHTML = renderCoachSettings();
       } else {
         if (state.parentTab === 'home') root.innerHTML = renderParentHome();
         else if (state.parentTab === 'book') root.innerHTML = renderParentBook();
