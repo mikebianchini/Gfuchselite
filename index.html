@@ -2126,7 +2126,7 @@
             <div class="surface-soft rounded-2xl p-3.5 flex items-center justify-between gap-2 text-xs">
               <div class="min-w-0">
                 <div class="font-extrabold">${p.item}</div>
-                <div class="text-[var(--text-muted)]">${p.date} • ${p.method}</div>
+                <div class="text-[var(--text-muted)]">${formatPaymentTimestamp(p)} • ${p.method}</div>
                 ${p.externalNote ? `<div class="text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-semibold mt-1">${String(p.externalNote).replace(/</g, '&lt;')}</div>` : ''}
               </div>
               <div class="flex items-center gap-2 shrink-0">
@@ -3309,10 +3309,25 @@
       }
     }
 
+    function formatPaymentTimestamp(p) {
+      if (!p) return '';
+      const isPaid = p.status !== 'Pending Cash' && p.status !== 'Unpaid';
+      const ts = (isPaid ? p.paidAt : null) || p.createdAt || p._modifiedAt || null;
+      if (ts && Number(ts) > 1000000000000) {
+        const dt = new Date(Number(ts));
+        if (!isNaN(dt.getTime())) {
+          const datePart = dt.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', year: 'numeric' });
+          const timePart = dt.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' });
+          return `${isPaid && p.paidAt ? 'Paid ' : ''}${datePart} at ${timePart}`;
+        }
+      }
+      return p.date || '';
+    }
+
     function exportPaymentsCsv() {
-      const rows = [['Date', 'Family', 'Item', 'Method', 'Status', 'Amount', 'External Note', 'Internal Note']];
+      const rows = [['Date', 'Timestamp', 'Family', 'Item', 'Method', 'Status', 'Amount', 'External Note', 'Internal Note']];
       state.payments.forEach(p => {
-        rows.push([p.date || '', p.family || '', p.item || '', p.method || '', p.status || '', String(p.amount || 0), p.externalNote || '', p.internalNote || '']);
+        rows.push([p.date || '', formatPaymentTimestamp(p), p.family || '', p.item || '', p.method || '', p.status || '', String(p.amount || 0), p.externalNote || '', p.internalNote || '']);
       });
       const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
       try {
@@ -4825,18 +4840,22 @@
         // Log payment entry for each athlete on the first occurrence (or pending cash on future)
         selectedAthletes.forEach((ath, aIdx) => {
           const isFuture = i > 0;
+          const _nowPay = Date.now() + i * 10 + aIdx;
+          const _isPaidNow = !(isFuture || payMode === 'cash-pending');
           state.payments.unshift({
-            id: 'pay-' + (Date.now() + i * 10 + aIdx),
+            id: 'pay-' + _nowPay,
             date: dObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
             dateIso: iso,
+            createdAt: _nowPay,
+            paidAt: _isPaidNow ? _nowPay : null,
             athleteId: ath.id,
             sessionId: sesId,
             family: `${(ath.parentName || ath.name).split(' ').slice(-1)[0]} Family`,
             item: `${evt.title} (${ath.name.split(' ')[0]})`,
             amount: appliedPrice,
             method: (isFuture || payMode === 'cash-pending') ? 'Cash at Session' : payMode === 'cash-paid' ? 'Cash (Collected ✓)' : payMode === 'clover-paid' ? 'Clover • Card' : 'Venmo / Zelle (Logged)',
-            status: (isFuture || payMode === 'cash-pending') ? 'Pending Cash' : 'Paid',
-            _modifiedAt: Date.now()
+            status: _isPaidNow ? 'Paid' : 'Pending Cash',
+            _modifiedAt: _nowPay
           });
         });
         createdCount++;
@@ -6877,10 +6896,13 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           const amt = Number(f.wrapPayAmount?.value) || 0;
           const method = f.wrapPayMethod?.value || 'Cash';
           const status = f.wrapPayStatus?.value || 'Paid';
+          const _nowWrap = Date.now() + idx * 10;
           state.payments.unshift({
-            id: 'pay-' + (Date.now() + idx * 10),
+            id: 'pay-' + _nowWrap,
             date: todayShort,
             dateIso: todayIso,
+            createdAt: _nowWrap,
+            paidAt: status === 'Paid' ? _nowWrap : null,
             athleteId: targetAth.id,
             sessionId: ses ? ses.id : null,
             family: `${(targetAth.parentName || targetAth.name).split(' ').slice(-1)[0]} Family`,
@@ -6888,7 +6910,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             amount: amt,
             method: status === 'Paid' ? `${method} (Collected ✓)` : method,
             status: status === 'Paid' ? 'Paid' : 'Unpaid',
-            _modifiedAt: Date.now() + idx
+            _modifiedAt: _nowWrap
           });
         }
       });
@@ -7103,7 +7125,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                     <div class="flex flex-wrap items-center justify-between gap-2.5">
                       <div class="min-w-0">
                         <div class="font-extrabold truncate">${p.family} — ${p.item}</div>
-                        <div class="text-[var(--text-muted)]">${p.date} • ${p.method}</div>
+                        <div class="inline-flex items-center gap-1 text-[var(--text-muted)]">${uiIcon('clock', 'w-3 h-3 shrink-0')} <span>${formatPaymentTimestamp(p)} • ${p.method}</span></div>
                       </div>
                       <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap">
                         <button type="button" onclick="openPaymentNotesModal('${p.id}')" title="Add / edit internal &amp; external notes" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-extrabold cursor-pointer transition ${hasNotes ? 'bg-[#010101] text-[#D5FF5F]' : 'card-white text-[var(--text-muted)] hover:text-[var(--text-main)]'}">${uiIcon('note', 'w-3 h-3')} ${hasNotes ? 'Notes' : '+ Note'}</button>
@@ -7302,6 +7324,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       }
 
       p.status = isPaid ? 'Paid' : 'Pending Cash';
+      p.paidAt = isPaid ? Date.now() : null;
+      if (!p.createdAt) p.createdAt = p._modifiedAt || Date.now();
       if (isPaid && selectedMethod) {
         p.method = selectedMethod;
         const extEl = document.getElementById('mark-paid-ext-note');
@@ -7700,7 +7724,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.5.5';
+    const APP_VERSION = 'v3.5.6';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Optimized for Coach Gina’s daily flow: Today-first schedule, per-session plans, 1-tap previous session review & live camera video recording';
 
@@ -7959,7 +7983,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     function openLogPaymentModal() {
       openModal(`
         <div class="flex justify-between items-center"><h3 class="font-extrabold text-sm">Log Cash / Clover / Manual Payment</h3><button onclick="closeModal()" class="text-xs font-bold cursor-pointer">✕</button></div>
-        <form onsubmit="event.preventDefault(); state.payments.unshift({id:'p'+Date.now(),date:'Today',dateIso:getTodayIsoEst(),family:this.f.value.trim(),item:this.item.value.trim(),amount:Number(this.amt.value),method:this.m.value,status:this.st.value,externalNote:(this.extNote.value||'').trim(),internalNote:(this.intNote.value||'').trim(),_modifiedAt:Date.now()}); closeModal(); render(); showToast('Payment recorded!');" class="space-y-3 text-xs">
+        <form onsubmit="event.preventDefault(); const _now=Date.now(); state.payments.unshift({id:'p'+_now,date:'Today',dateIso:getTodayIsoEst(),createdAt:_now,paidAt:this.st.value==='Paid'?_now:null,family:this.f.value.trim(),item:this.item.value.trim(),amount:Number(this.amt.value),method:this.m.value,status:this.st.value,externalNote:(this.extNote.value||'').trim(),internalNote:(this.intNote.value||'').trim(),_modifiedAt:_now}); closeModal(); render(); showToast('Payment recorded!');" class="space-y-3 text-xs">
           <input name="f" value="" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" placeholder="Family or Athlete name" required />
           <input name="item" value="1-on-1 Hitting Lesson" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" placeholder="Lesson / Item" required />
           <div class="grid grid-cols-2 gap-2">
