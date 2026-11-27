@@ -3118,59 +3118,6 @@
       showToast('Pinned focus updated!');
     }
 
-    function openCheckInMessageModal(athId) {
-      const ath = state.athletes.find(a => a.id === athId);
-      if (!ath) return;
-      const parentFirst = (ath.parentName || 'there').split(' ')[0];
-      const athFirst = ath.name.split(' ')[0];
-      const defaultMsg = `Hey ${parentFirst}! Checking in on ${athFirst} — hope the season is going great. Let me know if you'd like to grab a cage slot next week! – Coach Gina`;
-      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-      openModal(`
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <h3 class="font-extrabold text-base">Check In with ${esc(ath.name)}</h3>
-            <p class="text-xs text-[var(--text-muted)] mt-0.5">${esc(ath.parentName || 'Parent')}${ath.parentPhone ? ` • ${esc(ath.parentPhone)}` : ''}</p>
-          </div>
-          <button type="button" onclick="closeModal()" aria-label="Close" class="w-9 h-9 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
-        </div>
-        <form onsubmit="sendCheckInMessage(event, '${ath.id}')" class="space-y-3 text-xs">
-          <textarea id="checkin-msg-text" name="text" rows="4" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm leading-relaxed" required>${esc(defaultMsg)}</textarea>
-          <div class="grid grid-cols-2 gap-2">
-            <button type="button" onclick="copyTextFromEl('checkin-msg-text', 'Check-in text copied!')" class="py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101]">Copy for SMS</button>
-            <button type="submit" class="py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Send in Messages</button>
-          </div>
-        </form>
-      `);
-    }
-
-    function copyTextFromEl(elId, toastMsg) {
-      const txt = document.getElementById(elId)?.value || '';
-      if (!txt) return;
-      if (navigator.clipboard?.writeText) {
-        navigator.clipboard.writeText(txt).then(() => showToast(toastMsg || 'Copied!'));
-      } else {
-        showToast(toastMsg || 'Ready to paste!');
-      }
-    }
-
-    function sendCheckInMessage(e, athId) {
-      e.preventDefault();
-      const ath = state.athletes.find(a => a.id === athId);
-      if (!ath) return;
-      const text = (e.target.text.value || '').trim();
-      if (!text) return;
-      const parentKey = ath.parentName || ath.name;
-      let thread = state.threads.find(t => t.parent === parentKey);
-      if (!thread) {
-        thread = { id: 'msg-' + Date.now(), parent: parentKey, athletes: ath.name, unread: 0, messages: [] };
-        state.threads.unshift(thread);
-      }
-      thread.messages.push({ from: 'coach', time: 'Just now', text });
-      closeModal();
-      render();
-      showToast(`Check-in sent to ${parentKey}!`);
-    }
-
     function copyPaymentReminder(paymentId) {
       const p = state.payments.find(x => x.id === paymentId);
       if (!p) return;
@@ -4578,7 +4525,6 @@
           } else {
             if (isArchived) return false;
             if (f === 'today' && !(todayIds.has(a.id) || todayNames.has(a.name))) return false;
-            if (f === 'atRisk' && !getAthleteLastSeenInfo(a.id).isAtRisk) return false;
             if (f === 'waiver' && a.waiverSigned) return false;
             if (f === 'drafts' && !draftIds.has(a.id)) return false;
             if (['10U', '12U', '14U', '16U', '18U'].includes(f) && a.ageGroup !== f) return false;
@@ -4618,8 +4564,8 @@
         }
         return `
           <div class="card-white rounded-[28px] p-8 text-center space-y-2">
-            <div class="text-sm font-extrabold">${state.rosterFilter === 'archived' && !state.rosterSearch ? 'No archived athletes' : state.rosterFilter === 'atRisk' ? 'All active athletes are on track!' : `No athletes match "${state.rosterSearch || state.rosterFilter}"`}</div>
-            <p class="text-xs text-[var(--text-muted)]">${state.rosterFilter === 'archived' ? 'Archived athletes appear here with all their session notes and videos preserved.' : state.rosterFilter === 'atRisk' ? 'No active players have gone 21+ days without a session or upcoming booking.' : 'Try clearing your search or switching age group filters.'}</p>
+            <div class="text-sm font-extrabold">${state.rosterFilter === 'archived' && !state.rosterSearch ? 'No archived athletes' : `No athletes match "${state.rosterSearch || state.rosterFilter}"`}</div>
+            <p class="text-xs text-[var(--text-muted)]">${state.rosterFilter === 'archived' ? 'Archived athletes appear here with all their session notes and videos preserved.' : 'Try clearing your search or switching age group filters.'}</p>
             <button onclick="state.rosterSearch=''; state.rosterFilter='all'; render(false);" class="mt-1 px-4 py-2 rounded-full bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Show All ${activeTotal} Active Athletes</button>
           </div>
         `;
@@ -4688,9 +4634,6 @@
                         <div class="inline-flex items-center gap-1.5">
                           ${isArchived ? `
                             <button onclick="unarchiveAthlete('${a.id}')" class="px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer hover:brightness-95">Restore</button>
-                          ` : seen.isAtRisk ? `
-                            <button onclick="openCheckInMessageModal('${a.id}')" class="px-2.5 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold cursor-pointer">Check In</button>
-                            <button onclick="openSessionRecapModal('${a.id}', null)" title="Session Notes" class="px-2.5 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer">Notes</button>
                           ` : `
                             <button onclick="openEditAthleteModal('${a.id}')" title="Edit Athlete Info" aria-label="Edit ${a.name}" class="w-8 h-8 rounded-xl surface-soft text-xs font-extrabold inline-flex items-center justify-center cursor-pointer hover:border-[#010101]">${uiIcon('edit')}</button>
                             <button onclick="openSessionRecapModal('${a.id}', null)" title="Session Notes" class="px-2.5 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer">Notes</button>
@@ -5414,12 +5357,10 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       if (state.rosterView !== 'detail') {
         const activeCount = state.athletes.filter(a => !a.archived).length;
         const archivedCount = state.athletes.filter(a => a.archived).length;
-        const atRiskCount = state.athletes.filter(a => !a.archived && getAthleteLastSeenInfo(a.id).isAtRisk).length;
         const draftCount = new Set(state.sessionRecaps.filter(r => r.isDraft).map(r => r.athleteId)).size;
         const filters = [
           { id: 'all', label: `Active (${activeCount})` },
           { id: 'today', label: 'Today' },
-          ...(atRiskCount ? [{ id: 'atRisk', label: `Needs Check-In (${atRiskCount})` }] : []),
           { id: '10U', label: '10U' },
           { id: '12U', label: '12U' },
           { id: '14U', label: '14U' },
@@ -5488,7 +5429,6 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             ← All Athletes (${activeTotal})
           </button>
           <div class="flex flex-wrap items-center gap-2">
-            <button onclick="openCheckInMessageModal('${sel.id}')" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer hover:border-[#010101]">Check In</button>
             <button onclick="openEditAthleteModal('${sel.id}')" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5 hover:border-[#010101]">${uiIcon('edit')} Edit Info</button>
             <button onclick="openAddSessionForAthleteModal('${sel.id}')" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer">+ Add Session</button>
             <button onclick="openSessionRecapModal('${sel.id}', null)" class="px-3.5 py-2 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm">${uiIcon('note')} New Notes</button>
@@ -7171,7 +7111,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.3.0';
+    const APP_VERSION = 'v3.3.1';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Pre-lesson brief, Wrap-Up loop, recurring & group sessions, roster health, payment filters & Before/After clip compare';
 
