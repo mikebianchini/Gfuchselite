@@ -5683,6 +5683,19 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
+    const APP_VERSION = 'v2.4.0';
+    const APP_BUILD_DATE = 'Nov 26, 2026';
+    const APP_RELEASE_NOTES = 'Lesson → Session hierarchy & Conflict-Free Sync v2';
+
+    function reloadLatestAppVersion() {
+      try {
+        const base = window.location.href.split('?')[0].split('#')[0];
+        window.location.replace(`${base}?v=${Date.now()}`);
+      } catch (_) {
+        window.location.reload();
+      }
+    }
+
     function renderCoachSettings() {
       const isDark = document.documentElement.classList.contains('dark');
       const { url } = getSupabaseCreds();
@@ -5691,10 +5704,15 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const cloverReady = Boolean(clover.enabled && (clover.merchantId || clover.hostedCheckoutUrl || clover.publicKey));
 
       return `
-        <div class="card-mist rounded-[28px] p-5 sm:p-6">
-          <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">App Configuration</div>
-          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">Settings</h1>
-          <p class="text-xs text-[var(--text-muted)] mt-0.5">Facility locations, Clover payments, cloud sync, display &amp; data backup</p>
+        <div class="card-mist rounded-[28px] p-5 sm:p-6 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">App Configuration</div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">Settings</h1>
+            <p class="text-xs text-[var(--text-muted)] mt-0.5">Facility locations, Clover payments, cloud sync, display &amp; data backup</p>
+          </div>
+          <span class="px-3 py-1.5 rounded-full bg-[#010101] text-[#D5FF5F] text-xs font-extrabold tabular-nums self-start">
+            ${APP_VERSION}
+          </span>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -5900,6 +5918,20 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                   Download JSON Backup (${state.athletes.length} Athletes • ${state.sessions.length} Sessions)
                 </button>
               </div>
+            </div>
+
+            <!-- App Version & Build Info -->
+            <div class="lg:col-span-2 card-white rounded-[28px] p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                  <h2 class="text-base font-extrabold">App Version</h2>
+                  <span class="px-2.5 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold tabular-nums">${APP_VERSION}</span>
+                </div>
+                <p class="text-xs text-[var(--text-muted)]">${APP_RELEASE_NOTES} • Updated ${APP_BUILD_DATE}</p>
+              </div>
+              <button onclick="reloadLatestAppVersion()" class="px-4 py-2.5 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101] transition self-start sm:self-auto shrink-0">
+                ↻ Reload Latest Version
+              </button>
             </div>
         </div>
       `;
