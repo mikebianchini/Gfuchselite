@@ -763,7 +763,7 @@
 
     function switchRole(role) {
       state.role = role;
-      render();
+      render(false);
       showToast(role === 'coach' ? 'Switched to Coach Gina Dashboard' : 'Switched to Athlete Training Hub');
     }
 
@@ -771,7 +771,7 @@
       if (state.role === 'coach') state.coachTab = tab;
       else state.parentTab = tab;
       closeMobileDrawer();
-      render();
+      render(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -783,7 +783,7 @@
         state.parentTab = 'profile';
       }
       closeMobileDrawer();
-      render();
+      render(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -5684,6 +5684,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     let _sbClient = null;
     let _sbPushTimer = null;
     let _sbHydrating = false;
+    let _lastSyncedDataSig = null;
+    let _lastCloudUpdatedAt = '';
     window._sbConnected = false;
 
     function getSupabaseCreds() {
@@ -5692,7 +5694,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       return { url, key };
     }
 
-    function serializeSyncedState() {
+    function serializeDataOnly() {
       return {
         athletes: state.athletes,
         sessions: state.sessions,
@@ -5708,7 +5710,21 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           clover: state.cal.clover,
           calendarSync: state.cal.calendarSync,
           eventTypes: state.cal.eventTypes
-        },
+        }
+      };
+    }
+
+    function getDataSignature() {
+      try {
+        return JSON.stringify(serializeDataOnly());
+      } catch (_) {
+        return String(Date.now());
+      }
+    }
+
+    function serializeSyncedState() {
+      return {
+        ...serializeDataOnly(),
         _clientId: CLIENT_SESSION_ID,
         _updatedAt: new Date().toISOString()
       };
@@ -5735,8 +5751,10 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         if (data.cal.calendarSync) state.cal.calendarSync = { ...state.cal.calendarSync, ...data.cal.calendarSync };
         if (Array.isArray(data.cal.eventTypes) && data.cal.eventTypes.length) state.cal.eventTypes = data.cal.eventTypes;
       }
+      if (data._updatedAt) _lastCloudUpdatedAt = data._updatedAt;
       if (!state.selectedAthleteId && state.athletes.length) state.selectedAthleteId = state.athletes[0].id;
       if (!state.activeSiblingId && state.athletes.length) state.activeSiblingId = state.athletes[0].id;
+      _lastSyncedDataSig = getDataSignature();
       _sbHydrating = false;
     }
 
@@ -5763,18 +5781,24 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
     async function pushStateToSupabase(immediate = false) {
       if (!_sbClient || _sbHydrating) return;
+      const curSig = getDataSignature();
+      if (!immediate && curSig === _lastSyncedDataSig) return;
       clearTimeout(_sbPushTimer);
       const run = async () => {
         try {
+          const runSig = getDataSignature();
+          if (!immediate && runSig === _lastSyncedDataSig) return;
           updateSyncIndicators(true, 'Syncing…');
           const payload = serializeSyncedState();
           const { error } = await _sbClient
             .from('gfuchs_state')
-            .upsert({ id: 'main', data: payload, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+            .upsert({ id: 'main', data: payload, updated_at: payload._updatedAt }, { onConflict: 'id' });
           if (error) {
             console.warn('Supabase upsert error:', error.message);
             updateSyncIndicators(false, 'Sync Error');
           } else {
+            _lastSyncedDataSig = runSig;
+            _lastCloudUpdatedAt = payload._updatedAt;
             updateSyncIndicators(true, 'Synced');
             publishLiveCalendarFeed(false);
           }
@@ -5820,6 +5844,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           .on('postgres_changes', { event: '*', schema: 'public', table: 'gfuchs_state', filter: 'id=eq.main' }, (payload) => {
             const incoming = payload.new?.data;
             if (!incoming || incoming._clientId === CLIENT_SESSION_ID || window._importingInProgress) return;
+            if (incoming._updatedAt && _lastCloudUpdatedAt && incoming._updatedAt < _lastCloudUpdatedAt) return;
             applySyncedState(incoming);
             saveLocalState();
             render(false);
