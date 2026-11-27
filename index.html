@@ -19,6 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -52,23 +53,44 @@
     }
 
     html.dark {
-      /* Apple Liquid Glass — Dark Mode */
-      --bg-page: #07090C;
-      --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.04) 100%);
-      --glass-mist: linear-gradient(135deg, rgba(78, 96, 117, 0.34) 0%, rgba(154, 192, 214, 0.12) 100%);
-      --glass-soft: rgba(255, 255, 255, 0.07);
-      --glass-dock: linear-gradient(180deg, rgba(28, 34, 42, 0.80) 0%, rgba(16, 20, 25, 0.68) 100%);
-      --glass-border: rgba(255, 255, 255, 0.18);
-      --glass-border-outer: rgba(255, 255, 255, 0.10);
-      --glass-specular: inset 0 1px 1px rgba(255, 255, 255, 0.28), inset 0 -1px 1px rgba(0, 0, 0, 0.35);
-      --glass-shadow: 0 18px 44px rgba(0, 0, 0, 0.48), 0 2px 10px rgba(0, 0, 0, 0.32);
-      --border-subtle: rgba(255, 255, 255, 0.12);
-      --text-main: #FFFFFF;
-      --text-muted: #C2CBD3;
-      --text-soft: #8F99A3;
-      --bg-card: rgba(20, 25, 31, 0.76);
-      --bg-elevated: rgba(255, 255, 255, 0.08);
+      color-scheme: dark;
+      /* High-Contrast Frosted Dark Mode (WCAG AA/AAA) */
+      --bg-page: #0B0F14;
+      --glass-bg: linear-gradient(135deg, rgba(24, 31, 42, 0.90) 0%, rgba(16, 21, 29, 0.84) 100%);
+      --glass-mist: linear-gradient(135deg, rgba(33, 45, 62, 0.92) 0%, rgba(20, 29, 41, 0.86) 100%);
+      --glass-soft: rgba(255, 255, 255, 0.09);
+      --glass-dock: linear-gradient(180deg, rgba(24, 31, 41, 0.92) 0%, rgba(14, 18, 25, 0.90) 100%);
+      --glass-border: rgba(255, 255, 255, 0.16);
+      --glass-border-outer: rgba(255, 255, 255, 0.12);
+      --glass-specular: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.45);
+      --glass-shadow: 0 18px 44px rgba(0, 0, 0, 0.55), 0 2px 10px rgba(0, 0, 0, 0.35);
+      --border-subtle: rgba(255, 255, 255, 0.14);
+      --text-main: #F8FAFC;
+      --text-muted: #CBD5E1;
+      --text-soft: #94A3B8;
+      --bg-card: rgba(20, 26, 35, 0.90);
+      --bg-elevated: rgba(255, 255, 255, 0.10);
       --bg-canvas: var(--bg-page);
+    }
+
+    html.dark #modal-root > .card-white {
+      background: rgba(17, 22, 30, 0.97);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+    html.dark input, html.dark select, html.dark textarea {
+      color: #F8FAFC;
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+    html.dark input::placeholder, html.dark textarea::placeholder {
+      color: #94A3B8;
+      opacity: 1;
+    }
+    html.dark option {
+      background-color: #11161E;
+      color: #F8FAFC;
+    }
+    html.dark .modal-backdrop {
+      background: rgba(3, 6, 10, 0.72);
     }
 
     body {
@@ -134,7 +156,7 @@
       filter: blur(90px);
       opacity: 0.36;
     }
-    html.dark .liquid-orb { opacity: 0.28; }
+    html.dark .liquid-orb { opacity: 0.14; }
 
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -502,14 +524,30 @@
       return `<svg class="${cls} inline-block shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">${UI_SVGS[name] || ''}</svg>`;
     }
 
-    function toggleTheme() {
-      const isDark = document.documentElement.classList.toggle('dark');
+    function syncThemeChrome(isDark) {
       const iconHtml = uiIcon(isDark ? 'moon' : 'sun', 'w-4 h-4');
       const label = isDark ? 'Dark' : 'Light';
       ['desk-theme-icon', 'mob-theme-icon'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = iconHtml; });
       const dl = document.getElementById('desk-theme-label'); if (dl) dl.textContent = label;
-      const meta = document.getElementById('meta-theme-color'); if (meta) meta.setAttribute('content', isDark ? '#07090C' : '#DDE6EA');
+      const drawerLbl = document.getElementById('drawer-theme-label'); if (drawerLbl) drawerLbl.textContent = isDark ? 'Dark Mode' : 'Light Mode';
+      const meta = document.getElementById('meta-theme-color'); if (meta) meta.setAttribute('content', isDark ? '#0B0F14' : '#DDE6EA');
     }
+
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      try { localStorage.setItem('gfuchs_theme', isDark ? 'dark' : 'light'); } catch (_) {}
+      syncThemeChrome(isDark);
+    }
+
+    (function initSavedTheme() {
+      try {
+        const saved = localStorage.getItem('gfuchs_theme');
+        if (saved === 'dark') {
+          document.documentElement.classList.add('dark');
+          syncThemeChrome(true);
+        }
+      } catch (_) {}
+    })();
 
     // Global Escape-key modal close (auto-saves recap draft if open)
     document.addEventListener('keydown', (e) => {
@@ -7662,7 +7700,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.5.4';
+    const APP_VERSION = 'v3.5.5';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Optimized for Coach Gina’s daily flow: Today-first schedule, per-session plans, 1-tap previous session review & live camera video recording';
 
