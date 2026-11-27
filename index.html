@@ -5037,15 +5037,15 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                     </div>
                   </div>
                   ${renderRecapTemplateBody(r, true)}
-                  <div class="flex items-center gap-2">
-                    <button onclick="openRecapViewerModal('${r.id}', 0)" class="flex-1 card-white rounded-2xl p-2.5 flex items-center gap-3 text-left cursor-pointer hover:border-[#010101] transition">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <button onclick="openRecapViewerModal('${r.id}', 0)" class="flex-1 min-w-0 overflow-hidden card-white rounded-2xl p-2.5 flex items-center gap-3 text-left cursor-pointer hover:border-[#010101] transition">
                       <div class="relative w-16 h-12 rounded-xl overflow-hidden shrink-0">
                         <img src="${r.videoImg}" class="w-full h-full object-cover" alt="Fastpitch softball training" loading="lazy" decoding="async" />
                         <div class="absolute inset-0 bg-[#010101]/40 flex items-center justify-center text-[#D5FF5F] text-xs">▶</div>
                       </div>
-                      <div class="min-w-0 flex-1">
-                        <div class="text-xs font-extrabold truncate">${r.clips?.length ? `${r.clips.length} Attached Clip${r.clips.length === 1 ? '' : 's'} • ${r.videoTitle}` : (r.videoUrl ? r.videoTitle : 'No video attached yet')}</div>
-                        <div class="text-[11px] text-[var(--text-muted)]">${r.videoUrl || r.clips?.length ? 'Tap to watch session clip' : 'Tap + Video to upload from Photos / Files'}</div>
+                      <div class="min-w-0 flex-1 overflow-hidden">
+                        <div class="text-xs font-extrabold truncate">${r.clips?.length ? `${r.clips.length} Attached Clip${r.clips.length === 1 ? '' : 's'} • ${formatClipLabel(r.clips[0]?.title || r.videoTitle, 0)}` : (r.videoUrl ? formatClipLabel(r.videoTitle, 0) : 'No video attached yet')}</div>
+                        <div class="text-[11px] text-[var(--text-muted)] truncate">${r.videoUrl || r.clips?.length ? 'Tap to watch session clip' : 'Tap + Video to upload from Photos / Files'}</div>
                       </div>
                     </button>
                     <label title="Upload video clip to this note" class="px-3 py-3 rounded-2xl bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold cursor-pointer hover:opacity-90 shrink-0 inline-flex items-center gap-1">
@@ -5218,12 +5218,12 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             <div class="space-y-1.5">
               <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('video')} Attached Clips (${r.clips.length})</div>
               <div class="grid grid-cols-2 gap-2">
-                ${r.clips.map(c => `
-                  <button type="button" onclick="openRecapViewerModal('${r.id}')" class="relative h-20 rounded-2xl overflow-hidden text-left group cursor-pointer">
-                    <img src="${c.img || r.videoImg}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" / alt="Fastpitch softball training" loading="lazy" decoding="async">
-                    <div class="absolute inset-0 bg-gradient-to-t from-[#010101]/80 via-[#010101]/20 to-transparent flex flex-col justify-between p-2">
+                ${r.clips.map((c, cIdx) => `
+                  <button type="button" onclick="openRecapViewerModal('${r.id}', ${cIdx})" class="relative h-20 rounded-2xl overflow-hidden text-left group cursor-pointer min-w-0">
+                    <img src="${c.img || r.videoImg}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="Fastpitch softball training" loading="lazy" decoding="async">
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#010101]/80 via-[#010101]/20 to-transparent flex flex-col justify-between p-2 min-w-0">
                       <span class="w-6 h-6 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold flex items-center justify-center">▶</span>
-                      <span class="text-[10px] font-extrabold text-white truncate">${c.title}</span>
+                      <span class="text-[10px] font-extrabold text-white truncate block">${formatClipLabel(c.title, cIdx)}</span>
                     </div>
                   </button>
                 `).join('')}
@@ -5232,6 +5232,24 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           ` : ''}
         </div>
       `;
+    }
+
+    function formatClipLabel(title, idx = 0) {
+      const raw = String(title || '').trim();
+      if (!raw) return `Clip ${idx + 1}`;
+      // Strip file extension and Apple Notes Exporter UUIDs like -81492300167__48C065BD-692D-...
+      const cleaned = raw
+        .replace(/\.(mov|mp4|m4v|webm|3gp|avi|jpe?g|png|heic|gif)$/i, '')
+        .replace(/[-_]?\d{8,}__[A-Fa-f0-9-]+$/i, '')
+        .replace(/[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}/g, '')
+        .replace(/[-_\s]+$/g, '')
+        .trim();
+      if (!cleaned || cleaned.length < 2) return `Clip ${idx + 1}`;
+      // If it's just a date + index like "10-28-29-1", make it "Clip 1 (10-28)"
+      if (/^\d{1,2}[-/]\d{1,2}(?:[-/]\d{2,4})?(?:-\d+)?$/.test(cleaned)) {
+        return `Clip ${idx + 1} (${cleaned.replace(/-\d+$/, '')})`;
+      }
+      return cleaned.length > 32 ? cleaned.slice(0, 31) + '…' : cleaned;
     }
 
     let _recapDraftClips = [];
@@ -6327,9 +6345,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v2.9.1';
+    const APP_VERSION = 'v2.9.2';
     const APP_BUILD_DATE = 'Nov 26, 2026';
-    const APP_RELEASE_NOTES = 'Delete transactions (double-confirm), clean notes & Sync v2';
+    const APP_RELEASE_NOTES = 'Fixed clip bar overflow, clean clip titles & formatted notes';
 
     function reloadLatestAppVersion() {
       try {
