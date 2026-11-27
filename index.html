@@ -2836,25 +2836,17 @@
         ? next7DaysWithSessions.filter(d => d.sessions.length > 0)
         : next7DaysWithSessions.filter(d => d.iso === activeDayFilter);
 
-      return `
-        <!-- Coach Home Header + Quick Add Actions -->
-        <div class="card-mist rounded-[28px] p-5 sm:p-6 space-y-5">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${todayFullLabel} • Pittsburgh EST</div>
-              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">Coach Gina • Home</h1>
-            </div>
-            <div class="flex flex-wrap items-center gap-2.5">
-              <button onclick="openAddAthleteModal(null)" class="px-4 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer shadow-sm hover:opacity-90 transition inline-flex items-center gap-1.5">
-                + Add Athlete
-              </button>
-              <button onclick="openAddSessionModal()" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition inline-flex items-center gap-1.5">
-                + Add Session
-              </button>
-            </div>
-          </div>
+      const isReordering = Boolean(state.homeReordering);
+      const sectionOrder = getHomeSectionOrder();
+      const sectionMeta = {
+        metrics: { label: 'At-a-Glance Metrics', sub: 'Today, Next 7 Days & Athletes counters' },
+        actions: { label: 'Important Actions Needed', sub: actionItems.length ? `${actionItems.length} pending item${actionItems.length === 1 ? '' : 's'}` : 'Auto-hides when all caught up' },
+        today: { label: 'Today’s Schedule', sub: `${todaySessions.length} session${todaySessions.length === 1 ? '' : 's'} today` },
+        next7: { label: 'Next 7 Days', sub: `${totalNext7Count} scheduled this week` }
+      };
 
-          <!-- At-a-Glance Metrics -->
+      const sectionHtmlMap = {
+        metrics: `
           <div class="grid grid-cols-3 gap-2.5 sm:gap-3">
             <div class="card-white rounded-2xl p-3.5">
               <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Today</div>
@@ -2872,10 +2864,8 @@
               <div class="text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-bold">View Roster →</div>
             </button>
           </div>
-        </div>
-
-        ${actionItems.length ? `
-          <!-- Important Actions Needed -->
+        `,
+        actions: actionItems.length ? `
           <div class="card-white rounded-[28px] p-5 sm:p-6 space-y-3.5">
             <div class="flex items-center justify-between">
               <div>
@@ -2904,84 +2894,215 @@
               `).join('')}
             </div>
           </div>
-        ` : ''}
-
-        <!-- Today's Schedule -->
-        <div class="space-y-3">
-          <div class="flex items-center justify-between">
-            <div>
-              <h2 class="text-lg font-extrabold tracking-tight">Today’s Schedule</h2>
-              <p class="text-xs text-[var(--text-muted)]">${todayFullLabel}</p>
-            </div>
-            <button onclick="openAddSessionModal('${today.iso}')" class="px-3.5 py-2 rounded-xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101] transition">+ Add Today</button>
+        ` : (isReordering ? `
+          <div class="card-white rounded-[24px] p-4 text-xs text-[var(--text-muted)] flex items-center justify-between gap-2">
+            <span class="font-bold">Important Actions Needed</span>
+            <span class="px-2.5 py-1 rounded-full surface-soft text-[10px] font-extrabold">Auto-hides when empty</span>
           </div>
-
-          ${todaySessions.length ? `
-            <div class="space-y-3">
-              ${todaySessions.map(s => renderCoachSessionRow(s, false)).join('')}
-            </div>
-          ` : `
-            <div class="card-white rounded-[24px] p-6 text-center space-y-2.5">
-              <div class="font-extrabold text-sm">No sessions scheduled for today</div>
-              <p class="text-xs text-[var(--text-muted)]">Add a 1-on-1 private or small group session to today’s cage schedule.</p>
-              <div class="pt-1">
-                <button onclick="openAddSessionModal('${today.iso}')" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Add Session for Today</button>
+        ` : ''),
+        today: `
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-lg font-extrabold tracking-tight">Today’s Schedule</h2>
+                <p class="text-xs text-[var(--text-muted)]">${todayFullLabel}</p>
               </div>
+              <button onclick="openAddSessionModal('${today.iso}')" class="px-3.5 py-2 rounded-xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101] transition">+ Add Today</button>
             </div>
-          `}
-        </div>
 
-        <!-- Next 7 Days Schedule -->
-        <div class="space-y-3">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h2 class="text-lg font-extrabold tracking-tight">Next 7 Days</h2>
-              <p class="text-xs text-[var(--text-muted)]">${days[0].shortLabel} – ${days[6].shortLabel}</p>
-            </div>
-            <button onclick="state.homeDayFilter='all7'; render(false);" class="px-3.5 py-1.5 rounded-full text-xs font-extrabold cursor-pointer transition ${activeDayFilter === 'all7' ? 'bg-[#010101] text-[#D5FF5F]' : 'surface-soft text-[var(--text-muted)]'}">
-              All 7 Days (${totalNext7Count})
-            </button>
-          </div>
-
-          <!-- 7-Day Rolling Strip -->
-          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-            ${next7DaysWithSessions.map(d => {
-              const isSelected = activeDayFilter === d.iso;
-              const count = d.sessions.length;
-              return `
-                <button onclick="state.homeDayFilter='${d.iso}'; render(false);" class="flex flex-col items-center justify-center min-w-[68px] py-3 px-2 rounded-2xl border transition cursor-pointer ${isSelected ? 'bg-[#010101] text-[#D5FF5F] border-[#010101] font-extrabold shadow-md' : 'card-white text-[var(--text-muted)] hover:border-[#010101]'}">
-                  <span class="text-[10px] font-bold">${d.isToday ? 'TODAY' : d.dow}</span>
-                  <span class="text-lg font-extrabold leading-tight mt-0.5 ${isSelected ? 'text-[#D5FF5F]' : 'text-[var(--text-main)]'}">${d.num}</span>
-                  <span class="mt-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${count ? (isSelected ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#D5FF5F]/80 text-[#010101]') : 'opacity-40'}">${count ? count : '—'}</span>
-                </button>
-              `;
-            }).join('')}
-          </div>
-
-          <!-- 7-Day Agenda List -->
-          ${filtered7Days.some(d => d.sessions.length > 0) ? `
-            <div class="space-y-4">
-              ${filtered7Days.map(d => d.sessions.length ? `
-                <div class="space-y-2.5">
-                  <div class="flex items-center justify-between px-1">
-                    <span class="text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${d.isToday ? `Today • ${d.shortLabel}` : d.shortLabel}</span>
-                    <span class="text-[11px] font-bold text-[var(--text-muted)]">${d.sessions.length} session${d.sessions.length === 1 ? '' : 's'}</span>
-                  </div>
-                  ${d.sessions.map(s => renderCoachSessionRow(s, false)).join('')}
+            ${todaySessions.length ? `
+              <div class="space-y-3">
+                ${todaySessions.map(s => renderCoachSessionRow(s, false)).join('')}
+              </div>
+            ` : `
+              <div class="card-white rounded-[24px] p-6 text-center space-y-2.5">
+                <div class="font-extrabold text-sm">No sessions scheduled for today</div>
+                <p class="text-xs text-[var(--text-muted)]">Add a 1-on-1 private or small group session to today’s cage schedule.</p>
+                <div class="pt-1">
+                  <button onclick="openAddSessionModal('${today.iso}')" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Add Session for Today</button>
                 </div>
-              ` : '').join('')}
+              </div>
+            `}
+          </div>
+        `,
+        next7: `
+          <div class="space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 class="text-lg font-extrabold tracking-tight">Next 7 Days</h2>
+                <p class="text-xs text-[var(--text-muted)]">${days[0].shortLabel} – ${days[6].shortLabel}</p>
+              </div>
+              <button onclick="state.homeDayFilter='all7'; render(false);" class="px-3.5 py-1.5 rounded-full text-xs font-extrabold cursor-pointer transition ${activeDayFilter === 'all7' ? 'bg-[#010101] text-[#D5FF5F]' : 'surface-soft text-[var(--text-muted)]'}">
+                All 7 Days (${totalNext7Count})
+              </button>
             </div>
-          ` : `
-            <div class="card-white rounded-[24px] p-6 text-center space-y-2.5">
-              <div class="font-extrabold text-sm">${activeDayFilter === 'all7' ? 'No sessions scheduled in the next 7 days' : 'No sessions on this day'}</div>
-              <p class="text-xs text-[var(--text-muted)]">Tap below to schedule a session for any lesson.</p>
-              <div class="pt-1">
-                <button onclick="openAddSessionModal('${activeDayFilter === 'all7' ? today.iso : activeDayFilter}')" class="px-4 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">+ Add Session</button>
+
+            <!-- 7-Day Rolling Strip -->
+            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+              ${next7DaysWithSessions.map(d => {
+                const isSelected = activeDayFilter === d.iso;
+                const count = d.sessions.length;
+                return `
+                  <button onclick="state.homeDayFilter='${d.iso}'; render(false);" class="flex flex-col items-center justify-center min-w-[68px] py-3 px-2 rounded-2xl border transition cursor-pointer ${isSelected ? 'bg-[#010101] text-[#D5FF5F] border-[#010101] font-extrabold shadow-md' : 'card-white text-[var(--text-muted)] hover:border-[#010101]'}">
+                    <span class="text-[10px] font-bold">${d.isToday ? 'TODAY' : d.dow}</span>
+                    <span class="text-lg font-extrabold leading-tight mt-0.5 ${isSelected ? 'text-[#D5FF5F]' : 'text-[var(--text-main)]'}">${d.num}</span>
+                    <span class="mt-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${count ? (isSelected ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#D5FF5F]/80 text-[#010101]') : 'opacity-40'}">${count ? count : '—'}</span>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+
+            <!-- 7-Day Agenda List -->
+            ${filtered7Days.some(d => d.sessions.length > 0) ? `
+              <div class="space-y-4">
+                ${filtered7Days.map(d => d.sessions.length ? `
+                  <div class="space-y-2.5">
+                    <div class="flex items-center justify-between px-1">
+                      <span class="text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${d.isToday ? `Today • ${d.shortLabel}` : d.shortLabel}</span>
+                      <span class="text-[11px] font-bold text-[var(--text-muted)]">${d.sessions.length} session${d.sessions.length === 1 ? '' : 's'}</span>
+                    </div>
+                    ${d.sessions.map(s => renderCoachSessionRow(s, false)).join('')}
+                  </div>
+                ` : '').join('')}
+              </div>
+            ` : `
+              <div class="card-white rounded-[24px] p-6 text-center space-y-2.5">
+                <div class="font-extrabold text-sm">${activeDayFilter === 'all7' ? 'No sessions scheduled in the next 7 days' : 'No sessions on this day'}</div>
+                <p class="text-xs text-[var(--text-muted)]">Tap below to schedule a session for any lesson.</p>
+                <div class="pt-1">
+                  <button onclick="openAddSessionModal('${activeDayFilter === 'all7' ? today.iso : activeDayFilter}')" class="px-4 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">+ Add Session</button>
+                </div>
+              </div>
+            `}
+          </div>
+        `
+      };
+
+      const renderedSections = sectionOrder.map((secId, idx) => {
+        const content = sectionHtmlMap[secId] || '';
+        if (!content) return '';
+        if (!isReordering) return content;
+        const meta = sectionMeta[secId] || { label: secId, sub: '' };
+        const isFirst = idx === 0;
+        const isLast = idx === sectionOrder.length - 1;
+        return `
+          <div
+            draggable="true"
+            ondragstart="onHomeSectionDragStart(event, '${secId}')"
+            ondragover="onHomeSectionDragOver(event)"
+            ondrop="onHomeSectionDrop(event, '${secId}')"
+            class="rounded-[30px] p-3.5 border-2 border-dashed border-[#010101]/25 dark:border-[#D5FF5F]/35 bg-[#D5FF5F]/5 space-y-3 transition"
+          >
+            <div class="flex items-center justify-between gap-2 px-1">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-7 h-7 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold flex items-center justify-center cursor-grab shrink-0" title="Drag to reorder">⋮⋮</span>
+                <div class="min-w-0">
+                  <div class="text-xs font-extrabold truncate">${idx + 1}. ${meta.label}</div>
+                  <div class="text-[10px] text-[var(--text-muted)] truncate">${meta.sub}</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button type="button" onclick="moveHomeSection('${secId}', -1)" ${isFirst ? 'disabled' : ''} aria-label="Move up" class="w-8 h-8 rounded-xl card-white text-xs font-extrabold flex items-center justify-center ${isFirst ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer hover:border-[#010101]'}">↑</button>
+                <button type="button" onclick="moveHomeSection('${secId}', 1)" ${isLast ? 'disabled' : ''} aria-label="Move down" class="w-8 h-8 rounded-xl card-white text-xs font-extrabold flex items-center justify-center ${isLast ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer hover:border-[#010101]'}">↓</button>
               </div>
             </div>
-          `}
+            ${content}
+          </div>
+        `;
+      }).filter(Boolean).join('');
+
+      return `
+        <!-- Coach Home Header + Quick Add Actions -->
+        <div class="card-mist rounded-[28px] p-5 sm:p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${todayFullLabel} • Pittsburgh EST</div>
+              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">Coach Gina • Home</h1>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button onclick="toggleHomeReorderMode()" class="px-3.5 py-2.5 rounded-2xl text-xs font-extrabold cursor-pointer transition inline-flex items-center gap-1.5 ${isReordering ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'card-white hover:border-[#010101]'}">
+                ${isReordering ? '✓ Done Reordering' : '⇅ Reorder'}
+              </button>
+              <button onclick="openAddAthleteModal(null)" class="px-4 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer shadow-sm hover:opacity-90 transition inline-flex items-center gap-1.5">
+                + Add Athlete
+              </button>
+              <button onclick="openAddSessionModal()" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition inline-flex items-center gap-1.5">
+                + Add Session
+              </button>
+            </div>
+          </div>
+
+          ${isReordering ? `
+            <div class="card-white rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span class="font-bold text-[var(--text-muted)]">Drag sections or tap <strong>↑ / ↓</strong> to customize your Home layout — syncs across devices.</span>
+              <button type="button" onclick="resetHomeSectionOrder()" class="px-3 py-1.5 rounded-xl surface-soft text-[11px] font-extrabold cursor-pointer hover:border-[#010101]">Reset Default</button>
+            </div>
+          ` : ''}
         </div>
+
+        ${renderedSections}
       `;
+    }
+
+    const HOME_SECTION_DEFAULTS = ['metrics', 'actions', 'today', 'next7'];
+    let _draggedHomeSectionId = null;
+
+    function getHomeSectionOrder() {
+      const saved = Array.isArray(state.cal?.homeSectionOrder) ? state.cal.homeSectionOrder : [];
+      const valid = saved.filter(id => HOME_SECTION_DEFAULTS.includes(id));
+      HOME_SECTION_DEFAULTS.forEach(id => {
+        if (!valid.includes(id)) valid.push(id);
+      });
+      return valid;
+    }
+
+    function toggleHomeReorderMode() {
+      state.homeReordering = !state.homeReordering;
+      render(false);
+    }
+
+    function moveHomeSection(secId, delta) {
+      const order = getHomeSectionOrder();
+      const idx = order.indexOf(secId);
+      const nextIdx = idx + delta;
+      if (idx < 0 || nextIdx < 0 || nextIdx >= order.length) return;
+      [order[idx], order[nextIdx]] = [order[nextIdx], order[idx]];
+      state.cal.homeSectionOrder = order;
+      render();
+    }
+
+    function resetHomeSectionOrder() {
+      state.cal.homeSectionOrder = [...HOME_SECTION_DEFAULTS];
+      render();
+      showToast('Home section order reset to default!');
+    }
+
+    function onHomeSectionDragStart(e, secId) {
+      _draggedHomeSectionId = secId;
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        try { e.dataTransfer.setData('text/plain', secId); } catch (_) {}
+      }
+    }
+
+    function onHomeSectionDragOver(e) {
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    }
+
+    function onHomeSectionDrop(e, targetSecId) {
+      e.preventDefault();
+      const srcId = _draggedHomeSectionId || e.dataTransfer?.getData('text/plain');
+      _draggedHomeSectionId = null;
+      if (!srcId || srcId === targetSecId) return;
+      const order = getHomeSectionOrder();
+      const fromIdx = order.indexOf(srcId);
+      const toIdx = order.indexOf(targetSecId);
+      if (fromIdx < 0 || toIdx < 0) return;
+      order.splice(fromIdx, 1);
+      order.splice(toIdx, 0, srcId);
+      state.cal.homeSectionOrder = order;
+      render();
     }
 
     function openAddAthleteModal(familyId = null) {
@@ -5665,9 +5786,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v2.4.2';
+    const APP_VERSION = 'v2.5.0';
     const APP_BUILD_DATE = 'Nov 26, 2026';
-    const APP_RELEASE_NOTES = 'Auto-hide empty Home actions, clean Athletes header & Sync v2';
+    const APP_RELEASE_NOTES = 'Reorderable Home sections, Lesson → Session hierarchy & Sync v2';
 
     function reloadLatestAppVersion() {
       try {
@@ -6019,6 +6140,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           locations: state.cal.locations,
           clover: state.cal.clover,
           calendarSync: state.cal.calendarSync,
+          homeSectionOrder: getHomeSectionOrder(),
           eventTypes: state.cal.eventTypes
         }
       };
@@ -6079,6 +6201,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         if (Array.isArray(data.cal.locations)) state.cal.locations = data.cal.locations;
         if (data.cal.clover) state.cal.clover = { ...state.cal.clover, ...data.cal.clover };
         if (data.cal.calendarSync) state.cal.calendarSync = { ...state.cal.calendarSync, ...data.cal.calendarSync };
+        if (Array.isArray(data.cal.homeSectionOrder) && data.cal.homeSectionOrder.length) state.cal.homeSectionOrder = data.cal.homeSectionOrder;
         if (Array.isArray(data.cal.eventTypes) && data.cal.eventTypes.length) state.cal.eventTypes = data.cal.eventTypes;
       }
       if (data._updatedAt) _lastCloudUpdatedAt = data._updatedAt;
@@ -6186,6 +6309,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         }
         if (cloudData.cal.calendarSync && preferCloud) {
           state.cal.calendarSync = { ...state.cal.calendarSync, ...cloudData.cal.calendarSync };
+        }
+        if (Array.isArray(cloudData.cal.homeSectionOrder) && cloudData.cal.homeSectionOrder.length && preferCloud) {
+          state.cal.homeSectionOrder = cloudData.cal.homeSectionOrder;
         }
         if (cloudData.cal.availability) {
           if (preferCloud) {
