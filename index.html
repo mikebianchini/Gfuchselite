@@ -1847,7 +1847,7 @@
             </div>
             <div class="surface-soft rounded-2xl p-3">
               <div class="text-[11px] text-[var(--text-muted)]">Minimum Notice</div>
-              <div class="font-extrabold text-sm mt-0.5">${state.cal.availability.minNoticeHours} hours</div>
+              <div class="font-extrabold text-sm mt-0.5">${state.cal.availability.minNoticeHours} ${state.cal.availability.minNoticeHours === 1 ? 'hour' : 'hours'}</div>
             </div>
           </div>
           <button onclick="copyCalLink('hitting-45')" class="w-full py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] font-extrabold cursor-pointer">${uiIcon('link')} Copy Shareable Booking Link</button>
@@ -2490,7 +2490,7 @@
               <label class="surface-soft rounded-full px-3 py-1.5 flex items-center gap-1.5 font-bold">
                 <span class="text-[var(--text-muted)]">Notice:</span>
                 <select onchange="state.cal.availability.minNoticeHours=Number(this.value); render(); showToast('Min notice updated!');" class="bg-transparent font-extrabold cursor-pointer focus:outline-none">
-                  ${[2, 12, 24, 48].map(h => `<option value="${h}" ${state.cal.availability.minNoticeHours === h ? 'selected' : ''}>${h}h</option>`).join('')}
+                  ${[1, 2, 3, 4, 5, 6, 12, 24, 48].map(h => `<option value="${h}" ${state.cal.availability.minNoticeHours === h ? 'selected' : ''}>${h}h</option>`).join('')}
                 </select>
               </label>
             </div>
@@ -5786,9 +5786,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v2.5.1';
+    const APP_VERSION = 'v2.5.2';
     const APP_BUILD_DATE = 'Nov 26, 2026';
-    const APP_RELEASE_NOTES = 'Clean Schedule header, reorderable Home sections & Sync v2';
+    const APP_RELEASE_NOTES = '1–6h Minimum Notice options, reorderable Home & Sync v2';
 
     function reloadLatestAppVersion() {
       try {
@@ -5996,7 +5996,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                 <div class="surface-soft rounded-2xl p-3.5 space-y-2">
                   <div class="font-extrabold">Minimum Notice</div>
                   <select onchange="state.cal.availability.minNoticeHours=Number(this.value); render(); showToast('Notice window updated!');" class="w-full px-3 py-2 rounded-xl card-white font-extrabold text-xs">
-                    ${[6, 12, 24, 48].map(h => `<option value="${h}" ${state.cal.availability.minNoticeHours === h ? 'selected' : ''}>${h} hours</option>`).join('')}
+                    ${[1, 2, 3, 4, 5, 6, 12, 24, 48].map(h => `<option value="${h}" ${state.cal.availability.minNoticeHours === h ? 'selected' : ''}>${h} ${h === 1 ? 'hour' : 'hours'}</option>`).join('')}
                   </select>
                 </div>
               </div>
