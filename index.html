@@ -4124,13 +4124,17 @@
       const noteStarted = s.athleteId ? hasStartedSessionNote(s.athleteId, s.id) : false;
       const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+      const cardClick = s.athleteId && !isCanceled
+        ? `onclick="openSessionRecapModal('${s.athleteId}', '${s.id}')"`
+        : '';
+
       return `
         <div class="swipe-row relative overflow-hidden rounded-[24px]" data-swipe-type="session" data-swipe-id="${s.id}" data-athlete-id="${s.athleteId || ''}" data-canceled="${isCanceled ? '1' : '0'}">
           <div class="lg:hidden absolute inset-0 flex items-center justify-between px-5 pointer-events-none select-none" aria-hidden="true">
-            <span class="swipe-rail-left inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold opacity-0 transition-opacity">${s.athleteId && !isCanceled ? `${uiIcon(noteStarted ? 'edit' : 'note')} ${noteStarted ? 'Edit Note' : 'Notes'} →` : `${uiIcon('sliders')} Manage →`}</span>
-            <span class="swipe-rail-right inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold opacity-0 transition-opacity">← ${isCanceled ? 'Restore / Delete' : 'Reschedule / Cancel'}</span>
+            <span class="swipe-rail-left inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold opacity-0 transition-opacity">${s.athleteId && !isCanceled ? `${uiIcon('note')} Session Notes →` : `${uiIcon('edit')} Edit Session →`}</span>
+            <span class="swipe-rail-right inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold opacity-0 transition-opacity">← ${isCanceled ? 'Restore / Delete' : 'Edit / Cancel'}</span>
           </div>
-          <div class="swipe-card card-interactive relative card-white rounded-[24px] p-4 space-y-3 ${isCanceled ? 'opacity-65' : ''}" style="touch-action: pan-y;">
+          <div ${cardClick} class="swipe-card card-interactive relative card-white rounded-[24px] p-4 space-y-3 ${isCanceled ? 'opacity-65' : (s.athleteId ? 'cursor-pointer' : '')}" style="touch-action: pan-y;">
             <div class="flex items-start justify-between gap-3">
               <div class="flex items-center gap-3.5 min-w-0">
                 <img src="${s.img || 'assets/images/fastpitch-hitter.jpg'}" class="w-14 h-14 rounded-2xl object-cover shrink-0 ${isCanceled ? 'grayscale' : ''}" alt="Fastpitch softball training" loading="lazy" decoding="async" />
@@ -4146,11 +4150,11 @@
                   ${briefCue && !isCanceled ? `<div class="inline-flex items-center gap-1 text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-semibold truncate max-w-full mt-0.5">${uiIcon('target', 'w-3 h-3 shrink-0')}<span class="truncate">${primaryAth?.currentFocus ? 'Focus:' : 'Last:'} ${esc(briefCue)}</span></div>` : ''}
                 </div>
               </div>
-              <button onclick="openManageSessionModal('${s.id}')" title="Reschedule or manage session" aria-label="Manage session" class="w-9 h-9 rounded-xl surface-soft flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] shrink-0 cursor-pointer">${uiIcon('sliders', 'w-4 h-4')}</button>
+              <button type="button" onclick="event.stopPropagation(); openManageSessionModal('${s.id}')" title="Edit session" aria-label="Edit session" class="w-9 h-9 rounded-xl surface-soft flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] shrink-0 cursor-pointer">${uiIcon('edit', 'w-4 h-4')}</button>
             </div>
 
             ${plan && !isCanceled ? `
-              <button type="button" onclick="openSessionPlanModal('${s.id}')" class="w-full text-left surface-soft rounded-2xl px-3.5 py-2.5 space-y-0.5 cursor-pointer hover:border-[#010101] transition">
+              <button type="button" onclick="event.stopPropagation(); openSessionPlanModal('${s.id}')" class="w-full text-left surface-soft rounded-2xl px-3.5 py-2.5 space-y-0.5 cursor-pointer hover:border-[#010101] transition">
                 <div class="flex items-center justify-between gap-2">
                   <span class="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#4E6075] dark:text-[#D5FF5F]">${uiIcon('clipboard', 'w-3 h-3')} Session Plan</span>
                   <span class="text-[10px] font-bold text-[var(--text-muted)]">Edit</span>
@@ -4160,17 +4164,15 @@
               </button>
             ` : ''}
 
-            ${!isCanceled ? `
-              <div class="flex flex-wrap items-center gap-2">
-                ${s.athleteId ? `
-                  <button onclick="openSessionRecapModal('${s.athleteId}', '${s.id}')" class="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-1.5 shadow-sm hover:brightness-95">${uiIcon(noteStarted ? 'edit' : 'note')} ${noteStarted ? 'Edit Note' : 'Start Notes'}</button>
-                ` : ''}
-                ${s.athleteId ? `<button onclick="openPreviousSessionsModal('${s.athleteId}', '${s.id}')" class="px-3 py-2.5 rounded-xl surface-soft text-xs font-bold cursor-pointer hover:border-[#010101] inline-flex items-center gap-1.5">${uiIcon('history')} Last Session</button>` : ''}
+            ${!isCanceled ? (s.athleteId ? `
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <button type="button" onclick="event.stopPropagation(); openPreviousSessionsModal('${s.athleteId}', '${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer hover:border-[#010101] inline-flex items-center gap-1.5">${uiIcon('history')} Last Session</button>
+                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-[#4E6075] dark:text-[#9AC0D6]">Session Notes ${uiIcon('chevronRight', 'w-3.5 h-3.5')}</span>
               </div>
-            ` : `
+            ` : '') : `
               <div class="flex items-center justify-between gap-2">
                 <span class="px-2.5 py-1.5 rounded-xl bg-red-500/15 text-red-600 dark:text-red-400 text-[11px] font-extrabold">Canceled</span>
-                <button onclick="openManageSessionModal('${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-extrabold cursor-pointer">Restore / Delete</button>
+                <button type="button" onclick="event.stopPropagation(); openManageSessionModal('${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-extrabold cursor-pointer">Restore / Delete</button>
               </div>
             `}
           </div>
@@ -5464,7 +5466,7 @@
         const sesId = 'ses-' + (Date.now() + i);
         if (!firstCreatedId) firstCreatedId = sesId;
 
-        state.sessions.unshift({
+        const newSesObj = {
           id: sesId,
           lessonId: evt.id,
           lessonTitle: evt.title,
@@ -5487,11 +5489,12 @@
           price: appliedPrice,
           img: evt.img || (primaryAth ? getAthleteCoverImg(primaryAth) : 'assets/images/fastpitch-hitter.jpg'),
           _modifiedAt: Date.now()
-        });
+        };
+        state.sessions.unshift(newSesObj);
 
         if (!state.cal.bookedSlots.includes(slotKey)) state.cal.bookedSlots.push(slotKey);
 
-        // Log payment entry for each athlete on the first occurrence (or pending on future)
+        // Log payment entry & auto-create Session Note for each athlete
         selectedAthletes.forEach((ath, aIdx) => {
           const isFuture = i > 0;
           const _nowPay = Date.now() + i * 10 + aIdx;
@@ -5511,6 +5514,9 @@
             status: _isPaidNow ? 'Paid' : 'Pending',
             _modifiedAt: _nowPay
           });
+          if (typeof ensureSessionNoteForSession === 'function') {
+            ensureSessionNoteForSession(newSesObj, ath);
+          }
         });
         createdCount++;
       }
@@ -6981,27 +6987,75 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     let _recapActiveSesId = null;
     let _recapAutoSaveTimer = null;
 
-    function getRecapDraftStorageKey(athId) {
-      return `gfuchs_recap_draft_${athId}`;
+    function getRecapDraftStorageKey(athId, sessionId = null) {
+      return sessionId ? `gfuchs_recap_draft_${athId}_${sessionId}` : `gfuchs_recap_draft_${athId}`;
     }
 
-    function loadSavedRecapDraft(athId) {
-      const mem = state.sessionRecaps.find(r => r.id === `draft-${athId}` && r.isDraft);
+    function getSessionNoteDraftId(athId, sessionId = null) {
+      return sessionId ? `draft-${sessionId}-${athId}` : `draft-${athId}`;
+    }
+
+    function ensureSessionNoteForSession(ses, ath) {
+      if (!ses || !ath) return null;
+      const existing = state.sessionRecaps.find(r =>
+        r.athleteId === ath.id && (r.sessionId === ses.id || r.id === getSessionNoteDraftId(ath.id, ses.id))
+      );
+      if (existing) return existing;
+      const dateStr = ses.dateIso
+        ? new Date(ses.dateIso + 'T12:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' })
+        : new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' });
+      const draftId = getSessionNoteDraftId(ath.id, ses.id);
+      const vidImg = getAthleteCoverImg(ath);
+      const noteObj = {
+        id: draftId,
+        isDraft: true,
+        athleteId: ath.id,
+        sessionId: ses.id,
+        date: dateStr,
+        sessionTitle: ses.lessonTitle || ses.focus || '1-on-1 Training Session',
+        tags: [],
+        warmup: '',
+        focus: '',
+        tee: '',
+        ft: '',
+        machine: '',
+        sessionNotes: '',
+        privateCoachNote: '',
+        homework: GINA_HOMEWORK_DEFAULT,
+        note: 'Session note created',
+        videoTitle: `${ath.name.split(' ')[0]} Session Clip`,
+        videoImg: vidImg,
+        videoUrl: null,
+        clips: [],
+        sentTo: 'Session Note',
+        sentAt: 'Auto-created',
+        createdAt: Date.now(),
+        _modifiedAt: Date.now()
+      };
+      state.sessionRecaps.unshift(noteObj);
+      return noteObj;
+    }
+
+    function loadSavedRecapDraft(athId, sessionId = null) {
+      const mem = sessionId
+        ? state.sessionRecaps.find(r => r.athleteId === athId && (r.sessionId === sessionId || r.id === getSessionNoteDraftId(athId, sessionId)))
+        : state.sessionRecaps.find(r => r.id === `draft-${athId}` && r.isDraft);
       if (mem) {
         return {
-          includeWarmup: !!mem.warmup,
-          warmup: mem.warmup || GINA_WARMUP_DEFAULT,
+          warmup: mem.warmup || '',
           focus: mem.focus || '',
           tee: mem.tee || '',
           ft: mem.ft || '',
           machine: mem.machine || '',
+          sessionNotes: mem.sessionNotes || '',
+          privateCoachNote: mem.privateCoachNote || '',
           homework: mem.homework || GINA_HOMEWORK_DEFAULT,
-          tags: mem.tags || ['Barrel Control', 'Variability'],
+          tags: mem.tags || [],
           savedAt: mem.sentAt || 'Just now'
         };
       }
       try {
-        const raw = localStorage.getItem(getRecapDraftStorageKey(athId));
+        const raw = localStorage.getItem(getRecapDraftStorageKey(athId, sessionId));
         if (raw) return JSON.parse(raw);
       } catch (_) {}
       return null;
@@ -7021,10 +7075,10 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         const ses = _recapActiveSesId ? state.sessions.find(s => s.id === _recapActiveSesId) : null;
         const d = readRecapComposerDraft();
         const nowTime = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        const hasContent = !!(d.warmup.trim() || d.focus.trim() || d.tee.trim() || d.ft.trim() || d.machine.trim() || d.sessionNotes.trim() || d.privateCoachNote.trim() || _recapDraftClips.length);
+        const hasContent = !!(ses || d.warmup.trim() || d.focus.trim() || d.tee.trim() || d.ft.trim() || d.machine.trim() || d.sessionNotes.trim() || d.privateCoachNote.trim() || _recapDraftClips.length);
 
         try {
-          localStorage.setItem(getRecapDraftStorageKey(athId), JSON.stringify({
+          localStorage.setItem(getRecapDraftStorageKey(athId, ses ? ses.id : null), JSON.stringify({
             ...d,
             tags: [..._recapDraftTags],
             savedAt: nowTime
@@ -7035,13 +7089,18 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           const vidImg = getAthleteCoverImg(ath);
           const vidTitle = _recapDraftVideoName || `${ath.name.split(' ')[0]} Session Clip — Draft`;
           const clips = _recapDraftClips.length ? _recapDraftClips.map(c => ({ ...c, img: vidImg })) : [{ title: vidTitle, img: vidImg, url: _recapDraftVideoUrl }];
+          const draftId = getSessionNoteDraftId(athId, ses ? ses.id : null);
+          const existingIdx = state.sessionRecaps.findIndex(r =>
+            r.id === draftId || (ses && r.athleteId === athId && r.sessionId === ses.id)
+          );
+          const prevObj = existingIdx >= 0 ? state.sessionRecaps[existingIdx] : null;
           const draftRecap = {
-            id: `draft-${athId}`,
-            isDraft: true,
+            id: prevObj ? prevObj.id : draftId,
+            isDraft: prevObj ? prevObj.isDraft : true,
             athleteId: athId,
             sessionId: ses ? ses.id : null,
-            date: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }),
-            sessionTitle: ses ? ses.focus : '1-on-1 Training Session',
+            date: prevObj?.date || new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }),
+            sessionTitle: ses ? (ses.lessonTitle || ses.focus) : '1-on-1 Training Session',
             tags: [..._recapDraftTags],
             warmup: d.warmup.trim(),
             focus: d.focus.trim(),
@@ -7051,16 +7110,16 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             sessionNotes: d.sessionNotes.trim(),
             privateCoachNote: d.privateCoachNote.trim(),
             homework: d.homework.trim() || GINA_HOMEWORK_DEFAULT,
-            note: d.focus.trim() || d.sessionNotes.trim() || 'In-progress session note',
+            note: d.focus.trim() || d.sessionNotes.trim() || 'Session note',
             videoTitle: vidTitle,
             videoImg: vidImg,
             videoUrl: _recapDraftVideoUrl,
             clips,
-            sentTo: 'Auto-saved Draft',
-            sentAt: nowTime
+            sentTo: prevObj && !prevObj.isDraft ? prevObj.sentTo : 'Auto-saved Draft',
+            sentAt: nowTime,
+            _modifiedAt: Date.now()
           };
-          const idx = state.sessionRecaps.findIndex(r => r.id === `draft-${athId}`);
-          if (idx >= 0) state.sessionRecaps[idx] = draftRecap;
+          if (existingIdx >= 0) state.sessionRecaps[existingIdx] = draftRecap;
           else state.sessionRecaps.unshift(draftRecap);
         }
 
@@ -7074,8 +7133,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     let _recapReturnTab = 'athletes';
 
     function clearRecapDraft(athId, sessionId) {
-      try { localStorage.removeItem(getRecapDraftStorageKey(athId)); } catch (_) {}
-      state.sessionRecaps = state.sessionRecaps.filter(r => r.id !== `draft-${athId}`);
+      try { localStorage.removeItem(getRecapDraftStorageKey(athId, sessionId || null)); } catch (_) {}
+      const draftId = getSessionNoteDraftId(athId, sessionId || null);
+      state.sessionRecaps = state.sessionRecaps.filter(r => r.id !== draftId);
       _recapDraftTags = [];
       _recapDraftVideoUrl = null;
       _recapDraftVideoName = null;
@@ -7105,7 +7165,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       _recapActiveAthId = ath.id;
       _recapActiveSesId = ses ? ses.id : null;
       state.selectedAthleteId = ath.id;
-      const saved = loadSavedRecapDraft(ath.id);
+      if (ses && ath) ensureSessionNoteForSession(ses, ath);
+      const saved = loadSavedRecapDraft(ath.id, ses ? ses.id : null);
       _recapDraftTags = saved?.tags ? [...saved.tags] : [];
       _recapDraftVideoUrl = null;
       _recapDraftVideoName = null;
@@ -7226,7 +7287,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         ? ses.athleteIds.map(id => state.athletes.find(a => a.id === id)).filter(Boolean)
         : [];
       const defaultPrice = Number(ses?.price) || getCashPrice(state.cal.eventTypes[0] || { price: 60 }) || 60;
-      const saved = loadSavedRecapDraft(ath.id);
+      const saved = loadSavedRecapDraft(ath.id, ses ? ses.id : null);
       const d = saved || {
         warmup: '',
         focus: '',
@@ -7543,9 +7604,13 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           _modifiedAt: Date.now() + idx
         };
 
-        state.sessionRecaps = state.sessionRecaps.filter(r => r.id !== `draft-${targetAth.id}`);
+        const sesDraftId = getSessionNoteDraftId(targetAth.id, ses ? ses.id : null);
+        state.sessionRecaps = state.sessionRecaps.filter(r => r.id !== sesDraftId && r.id !== `draft-${targetAth.id}` && !(ses && r.athleteId === targetAth.id && r.sessionId === ses.id));
         state.sessionRecaps.unshift(newRecap);
-        try { localStorage.removeItem(getRecapDraftStorageKey(targetAth.id)); } catch (_) {}
+        try {
+          localStorage.removeItem(getRecapDraftStorageKey(targetAth.id, ses ? ses.id : null));
+          localStorage.removeItem(getRecapDraftStorageKey(targetAth.id));
+        } catch (_) {}
 
         targetAth.notes.unshift({ date: 'Today', text: focus });
         const firstDrillLine = (tee || ft || machine).split('\n').map(l => l.trim().replace(/^[•\-*]\s*/, '')).find(Boolean);
@@ -8822,7 +8887,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.9.6';
+    const APP_VERSION = 'v3.10.0';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Redesigned Session Notes Studio (Warm Up Routine w/ Walking PVC & custom drills, Player Notes and Focus, What We Worked On Tee/Front Toss/Machine with drills & per-area video, Session Notes)';
 
@@ -10354,7 +10419,7 @@ create policy "Allow media update" on storage.objects
 
                   <div class="space-y-1.5">
                     ${d.sessions.length ? d.sessions.map(s => `
-                      <button onclick="scheduleSelectDate('${d.iso}', 'day')" class="w-full text-left p-2 rounded-xl bg-[#010101] text-white space-y-0.5 cursor-pointer hover:opacity-90 transition">
+                      <button onclick="${s.athleteId ? `openSessionRecapModal('${s.athleteId}', '${s.id}')` : `scheduleSelectDate('${d.iso}', 'day')`}" class="w-full text-left p-2 rounded-xl bg-[#010101] text-white space-y-0.5 cursor-pointer hover:opacity-90 transition">
                         <div class="text-[10px] font-extrabold text-[#D5FF5F]">${s.time}</div>
                         <div class="text-[11px] font-extrabold truncate">${(s.athletes || []).join(', ') || s.focus}</div>
                         <div class="text-[10px] text-[#D6DFE2] truncate">${s.focus}</div>
