@@ -4199,45 +4199,85 @@
       return sanitizeUnicodeText((div.textContent || div.innerText || '').replace(/\r\n/g, '\n'));
     }
 
+    function cleanAppleNoteLine(rawLine) {
+      let s = sanitizeUnicodeText(String(rawLine || ''));
+      // Remove markdown image/video attachment syntax like ![file.MOV](attachments/file.MOV)
+      s = s.replace(/!\[[^\]]*\]\([^)]*\)/g, ' ');
+      // Remove raw attachments/ markdown links [file.MOV](attachments/...)
+      s = s.replace(/\[[^\]]*\]\((?:attachments|files|media)\/[^)]*\)/gi, ' ');
+      // Remove leading markdown heading hashes (#, ##, ###)
+      s = s.replace(/^\s*#{1,6}\s*/, '');
+      // Remove leading list bullets (*, -, •) before stripping emphasis
+      s = s.replace(/^\s*[•\-*]\s+/, '');
+      // Strip markdown bold/italic wrappers (**text**, __text__, _text_, *text*)
+      s = s.replace(/\*{2,}/g, '');
+      s = s.replace(/_{2,}/g, '');
+      s = s.replace(/(^|\s)_([^_\n]+)_(\s|$|[.,!?:;])/g, '$1$2$3');
+      s = s.replace(/(^|\s)\*([^*\n]+)\*(\s|$|[.,!?:;])/g, '$1$2$3');
+      // Strip stray leading/trailing markdown punctuation
+      s = s.replace(/^[\s*_`]+/, '').replace(/[\s*_`]+$/, '');
+      // Collapse extra spaces and clean space before punctuation
+      s = s.replace(/\s{2,}/g, ' ').replace(/\s+([,.:;!?])/g, '$1').trim();
+      // Drop lines that are purely markdown/bullet noise
+      if (!s || /^[\s*_~`#\-•–—]+$/.test(s)) return '';
+      return s;
+    }
+
     function parseGinaAppleNote(rawText, fallbackTitle = '') {
       const text = stripHtmlToText(rawText || '').trim();
-      const lines = text.split('\n').map(l => l.trim());
+      const rawLines = text.split('\n');
+      const lines = [];
+      for (const rl of rawLines) {
+        const cleaned = cleanAppleNoteLine(rl);
+        if (!cleaned) continue;
+        // Skip consecutive duplicate lines (common in Apple Notes title + H1 exports)
+        if (lines.length && lines[lines.length - 1].toLowerCase() === cleaned.toLowerCase()) continue;
+        lines.push(cleaned);
+      }
 
-      // Detect leading date like 11/23 or 11/9/26
+      // Detect leading date like 10/19/26, 9-14-26, or 9/29
       let date = sanitizeUnicodeText(fallbackTitle.replace(/\.(md|txt|html?)$/i, '').trim(), 160) || new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' });
-      const dateMatch = lines[0]?.match(/^(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)$/);
+      const dateMatch = lines[0]?.match(/^(\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{2,4})?)$/);
       if (dateMatch) {
         date = dateMatch[1];
         lines.shift();
       }
 
       const sections = { warmup: [], focus: [], tee: [], ft: [], machine: [], homework: [], other: [] };
+      let warmupTitle = 'Hitter’s Warm Up Routine';
       let cur = 'other';
 
       for (const raw of lines) {
         if (!raw) continue;
         const low = raw.toLowerCase();
-        if (/^[•\-*]?\s*hitter[’']?s?\s*warm\s*up/i.test(raw)) { cur = 'warmup'; continue; }
+        if (/^(?:hitter|slapper|catcher|player)?[’']?s?\s*warm\s*-?\s*up(?:\s+routine)?\s*:?/i.test(raw) && low.length < 48) {
+          cur = 'warmup';
+          if (low.includes('slapper')) warmupTitle = 'Slapper Warm Up Routine';
+          else if (low.includes('catcher')) warmupTitle = 'Catcher’s Warm Up Routine';
+          const after = raw.replace(/^(?:hitter|slapper|catcher|player)?[’']?s?\s*warm\s*-?\s*up(?:\s+routine)?\s*:?\s*/i, '').trim();
+          if (after) sections.warmup.push(after);
+          continue;
+        }
         if (/^what[’']?s\s*new\s*\/?\s*focus/i.test(raw)) {
           cur = 'focus';
           const after = raw.replace(/^what[’']?s\s*new\s*\/?\s*focus[^:]*:?\s*/i, '').trim();
           if (after) sections.focus.push(after);
           continue;
         }
-        if (/^what\s+we\s+did\s+today/i.test(raw)) { cur = 'other'; continue; }
-        if (/^tee\s*:/i.test(raw)) {
+        if (/^what\s+we\s+did\s+today\s*:?$/i.test(raw)) { cur = 'other'; continue; }
+        if (/^tee\s*:?/i.test(raw) && (raw.includes(':') || low.length <= 6)) {
           cur = 'tee';
-          const after = raw.replace(/^tee\s*:\s*/i, '').trim();
+          const after = raw.replace(/^tee\s*:?\s*/i, '').trim();
           if (after) sections.tee.push(after);
           continue;
         }
-        if (/^(ft|front\s*toss)\s*:/i.test(raw)) {
+        if (/^(?:ft|front\s*toss)\s*:?/i.test(raw) && (raw.includes(':') || low.length <= 14)) {
           cur = 'ft';
-          const after = raw.replace(/^(ft|front\s*toss)\s*:\s*/i, '').trim();
+          const after = raw.replace(/^(?:ft|front\s*toss)\s*:?\s*/i, '').trim();
           if (after) sections.ft.push(after);
           continue;
         }
-        if (/^machine\s*:?/i.test(raw) && low.length < 24) {
+        if (/^machine\s*:?/i.test(raw) && (raw.includes(':') || low.length < 24)) {
           cur = 'machine';
           const after = raw.replace(/^machine\s*:?\s*/i, '').trim();
           if (after) sections.machine.push(after);
@@ -4253,12 +4293,14 @@
       }
 
       const cleanBullets = (arr) => arr.map(x => x.replace(/^[•\-*]\s*/, '').trim()).filter(Boolean).join('\n');
-      const focus = sections.focus.join('\n').trim() || sections.other.join('\n').trim() || 'Session notes imported from Apple Notes';
+      const focusParts = [...sections.focus];
+      if (sections.other.length && !sections.focus.length) focusParts.push(...sections.other);
+      const focus = focusParts.join('\n').trim();
       const tee = cleanBullets(sections.tee);
       const ft = cleanBullets(sections.ft);
       const machine = cleanBullets(sections.machine);
       const warmup = sections.warmup.join('\n').trim();
-      const homework = sections.homework.length ? sections.homework.join('\n').trim() : GINA_HOMEWORK_DEFAULT;
+      const homework = sections.homework.length ? cleanBullets(sections.homework) : '';
 
       // Auto-tag based on content
       const fullLow = text.toLowerCase();
@@ -4268,11 +4310,13 @@
       if (fullLow.includes('3/3/3') || fullLow.includes('extension')) tags.push('Extensions');
       if (fullLow.includes('at bat') || fullLow.includes('hunting')) tags.push('Approach');
       if (fullLow.includes('slap')) tags.push('Slapping');
+      if (fullLow.includes('bunt')) tags.push('Bunting');
+      if (fullLow.includes('bat speed')) tags.push('Bat Speed');
       if (fullLow.includes('catch') || fullLow.includes('pop time')) tags.push('Catching');
       if (fullLow.includes('infield') || fullLow.includes('short hop')) tags.push('Defense');
       if (!tags.length) tags.push('Hitting');
 
-      return { date, warmup, focus, tee, ft, machine, homework, tags: tags.slice(0, 3), clips: [] };
+      return { date, warmupTitle, warmup, focus, tee, ft, machine, homework, tags: tags.slice(0, 3), clips: [] };
     }
 
     function splitMultipleDatedNotes(rawText) {
@@ -5086,19 +5130,43 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       el.focus();
     }
 
-    function renderRecapTemplateBody(r, compact = false) {
-      if (!r.focus && !r.tee && !r.ft && !r.machine && !r.warmup) {
-        return `<p class="text-xs leading-relaxed">${r.note}</p>`;
+    function normalizeRecapForDisplay(r) {
+      if (!r) return r;
+      const focusStr = String(r.focus || '');
+      const looksRawMarkdown = /(^|\n)\s*#\s|!\[[^\]]*\]\(|(\*\*|__)[_\s]*what[’']?s\s*new|\*\*tee|\*\*homework/i.test(focusStr) ||
+        (!r.warmup && !r.tee && !r.ft && !r.machine && /(\*\*|!\[)/.test(focusStr));
+      if (looksRawMarkdown) {
+        const parsed = parseGinaAppleNote(focusStr, r.date || '');
+        return {
+          ...r,
+          warmupTitle: parsed.warmupTitle || r.warmupTitle,
+          warmup: parsed.warmup || r.warmup,
+          focus: parsed.focus,
+          tee: parsed.tee || r.tee,
+          ft: parsed.ft || r.ft,
+          machine: parsed.machine || r.machine,
+          homework: parsed.homework || (r.homework === GINA_HOMEWORK_DEFAULT ? '' : r.homework)
+        };
+      }
+      return r;
+    }
+
+    function renderRecapTemplateBody(rawRecap, compact = false) {
+      const r = normalizeRecapForDisplay(rawRecap);
+      if (!r.focus && !r.tee && !r.ft && !r.machine && !r.warmup && !r.homework) {
+        return `<p class="text-xs leading-relaxed">${r.note || 'Session notes recorded.'}</p>`;
       }
       const boxCls = compact ? 'card-white' : 'surface-soft';
       const hwLines = (r.homework || '').split('\n').map(l => l.trim()).filter(Boolean);
       const hwHead = hwLines[0] || '';
       const hwBullets = hwLines.slice(1);
+      const drillCols = [r.tee, r.ft, r.machine].filter(Boolean).length;
+      const gridColsCls = drillCols === 1 ? 'grid-cols-1' : drillCols === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-3';
       return `
         <div class="space-y-2.5 text-xs">
           ${r.warmup ? `
             <div class="${boxCls} rounded-2xl p-3 space-y-1">
-              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">• Hitter’s Warm Up Routine</div>
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">• ${r.warmupTitle || 'Warm Up Routine'}</div>
               <div class="text-[11px] leading-relaxed whitespace-pre-line text-[var(--text-muted)]">${r.warmup}</div>
             </div>
           ` : ''}
@@ -5113,7 +5181,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           ${(r.tee || r.ft || r.machine) ? `
             <div class="space-y-1.5">
               <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">What We Did Today</div>
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div class="grid ${gridColsCls} gap-2">
                 ${r.tee ? `
                   <div class="${boxCls} rounded-2xl p-2.5 space-y-1">
                     <div class="text-[10px] font-extrabold uppercase tracking-wider">Tee</div>
@@ -6237,9 +6305,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v2.8.1';
+    const APP_VERSION = 'v2.9.0';
     const APP_BUILD_DATE = 'Nov 26, 2026';
-    const APP_RELEASE_NOTES = 'Paid/Unpaid payment toggle, 2-step double confirm & Sync v2';
+    const APP_RELEASE_NOTES = 'Clean formatted imported notes, Paid/Unpaid toggle & Sync v2';
 
     function reloadLatestAppVersion() {
       try {
