@@ -821,6 +821,73 @@
       m.onclick = (e) => { if (e.target === m) closeModal(); };
     }
 
+    let _doubleConfirmState = null;
+
+    function openDoubleConfirmModal(opts) {
+      _doubleConfirmState = {
+        tag: opts.tag || 'Confirm Action',
+        title: opts.title || 'Are you sure?',
+        detail: opts.detail || '',
+        step1Label: opts.step1Label || 'Continue',
+        step2Title: opts.step2Title || 'Final Confirmation',
+        step2Detail: opts.step2Detail || 'Please confirm one more time. This action will take effect immediately.',
+        step2Label: opts.step2Label || 'Yes, Confirm',
+        onConfirm: opts.onConfirm,
+        step: 1
+      };
+      renderDoubleConfirmModal();
+    }
+
+    function renderDoubleConfirmModal() {
+      const cfg = _doubleConfirmState;
+      if (!cfg) return;
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const isStep2 = cfg.step === 2;
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-red-600 dark:text-red-400">
+              <span>${esc(cfg.tag)}</span>
+              <span class="px-2 py-0.5 rounded-full ${isStep2 ? 'bg-red-600 text-white' : 'bg-red-600/15 text-red-600 dark:text-red-400'} text-[10px]">Step ${cfg.step} of 2</span>
+            </div>
+            <h3 class="font-extrabold text-base mt-1">${esc(isStep2 ? cfg.step2Title : cfg.title)}</h3>
+          </div>
+          <button type="button" onclick="closeModal(); _doubleConfirmState=null;" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+
+        <div class="${isStep2 ? 'p-3.5 rounded-2xl bg-red-600/10 border border-red-500/25' : 'p-3.5 rounded-2xl surface-soft'} text-xs leading-relaxed">
+          ${isStep2 ? `<div class="font-extrabold text-red-600 dark:text-red-400 mb-1">${esc(cfg.title)}</div>` : ''}
+          <p class="${isStep2 ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}">${esc(isStep2 ? cfg.step2Detail : cfg.detail)}</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5 pt-1">
+          <button type="button" onclick="closeModal(); _doubleConfirmState=null;" class="py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Keep / Go Back</button>
+          ${isStep2 ? `
+            <button type="button" onclick="executeDoubleConfirm()" class="py-3 rounded-2xl bg-red-600 text-white text-xs font-extrabold cursor-pointer hover:bg-red-700 shadow-lg transition">
+              ${esc(cfg.step2Label)}
+            </button>
+          ` : `
+            <button type="button" onclick="advanceDoubleConfirmStep()" class="py-3 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer hover:opacity-90 transition">
+              ${esc(cfg.step1Label)} →
+            </button>
+          `}
+        </div>
+      `);
+    }
+
+    function advanceDoubleConfirmStep() {
+      if (!_doubleConfirmState) return;
+      _doubleConfirmState.step = 2;
+      renderDoubleConfirmModal();
+    }
+
+    function executeDoubleConfirm() {
+      const fn = _doubleConfirmState?.onConfirm;
+      _doubleConfirmState = null;
+      closeModal();
+      if (typeof fn === 'function') fn();
+    }
+
     function openMobileDrawer() {
       const d = document.getElementById('mobile-drawer');
       if (d) d.classList.remove('hidden');
@@ -2301,7 +2368,22 @@
       showToast('Added new time block!');
     }
 
-    function removeCoachBlock(dow, blockId) {
+    function removeCoachBlock(dow, blockId, confirmed = false) {
+      if (!confirmed) {
+        const block = (state.cal.availability.weeklyBlocks[dow] || []).find(b => b.id === blockId);
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        openDoubleConfirmModal({
+          tag: 'Delete Availability Block',
+          title: `Remove ${dayNames[dow] || 'Day'} time block?`,
+          detail: block ? `This removes ${fmt24To12Short(block.start)}–${fmt24To12Short(block.end)} EST from your weekly availability.` : 'This removes the selected time block.',
+          step1Label: 'Continue to Delete',
+          step2Title: 'Final Confirmation — Delete Block',
+          step2Detail: 'Confirm again to remove this open coaching window from your weekly schedule.',
+          step2Label: 'Yes, Delete Block',
+          onConfirm: () => removeCoachBlock(dow, blockId, true)
+        });
+        return;
+      }
       state.cal.availability.weeklyBlocks[dow] = (state.cal.availability.weeklyBlocks[dow] || []).filter(b => b.id !== blockId);
       if (!state.cal.availability.weeklyBlocks[dow].length) {
         state.cal.availability.days = state.cal.availability.days.filter(d => d !== dow);
@@ -2459,9 +2541,23 @@
       showToast(editId ? `Updated lesson "${payload.title}" (${durationLabel}) — synced!` : `Added lesson "${payload.title}" (${durationLabel})!`);
     }
 
-    function deleteClassType(id) {
+    function deleteClassType(id, confirmed = false) {
       if (state.cal.eventTypes.length <= 1) {
         showToast('Keep at least one lesson active.');
+        return;
+      }
+      const lesson = state.cal.eventTypes.find(x => x.id === id);
+      if (!confirmed) {
+        openDoubleConfirmModal({
+          tag: 'Delete Lesson',
+          title: `Delete "${lesson?.title || 'this lesson'}"?`,
+          detail: 'This removes the lesson from your Lessons catalog and booking options across all devices.',
+          step1Label: 'Continue to Delete',
+          step2Title: 'Final Confirmation — Delete Lesson',
+          step2Detail: `Confirm one more time to permanently remove "${lesson?.title || 'this lesson'}".`,
+          step2Label: 'Yes, Delete Lesson',
+          onConfirm: () => deleteClassType(id, true)
+        });
         return;
       }
       recordDeletedId('eventTypes', id);
@@ -2893,9 +2989,24 @@
       showToast(`Rescheduled to ${dayNice} at ${timeNice} — calendar synced!`);
     }
 
-    function cancelSessionCoach(sessionId) {
+    function cancelSessionCoach(sessionId, confirmed = false) {
       const s = state.sessions.find(x => x.id === sessionId);
       if (!s) return;
+      if (!confirmed) {
+        const label = s.lessonTitle || s.focus || 'this session';
+        const players = (s.athletes && s.athletes.length) ? ` with ${s.athletes.join(', ')}` : '';
+        openDoubleConfirmModal({
+          tag: 'Cancel Session',
+          title: `Cancel ${label}${players}?`,
+          detail: `Scheduled for ${s.day || s.dateIso} at ${s.time} (${s.duration}). Canceling will reopen this time slot on your booking calendar and remove it from your synced calendar feed.`,
+          step1Label: 'Continue to Cancel',
+          step2Title: 'Final Confirmation — Cancel Session',
+          step2Detail: `Tap below to confirm canceling ${label}${players} on ${s.day || s.dateIso} at ${s.time}.`,
+          step2Label: 'Yes, Cancel Session',
+          onConfirm: () => cancelSessionCoach(sessionId, true)
+        });
+        return;
+      }
       const oldSlotKey = s.dateIso ? `${s.dateIso}@${parseTime12To24(s.time)}` : null;
       if (oldSlotKey) {
         state.cal.bookedSlots = (state.cal.bookedSlots || []).filter(k => k !== oldSlotKey);
@@ -2937,9 +3048,23 @@
       showToast('Session restored to schedule!');
     }
 
-    function deleteSessionCoach(sessionId) {
+    function deleteSessionCoach(sessionId, confirmed = false) {
       const s = state.sessions.find(x => x.id === sessionId);
       if (!s) return;
+      if (!confirmed) {
+        const label = s.lessonTitle || s.focus || 'this session';
+        openDoubleConfirmModal({
+          tag: 'Delete Session',
+          title: `Permanently delete ${label}?`,
+          detail: `This will completely erase the session on ${s.day || s.dateIso} at ${s.time} from all synced devices.`,
+          step1Label: 'Continue to Delete',
+          step2Title: 'Final Confirmation — Permanent Delete',
+          step2Detail: 'This cannot be undone. Confirm one more time to permanently delete this session.',
+          step2Label: 'Yes, Delete Permanently',
+          onConfirm: () => deleteSessionCoach(sessionId, true)
+        });
+        return;
+      }
       const oldSlotKey = s.dateIso ? `${s.dateIso}@${parseTime12To24(s.time)}` : null;
       if (oldSlotKey) {
         state.cal.bookedSlots = (state.cal.bookedSlots || []).filter(k => k !== oldSlotKey);
@@ -3624,23 +3749,17 @@
     function openRemoveAthleteModal(athId) {
       const ath = state.athletes.find(a => a.id === athId);
       if (!ath) return;
-      
-      openModal(`
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <div class="text-[11px] font-extrabold uppercase tracking-wider text-red-600 dark:text-red-400">Remove Athlete</div>
-            <h3 class="font-extrabold text-base mt-0.5">Remove ${ath.name}?</h3>
-          </div>
-          <button onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
-        </div>
-        <p class="text-xs text-[var(--text-muted)] leading-relaxed">
-          This removes <strong>${ath.name} (${ath.ageGroup} • ${ath.position})</strong> from the roster and clears any pending cart items for them.
-        </p>
-        <div class="grid grid-cols-2 gap-2.5 pt-1">
-          <button type="button" onclick="closeModal()" class="py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Cancel</button>
-          <button type="button" onclick="confirmRemoveAthlete('${ath.id}')" class="py-3 rounded-2xl bg-red-600 text-white text-xs font-extrabold cursor-pointer hover:bg-red-700 transition">Yes, Remove</button>
-        </div>
-      `);
+      const meta = [ath.ageGroup, ath.position].filter(Boolean).join(' • ');
+      openDoubleConfirmModal({
+        tag: 'Delete Athlete',
+        title: `Permanently remove ${ath.name}?`,
+        detail: `This removes ${ath.name}${meta ? ` (${meta})` : ''} from the roster across all synced devices. Tip: Use "Archive" instead if you want to keep their notes & videos.`,
+        step1Label: 'Continue to Delete',
+        step2Title: 'Final Confirmation — Delete Athlete',
+        step2Detail: `Are you 100% sure you want to permanently remove ${ath.name}? This cannot be undone.`,
+        step2Label: 'Yes, Delete Athlete',
+        onConfirm: () => confirmRemoveAthlete(ath.id)
+      });
     }
 
     function confirmRemoveAthlete(athId) {
@@ -5703,7 +5822,29 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     // ACTIONS
     // =========================================================================
     function completeSession(id) { const s = state.sessions.find(x => x.id === id); if (s) s.status = 'Completed'; render(); showToast('Session checked in!'); }
-    function cancelSessionParent(id) { const s = state.sessions.find(x => x.id === id); if (s) s.status = 'Canceled'; state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits += 1); render(); showToast('Session canceled (>24h notice — no fee).'); }
+    function cancelSessionParent(id, confirmed = false) {
+      const s = state.sessions.find(x => x.id === id);
+      if (!s) return;
+      if (!confirmed) {
+        openDoubleConfirmModal({
+          tag: 'Cancel Session',
+          title: `Cancel ${s.lessonTitle || s.focus || 'your session'}?`,
+          detail: `Scheduled for ${s.day || s.dateIso} at ${s.time}. Confirm to notify Coach Gina and reopen this slot.`,
+          step1Label: 'Continue to Cancel',
+          step2Title: 'Final Confirmation — Cancel Session',
+          step2Detail: 'Tap below to confirm canceling this scheduled session.',
+          step2Label: 'Yes, Cancel Session',
+          onConfirm: () => cancelSessionParent(id, true)
+        });
+        return;
+      }
+      s.status = 'Canceled';
+      s._modifiedAt = Date.now();
+      const oldSlotKey = s.dateIso ? `${s.dateIso}@${parseTime12To24(s.time)}` : null;
+      if (oldSlotKey) state.cal.bookedSlots = (state.cal.bookedSlots || []).filter(k => k !== oldSlotKey);
+      render();
+      showToast('Session canceled.');
+    }
     function notifyWaitlist(id) { state.waitlist.find(x => x.id === id).status = 'Notified'; render(); showToast('Waitlist SMS sent!'); }
     function jumpToAthlete(id) { state.selectedAthleteId = id; state.rosterView = 'detail'; state.coachTab = 'athletes'; render(); }
     function toggleDrill(a, d) { const dr = state.athletes.find(x => x.id === a).drills.find(x => x.id === d); dr.done = !dr.done; render(); showToast(dr.done ? 'Drill completed!' : 'Drill unchecked.'); }
@@ -5967,8 +6108,22 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast(editId ? `Updated "${payload.name}"!` : `Added "${payload.name}" to Facility Locations!`);
     }
 
-    function deleteLocation(id) {
+    function deleteLocation(id, confirmed = false) {
       if (!Array.isArray(state.cal.locations)) return;
+      const loc = state.cal.locations.find(l => l.id === id);
+      if (!confirmed) {
+        openDoubleConfirmModal({
+          tag: 'Delete Location',
+          title: `Remove "${loc?.name || 'this location'}"?`,
+          detail: 'This removes the facility location from your Settings list across all devices.',
+          step1Label: 'Continue to Delete',
+          step2Title: 'Final Confirmation — Delete Location',
+          step2Detail: `Confirm one more time to permanently remove "${loc?.name || 'this location'}".`,
+          step2Label: 'Yes, Delete Location',
+          onConfirm: () => deleteLocation(id, true)
+        });
+        return;
+      }
       recordDeletedId('locations', id);
       state.cal.locations = state.cal.locations.filter(l => l.id !== id);
       render();
@@ -6059,9 +6214,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v2.7.1';
+    const APP_VERSION = 'v2.8.0';
     const APP_BUILD_DATE = 'Nov 26, 2026';
-    const APP_RELEASE_NOTES = 'Clean session rows, Archive athletes, Reschedule/Cancel & Sync v2';
+    const APP_RELEASE_NOTES = '2-Step Double Confirmation on all deletes/cancels, Archive & Sync v2';
 
     function reloadLatestAppVersion() {
       try {
