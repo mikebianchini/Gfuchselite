@@ -5752,8 +5752,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     }
 
     function renderCoachPayments() {
-      const collected = state.payments.filter(p => p.status !== 'Pending Cash').reduce((s, p) => s + p.amount, 0);
-      const pendingCash = state.payments.filter(p => p.status === 'Pending Cash').reduce((s, p) => s + p.amount, 0);
+      const isUnpaid = (p) => p.status === 'Pending Cash' || p.status === 'Unpaid';
+      const collected = state.payments.filter(p => !isUnpaid(p)).reduce((s, p) => s + Number(p.amount || 0), 0);
+      const pendingCash = state.payments.filter(p => isUnpaid(p)).reduce((s, p) => s + Number(p.amount || 0), 0);
       return `
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -5770,33 +5771,43 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           <div class="space-y-3">
             <div class="card-mist rounded-[24px] p-5 space-y-2">
               <div class="flex items-center justify-between text-xs">
-                <span class="font-extrabold">🍀 Clover Merchant Sync</span>
+                <span class="font-extrabold">🍀 Clover &amp; Cash Collected</span>
                 <span class="text-[11px] font-extrabold text-[#22c55e]">● Live</span>
               </div>
               <div class="text-3xl font-extrabold tabular-nums">$${collected.toLocaleString()}</div>
               <div class="text-[11px] text-[var(--text-muted)]">Collected via Clover (Card / Apple Pay) &amp; Cash</div>
             </div>
             <div class="card-white rounded-[24px] p-5 space-y-1.5">
-              <div class="text-xs font-extrabold">💵 Pending Cash Due</div>
+              <div class="text-xs font-extrabold">💵 Unpaid / Pending Due</div>
               <div class="text-2xl font-extrabold tabular-nums">$${pendingCash.toLocaleString()}</div>
-              <div class="text-[11px] text-[var(--text-muted)]">${pendingCash > 0 ? 'Tap "Mark Cash Paid ✓" when collected at the cage' : 'No unpaid cash sessions right now'}</div>
+              <div class="text-[11px] text-[var(--text-muted)]">${pendingCash > 0 ? 'Toggle Paid / Unpaid on any entry below' : 'No unpaid sessions right now'}</div>
             </div>
           </div>
 
           <div class="lg:col-span-2 card-white rounded-[28px] p-5 space-y-3">
             <div class="flex justify-between items-center"><h2 class="text-sm font-extrabold">Recent Transactions</h2><span class="px-3 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold">${state.payments.length} entries</span></div>
-            ${state.payments.map(p => `
-              <div class="surface-soft rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div>
-                  <div class="font-extrabold">${p.family} — ${p.item}</div>
-                  <div class="text-[var(--text-muted)]">${p.date} • ${p.method}</div>
+            ${state.payments.length ? state.payments.map(p => {
+              const unpaid = isUnpaid(p);
+              return `
+                <div class="surface-soft rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+                  <div class="min-w-0">
+                    <div class="font-extrabold truncate">${p.family} — ${p.item}</div>
+                    <div class="text-[var(--text-muted)]">${p.date} • ${p.method}</div>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <div class="inline-flex items-center rounded-xl p-0.5 card-white">
+                      <button type="button" onclick="setPaymentPaidStatus('${p.id}', true)" class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold cursor-pointer transition ${!unpaid ? 'bg-[#D5FF5F] text-[#010101]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}">
+                        Paid ✓
+                      </button>
+                      <button type="button" onclick="setPaymentPaidStatus('${p.id}', false)" class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold cursor-pointer transition ${unpaid ? 'bg-[#010101] text-[#D5FF5F]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}">
+                        Unpaid
+                      </button>
+                    </div>
+                    <div class="font-extrabold tabular-nums min-w-[48px] text-right">${unpaid ? '' : '+'}$${p.amount}</div>
+                  </div>
                 </div>
-                <div class="flex items-center gap-2">
-                  ${p.status === 'Pending Cash' ? `<button onclick="markCashPaid('${p.id}')" class="px-2.5 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold cursor-pointer">Mark Cash Paid ✓</button>` : ''}
-                  <div class="font-extrabold tabular-nums">+$${p.amount}</div>
-                </div>
-              </div>
-            `).join('')}
+              `;
+            }).join('') : `<div class="surface-soft rounded-2xl p-6 text-center text-xs text-[var(--text-muted)]">No payments logged yet.</div>`}
           </div>
         </div>
       `;
@@ -5874,13 +5885,25 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       render();
       showToast(isCash ? `Reserved ${c}-Pack ($${p} cash due at facility)!` : `Paid $${p} via Clover — added ${c} credits!`);
     }
-    function markCashPaid(payId) {
+    function setPaymentPaidStatus(payId, isPaid) {
       const p = state.payments.find(x => x.id === payId);
       if (!p) return;
-      p.status = 'Paid';
-      p.method = 'Cash (Collected ✓)';
+      const wasPaid = p.status !== 'Pending Cash' && p.status !== 'Unpaid';
+      if (wasPaid === Boolean(isPaid)) return;
+      p.status = isPaid ? 'Paid' : 'Pending Cash';
+      if (isPaid && /cash/i.test(p.method || '')) {
+        p.method = 'Cash (Collected ✓)';
+      } else if (!isPaid && /cash/i.test(p.method || '')) {
+        p.method = 'Cash at Session';
+      }
+      p._modifiedAt = Date.now();
       render();
-      showToast(`Marked $${p.amount} cash collected from ${p.family}!`);
+      showToast(isPaid
+        ? `Marked $${p.amount} as Paid ✓ (${p.family})`
+        : `Marked $${p.amount} as Unpaid (${p.family})`);
+    }
+    function markCashPaid(payId) {
+      setPaymentPaidStatus(payId, true);
     }
     function uploadParentVideo(e, athId) { e.preventDefault(); const ath = state.athletes.find(a => a.id === athId); state.videos.unshift({ id: 'v' + Date.now(), athleteId: ath.id, athleteName: ath.name, title: e.target.title.value, uploadedAt: 'Just now', status: 'Needs Review', img: 'assets/images/fastpitch-fielding.jpg', cues: [] }); render(); showToast('Clip uploaded!'); }
     function saveParentProfile(e, athId) { e.preventDefault(); const ath = state.athletes.find(a => a.id === athId); ath.emergencyContact = e.target.emergency.value; ath.medicalNotes = e.target.medical.value; ath.waiverSigned = true; ath.waiverDate = 'Today'; render(); showToast('Profile & waiver saved!'); }
@@ -6214,9 +6237,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v2.8.0';
+    const APP_VERSION = 'v2.8.1';
     const APP_BUILD_DATE = 'Nov 26, 2026';
-    const APP_RELEASE_NOTES = '2-Step Double Confirmation on all deletes/cancels, Archive & Sync v2';
+    const APP_RELEASE_NOTES = 'Paid/Unpaid payment toggle, 2-step double confirm & Sync v2';
 
     function reloadLatestAppVersion() {
       try {
@@ -6474,18 +6497,23 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     function openLogPaymentModal() {
       openModal(`
         <div class="flex justify-between items-center"><h3 class="font-extrabold text-sm">Log Cash / Clover / Manual Payment</h3><button onclick="closeModal()" class="text-xs font-bold cursor-pointer">✕</button></div>
-        <form onsubmit="event.preventDefault(); state.payments.unshift({id:'p'+Date.now(),date:'Today',family:this.f.value,item:this.item.value,amount:Number(this.amt.value),method:this.m.value,status:'Paid'}); closeModal(); render(); showToast('Payment recorded!');" class="space-y-3 text-xs">
-          <input name="f" value="Vance Family" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" placeholder="Family name" required />
-          <input name="item" value="1-on-1 Hitting Lesson" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" placeholder="Item" required />
+        <form onsubmit="event.preventDefault(); state.payments.unshift({id:'p'+Date.now(),date:'Today',family:this.f.value,item:this.item.value,amount:Number(this.amt.value),method:this.m.value,status:this.st.value,_modifiedAt:Date.now()}); closeModal(); render(); showToast('Payment recorded!');" class="space-y-3 text-xs">
+          <input name="f" value="" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" placeholder="Family or Athlete name" required />
+          <input name="item" value="1-on-1 Hitting Lesson" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" placeholder="Lesson / Item" required />
           <div class="grid grid-cols-2 gap-2">
-            <input name="amt" type="number" value="350" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
+            <input name="amt" type="number" value="60" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
             <select name="m" class="w-full px-3 py-2.5 rounded-2xl surface-soft font-semibold">
               <option>Cash (Collected ✓)</option>
+              <option>Cash at Session</option>
               <option>Clover • Terminal Tap</option>
               <option>Venmo (Logged)</option>
               <option>Zelle (Logged)</option>
             </select>
           </div>
+          <select name="st" class="w-full px-3 py-2.5 rounded-2xl surface-soft font-semibold">
+            <option value="Paid">Paid ✓</option>
+            <option value="Pending Cash">Unpaid / Pending</option>
+          </select>
           <button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold cursor-pointer">Record Payment</button>
         </form>
       `);
