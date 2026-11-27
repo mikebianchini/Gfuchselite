@@ -1106,10 +1106,15 @@
       m.innerHTML = '';
     }
 
-    function openModal(html, noPad = false) {
+    function openModal(html, noPad = false, centered = false) {
       const m = document.getElementById('modal-root');
-      const handle = noPad ? '' : '<div class="sm:hidden w-10 h-1 rounded-full bg-slate-300 dark:bg-white/20 mx-auto -mt-1 mb-1"></div>';
-      m.innerHTML = `<div class="modal-sheet-enter modal-surface rounded-t-[28px] sm:rounded-[26px] max-w-md w-full ${noPad ? 'overflow-hidden' : 'p-5 sm:p-6 pb-8 sm:pb-6 space-y-4'} max-h-[90dvh] overflow-y-auto">${handle}${html}</div>`;
+      m.classList.toggle('items-center', centered);
+      m.classList.toggle('items-end', !centered);
+      m.classList.toggle('p-4', centered);
+      m.classList.toggle('p-0', !centered);
+      const handle = (noPad || centered) ? '' : '<div class="sm:hidden w-10 h-1 rounded-full bg-slate-300 dark:bg-white/20 mx-auto -mt-1 mb-1"></div>';
+      const radiusCls = centered ? 'rounded-[26px]' : 'rounded-t-[28px] sm:rounded-[26px]';
+      m.innerHTML = `<div class="modal-sheet-enter modal-surface ${radiusCls} max-w-md w-full ${noPad ? 'overflow-hidden' : 'p-5 sm:p-6 pb-8 sm:pb-6 space-y-4'} ${centered ? 'max-h-[86dvh]' : 'max-h-[90dvh]'} overflow-y-auto">${handle}${html}</div>`;
       m.classList.remove('hidden');
       m.classList.add('flex');
       m.onclick = (e) => { if (e.target === m) closeModal(); };
@@ -1117,6 +1122,8 @@
 
     function openSheetModal({ eyebrow = '', title = '', subtitle = '', bodyHtml = '', footerHtml = '', formOnsubmit = '', maxWidth = 'max-w-md' } = {}) {
       const m = document.getElementById('modal-root');
+      m.classList.remove('items-center', 'p-4');
+      m.classList.add('items-end', 'p-0');
       const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const headerHtml = `
         <div class="modal-sticky-header">
@@ -7455,7 +7462,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               : `<video controls playsinline preload="metadata" class="w-full max-h-[48vh] object-contain"><source src="${clip.url}" type="video/mp4" /><source src="${clip.url}" type="video/quicktime" /></video>`}
             <button type="button" onclick="autoSaveRecapDraft(true); closeModal();" aria-label="Close" class="absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center bg-white/15 backdrop-blur-md border border-white/25 text-white text-xs font-extrabold cursor-pointer hover:bg-white/25 transition">✕</button>
           </div>
-          <div class="p-5 pb-[calc(env(safe-area-inset-bottom,0px)+20px)] bg-white dark:bg-[#131820] space-y-4">
+          <div class="p-5 bg-white dark:bg-[#131820] space-y-4">
             <div class="flex items-center justify-between gap-2">
               <div class="min-w-0">
                 <div class="text-sm font-extrabold truncate text-[var(--text-main)]">${cleanLabel}</div>
@@ -7478,7 +7485,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             </div>
           </div>
         </div>
-      `, true);
+      `, true, true);
     }
 
     async function handleRecapVideoFile(input, station = 'general') {
@@ -8193,7 +8200,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             </div>
           </div>
         </div>
-      `, true);
+      `, true, true);
     }
 
     function renderCoachVideo() {
@@ -9357,9 +9364,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.14.1';
+    const APP_VERSION = 'v3.14.2';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Fixed video preview modal layout: solid elevated surface, clean clip labels, visible frosted close button, 2-column Save/Share & Done footer, and safe-area bottom padding';
+    const APP_RELEASE_NOTES = 'Centered video preview and saved recap modals vertically and horizontally with balanced margins and rounded corners';
 
     function reloadLatestAppVersion() {
       try {
