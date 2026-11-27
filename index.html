@@ -6345,9 +6345,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v2.9.2';
+    const APP_VERSION = 'v2.9.3';
     const APP_BUILD_DATE = 'Nov 26, 2026';
-    const APP_RELEASE_NOTES = 'Fixed clip bar overflow, clean clip titles & formatted notes';
+    const APP_RELEASE_NOTES = 'Pull-to-refresh full page reload, clean clips & formatted notes';
 
     function reloadLatestAppVersion() {
       try {
@@ -8102,15 +8102,11 @@ create policy "Allow media update" on storage.objects
           icon.classList.add('ptr-spinning');
           pill.style.background = '';
           pill.style.color = '';
-          text.textContent = 'Syncing live data...';
+          text.textContent = 'Refreshing page...';
 
-          setTimeout(async () => {
-            await refreshFromSupabase(true);
-            render(false);
-            refreshing = false;
-            resetPtr();
-            showToast('✓ Pulled latest schedule, athletes & recaps!');
-          }, 450);
+          setTimeout(() => {
+            reloadLatestAppVersion();
+          }, 250);
         } else {
           resetPtr();
         }
