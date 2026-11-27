@@ -9026,9 +9026,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.11.1';
+    const APP_VERSION = 'v3.11.2';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Fixed mobile bottom navigation dock sticking mid-screen during iOS scrolling and keyboard entry; added native swipe-back navigation';
+    const APP_RELEASE_NOTES = 'Improved Live Calendar Feed sync fallback & Supabase Storage RLS policy SQL; fixed mobile bottom dock anchoring and added native swipe-back navigation';
 
     function reloadLatestAppVersion() {
       try {
@@ -9837,14 +9837,21 @@ insert into storage.buckets (id, name, public)
 values ('gfuchs-media', 'gfuchs-media', true)
 on conflict (id) do nothing;
 
+drop policy if exists "Allow media read" on storage.objects;
 create policy "Allow media read" on storage.objects
-  for select using (bucket_id = 'gfuchs-media');
+  for select to anon, authenticated using (bucket_id = 'gfuchs-media');
 
+drop policy if exists "Allow media upload" on storage.objects;
 create policy "Allow media upload" on storage.objects
-  for insert with check (bucket_id = 'gfuchs-media');
+  for insert to anon, authenticated with check (bucket_id = 'gfuchs-media');
 
+drop policy if exists "Allow media update" on storage.objects;
 create policy "Allow media update" on storage.objects
-  for update using (bucket_id = 'gfuchs-media');`;
+  for update to anon, authenticated using (bucket_id = 'gfuchs-media') with check (bucket_id = 'gfuchs-media');
+
+drop policy if exists "Allow media delete" on storage.objects;
+create policy "Allow media delete" on storage.objects
+  for delete to anon, authenticated using (bucket_id = 'gfuchs-media');`;
       if (navigator.clipboard?.writeText) {
         navigator.clipboard.writeText(sql).then(() => showToast('Supabase SQL copied! Paste into SQL Editor → Run.'));
       } else {
@@ -10227,26 +10234,43 @@ create policy "Allow media update" on storage.objects
       return base;
     }
 
+    let _lastCalendarPublishError = '';
+
     async function publishLiveCalendarFeed(force = false) {
+      _lastCalendarPublishError = '';
       try {
         const sb = _sbClient || window._sb;
-        if (!sb || !sb.storage) return false;
+        if (!sb || !sb.storage) {
+          _lastCalendarPublishError = 'Supabase is not connected yet.';
+          return false;
+        }
         const active = state.sessions.filter(s => s.status !== 'Canceled');
         const sig = JSON.stringify(active.map(s => [s.id, s.dateIso, s.day, s.time, s.duration, s.focus, s.athletes, s.status, s.location]));
         if (!force && sig === _lastPublishedCalSig) return true;
         const ics = buildIcsCalendar(active);
         const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-        const { error } = await sb.storage.from('gfuchs-media').upload('calendar/schedule.ics', blob, {
+        const opts = {
           contentType: 'text/calendar; charset=utf-8',
           cacheControl: '60',
           upsert: true
-        });
+        };
+        let { error } = await sb.storage.from('gfuchs-media').upload('calendar/schedule.ics', blob, opts);
+        if (error && typeof sb.storage.from('gfuchs-media').update === 'function') {
+          const upd = await sb.storage.from('gfuchs-media').update('calendar/schedule.ics', blob, opts);
+          if (!upd.error) error = null;
+          else error = upd.error;
+        }
         if (!error) {
           _lastPublishedCalSig = sig;
           return true;
         }
-        console.warn('Live calendar feed publish error:', error.message || error);
+        const msg = String(error.message || error);
+        _lastCalendarPublishError = /row-level security/i.test(msg)
+          ? 'Supabase Storage update policy needed — run the updated SQL in Settings.'
+          : msg;
+        console.warn('Live calendar feed publish error:', msg);
       } catch (err) {
+        _lastCalendarPublishError = err?.message || 'Network error while publishing feed.';
         console.warn('Live calendar feed publish failed:', err);
       }
       return false;
@@ -10387,7 +10411,7 @@ create policy "Allow media update" on storage.objects
             </div>
             <div class="flex items-center justify-between gap-2 pt-1 text-[10px] text-[var(--text-muted)]">
               <span class="truncate font-mono">${httpsFeed}</span>
-              <button type="button" onclick="publishLiveCalendarFeed(true).then(ok => showToast(ok ? 'Live calendar feed updated!' : 'Could not publish feed.'))" class="px-2 py-1 rounded-lg card-white font-extrabold shrink-0 cursor-pointer">Sync Now</button>
+              <button type="button" onclick="publishLiveCalendarFeed(true).then(ok => showToast(ok ? 'Live calendar feed updated!' : (_lastCalendarPublishError || 'Could not publish feed.')))" class="px-2 py-1 rounded-lg card-white font-extrabold shrink-0 cursor-pointer">Sync Now</button>
             </div>
           </div>
         ` : ''}
