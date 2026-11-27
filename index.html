@@ -6126,13 +6126,32 @@
       return [];
     }
 
-    async function uploadMediaToSupabase(file, folderSlug = 'clips', existingNames = null) {
+    function buildCleanClipFilename({ athleteName = '', dateIso = '', stationLabel = '', clipNum = 1, origName = '', mimeType = '' } = {}) {
+      const cleanToken = (v) => String(v || '').trim().replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+      const athPart = cleanToken(athleteName) || 'Athlete';
+      const datePart = /^\d{4}-\d{2}-\d{2}$/.test(dateIso)
+        ? dateIso
+        : (dateIso ? cleanToken(dateIso) : getTodayIsoEst());
+      const stPart = cleanToken(stationLabel);
+      const extFromName = (String(origName || '').split('?')[0].match(/\.(mp4|mov|m4v|webm|jpg|jpeg|png|webp|heic)$/i) || [])[1];
+      const extFromMime = String(mimeType || '').includes('quicktime') ? 'mov'
+        : String(mimeType || '').includes('image/png') ? 'png'
+        : String(mimeType || '').includes('image/') ? 'jpg'
+        : 'mp4';
+      const ext = (extFromName || extFromMime).toLowerCase();
+      const parts = [athPart, datePart];
+      if (stPart && stPart.toLowerCase() !== 'session') parts.push(stPart);
+      parts.push(`Clip${clipNum || 1}`);
+      return `${parts.join('_')}.${ext}`;
+    }
+
+    async function uploadMediaToSupabase(file, folderSlug = 'clips', existingNames = null, customFileName = null) {
       if (!file) return { url: null, cloud: false, reused: false };
       try {
         const sb = _sbClient || window._sb;
         if (sb && sb.storage) {
           const safeSlug = toStorageSlug(folderSlug);
-          const safeName = String(file.name || 'clip.mp4').replace(/[^a-zA-Z0-9._-]+/g, '_');
+          const safeName = String(customFileName || file.name || 'clip.mp4').replace(/[^a-zA-Z0-9._-]+/g, '_');
 
           // Reuse existing uploaded file in Supabase Storage if already present!
           if (Array.isArray(existingNames) && existingNames.length) {
@@ -6143,7 +6162,10 @@
             }
           }
 
-          const path = `${safeSlug}/${Date.now()}-${Math.random().toString(36).slice(2, 6)}-${safeName}`;
+          const uniq = Math.random().toString(36).slice(2, 6);
+          const path = customFileName
+            ? `${safeSlug}/${safeName.replace(/(\.[^.]+)$/, `_${uniq}$1`)}`
+            : `${safeSlug}/${Date.now()}-${uniq}-${safeName}`;
           const { error } = await sb.storage.from('gfuchs-media').upload(path, file, {
             cacheControl: '3600',
             upsert: true,
@@ -6521,9 +6543,18 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       let cloudCount = 0;
       for (const file of files) {
         const isVideo = /\.(mp4|mov|m4v|webm|3gp|avi)$/i.test(file.name) || (file.type || '').startsWith('video/');
-        const res = await uploadMediaToSupabase(file, ath?.name || 'clips');
+        const nextNum = (Array.isArray(r.clips) ? r.clips.length : 0) + 1;
+        const cleanFileName = buildCleanClipFilename({
+          athleteName: ath?.name || 'Athlete',
+          dateIso: r.date || getTodayIsoEst(),
+          stationLabel: 'Session',
+          clipNum: nextNum,
+          origName: file.name,
+          mimeType: file.type
+        });
+        const res = await uploadMediaToSupabase(file, ath?.name || 'clips', null, cleanFileName);
         if (res.cloud) cloudCount++;
-        const clip = { title: file.name, url: res.url, isVideo, img: isVideo ? vidImg : res.url };
+        const clip = { title: `${ath?.name ? `${ath.name} • ` : ''}Clip ${nextNum}`, fileName: cleanFileName, url: res.url, isVideo, img: isVideo ? vidImg : res.url };
         if (!Array.isArray(r.clips)) r.clips = [];
         r.clips.push(clip);
         if (!r.videoUrl) {
@@ -7454,6 +7485,15 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const sameStation = _recapDraftClips.filter(c => c.station === clip.station);
       const stationIdx = Math.max(0, sameStation.indexOf(clip));
       const cleanLabel = `${clip.stationLabel || 'Session'} • Clip ${stationIdx + 1}`;
+      const ath = state.athletes.find(a => a.id === (_recapActiveAthId || state.selectedAthleteId));
+      const ses = _recapActiveSesId ? state.sessions.find(s => s.id === _recapActiveSesId) : null;
+      const downloadName = clip.fileName || buildCleanClipFilename({
+        athleteName: ath?.name || 'Athlete',
+        dateIso: ses?.dateIso || getTodayIsoEst(),
+        stationLabel: clip.stationLabel || 'Session',
+        clipNum: stationIdx + 1,
+        origName: clip.title || clip.url || ''
+      });
       openModal(`
         <div class="bg-white dark:bg-[#131820]">
           <div class="relative bg-[#010101] flex items-center justify-center min-h-[200px] max-h-[48vh]">
@@ -7477,7 +7517,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               <textarea rows="2" oninput="updateRecapDraftClipNote(${idx}, this.value)" onchange="autoSaveRecapDraft(true)" placeholder="Add coaching notes for this clip…" class="w-full px-3.5 py-2.5 rounded-xl text-sm font-medium resize-none">${escHtml(clip.note || '')}</textarea>
             </div>
             <div class="grid grid-cols-2 gap-2.5 pt-1">
-              <button type="button" onclick="shareOrSaveVideoClip('${escJs(clip.url)}', '${escJs(clip.title || 'session-clip.mp4')}', this)" class="min-h-[44px] px-3.5 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-1.5 shadow-sm hover:brightness-95 transition">
+              <button type="button" onclick="shareOrSaveVideoClip('${escJs(clip.url)}', '${escJs(downloadName)}', this)" class="min-h-[44px] px-3.5 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-1.5 shadow-sm hover:brightness-95 transition">
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 3v12m0 0l-4-4m4 4l4-4"/></svg>
                 <span>Save / Share</span>
               </button>
@@ -7495,6 +7535,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const stationNames = { tee: 'Tee', ft: 'Front Toss', machine: 'Machine', general: 'Session' };
       const stLabel = stationNames[station] || 'Session';
       const ath = state.athletes.find(a => a.id === (_recapActiveAthId || state.selectedAthleteId));
+      const ses = _recapActiveSesId ? state.sessions.find(s => s.id === _recapActiveSesId) : null;
       const vidImg = ath ? getAthleteCoverImg(ath) : 'assets/images/fastpitch-hitter.jpg';
       const MAX_FREE_BYTES = 50 * 1024 * 1024; // 50 MB Supabase free-tier per-file cap
 
@@ -7508,9 +7549,18 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         stationClipNum += 1;
         const localUrl = URL.createObjectURL(file);
         const isVideo = /\.(mp4|mov|m4v|webm|3gp|avi)$/i.test(file.name) || (file.type || '').startsWith('video/');
-        const rawTitle = file.name || `${stLabel} Clip ${stationClipNum}`;
+        const cleanFileName = buildCleanClipFilename({
+          athleteName: ath?.name || 'Athlete',
+          dateIso: ses?.dateIso || getTodayIsoEst(),
+          stationLabel: stLabel,
+          clipNum: stationClipNum,
+          origName: file.name,
+          mimeType: file.type
+        });
+        const friendlyTitle = `${ath?.name ? `${ath.name} • ` : ''}${stLabel} Clip ${stationClipNum}`;
         const clipObj = {
-          title: rawTitle,
+          title: friendlyTitle,
+          fileName: cleanFileName,
           station,
           stationLabel: stLabel,
           stationClipNum,
@@ -7559,7 +7609,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           clipObj.cloud = false;
           continue;
         }
-        const res = await uploadMediaToSupabase(file, folderSlug);
+        const res = await uploadMediaToSupabase(file, folderSlug, null, clipObj.fileName);
         clipObj.uploading = false;
         if (res.cloud && res.url) {
           clipObj.url = res.url;
@@ -8161,15 +8211,25 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             </div>
           ` : ''}
           <div class="p-5 pb-[calc(env(safe-area-inset-bottom,0px)+20px)] space-y-3.5 bg-white dark:bg-[#131820]">
-            ${activeUrl ? `
+            ${activeUrl ? (() => {
+              const athObj = state.athletes.find(a => a.id === r.athleteId);
+              const dlName = activeClip?.fileName || buildCleanClipFilename({
+                athleteName: athObj?.name || 'Athlete',
+                dateIso: r.date || getTodayIsoEst(),
+                stationLabel: activeClip?.stationLabel || 'Session',
+                clipNum: clipIdx + 1,
+                origName: activeClip?.title || activeUrl || ''
+              });
+              return `
               <div class="flex items-center justify-between gap-2">
                 <span class="text-xs font-extrabold truncate text-[var(--text-main)]">${activeClip?.stationLabel ? `${activeClip.stationLabel} • ` : ''}Clip ${clipIdx + 1}</span>
-                <button type="button" onclick="shareOrSaveVideoClip('${String(activeUrl).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', '${String(activeClip?.title || 'session-clip.mp4').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', this)" class="min-h-[40px] px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5 shrink-0 shadow-sm hover:brightness-95 transition">
+                <button type="button" onclick="shareOrSaveVideoClip('${String(activeUrl).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', '${String(dlName).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', this)" class="min-h-[40px] px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5 shrink-0 shadow-sm hover:brightness-95 transition">
                   <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 3v12m0 0l-4-4m4 4l4-4"/></svg>
                   <span>Save / Share Video</span>
                 </button>
               </div>
-            ` : ''}
+            `;
+            })() : ''}
             ${activeClip ? (isCoach ? `
               <div class="p-3 rounded-2xl surface-soft space-y-1.5">
                 <div class="flex items-center justify-between gap-2">
@@ -9364,9 +9424,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.14.2';
+    const APP_VERSION = 'v3.14.3';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Centered video preview and saved recap modals vertically and horizontally with balanced margins and rounded corners';
+    const APP_RELEASE_NOTES = 'Clean human-readable filenames (Athlete_Date_Station_ClipN.mov) for all uploaded, saved, and shared video clips';
 
     function reloadLatestAppVersion() {
       try {
