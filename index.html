@@ -3236,6 +3236,79 @@
     // =========================================================================
     // COACH GINA PRE-SESSION PLAN, PREVIOUS SESSIONS & LIVE VIDEO HELPERS (v3.5.0)
     // =========================================================================
+    const DEFAULT_PLAN_DRILLS = [
+      'Extensions 3/3/3',
+      'Swing 3/3/3',
+      'Shorty baseballs',
+      'Baseball bat baseballs',
+      'Regular bat softballs',
+      'Middle-in timing',
+      'Outside corner tracking',
+      'Changeup recognition'
+    ];
+
+    function getCustomPlanDrills() {
+      if (!Array.isArray(state.cal.customPlanDrills)) state.cal.customPlanDrills = [];
+      return state.cal.customPlanDrills;
+    }
+
+    function renderPlanDrillChipsHtml() {
+      const escAttr = (v) => String(v ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      const escHtml = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const custom = getCustomPlanDrills();
+      return `
+        ${DEFAULT_PLAN_DRILLS.map(q => `
+          <button type="button" onclick="appendPlanDrillChip('${escAttr(q)}')" class="px-2.5 py-1 rounded-full surface-soft text-[11px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${escHtml(q)}</button>
+        `).join('')}
+        ${custom.map(q => `
+          <span class="inline-flex items-center rounded-full surface-soft overflow-hidden border border-[#4E6075]/25">
+            <button type="button" onclick="appendPlanDrillChip('${escAttr(q)}')" class="pl-2.5 pr-1.5 py-1 text-[11px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${escHtml(q)}</button>
+            <button type="button" onclick="removeCustomPlanDrill('${escAttr(q)}')" title="Remove saved drill" aria-label="Remove ${escHtml(q)}" class="pr-2 pl-0.5 py-1 text-[10px] font-bold text-[var(--text-muted)] hover:text-red-500 cursor-pointer">✕</button>
+          </span>
+        `).join('')}
+        <button type="button" onclick="toggleNewPlanDrillInput()" class="px-2.5 py-1 rounded-full border border-dashed border-[#4E6075]/45 text-[11px] font-extrabold text-[#4E6075] dark:text-[#D5FF5F] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] hover:border-transparent">+ New Drill</button>
+      `;
+    }
+
+    function toggleNewPlanDrillInput() {
+      const row = document.getElementById('new-plan-drill-row');
+      const inp = document.getElementById('new-plan-drill-input');
+      if (!row) return;
+      row.classList.toggle('hidden');
+      if (!row.classList.contains('hidden') && inp) {
+        inp.focus();
+      }
+    }
+
+    function saveCustomPlanDrill() {
+      const inp = document.getElementById('new-plan-drill-input');
+      const val = (inp?.value || '').trim();
+      if (!val) return;
+      const custom = getCustomPlanDrills();
+      const exists = [...DEFAULT_PLAN_DRILLS, ...custom].some(d => d.toLowerCase() === val.toLowerCase());
+      if (!exists) {
+        custom.push(val);
+        saveLocalState();
+        pushStateToSupabase();
+      }
+      if (inp) inp.value = '';
+      const row = document.getElementById('new-plan-drill-row');
+      if (row) row.classList.add('hidden');
+      const chipsBox = document.getElementById('plan-drill-chips');
+      if (chipsBox) chipsBox.innerHTML = renderPlanDrillChipsHtml();
+      appendPlanDrillChip(val);
+      showToast(exists ? `Added "${val}" to plan!` : `Saved "${val}" for future sessions!`);
+    }
+
+    function removeCustomPlanDrill(drill) {
+      state.cal.customPlanDrills = getCustomPlanDrills().filter(d => d !== drill);
+      saveLocalState();
+      pushStateToSupabase();
+      const chipsBox = document.getElementById('plan-drill-chips');
+      if (chipsBox) chipsBox.innerHTML = renderPlanDrillChipsHtml();
+      showToast(`Removed "${drill}" from saved drills.`);
+    }
+
     function openSessionPlanModal(sessionId) {
       const s = state.sessions.find(x => x.id === sessionId);
       if (!s) return;
@@ -3243,16 +3316,6 @@
       const prevRecaps = ath ? getSortedRecapsForAthlete(ath.id, false).slice(0, 2) : [];
       const plan = s.sessionPlan || { goal: '', drills: '', notes: '' };
       const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      const quickPlanDrills = [
-        'Extensions 3/3/3',
-        'Swing 3/3/3',
-        'Shorty baseballs',
-        'Baseball bat baseballs',
-        'Regular bat softballs',
-        'Middle-in timing',
-        'Outside corner tracking',
-        'Changeup recognition'
-      ];
 
       openModal(`
         <div class="flex items-start justify-between gap-2">
@@ -3288,10 +3351,14 @@
             <input name="goal" value="${esc(plan.goal)}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm font-semibold" placeholder="e.g., Stay back on off-speed & inside-out hand path" required />
           </div>
 
-          <div class="space-y-1.5">
+          <div class="space-y-2">
             <label class="block font-bold text-[var(--text-muted)]">Planned Drills (Tap to add)</label>
-            <div class="flex flex-wrap gap-1.5">
-              ${quickPlanDrills.map(q => `<button type="button" onclick="appendPlanDrillChip('${q.replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-full surface-soft text-[11px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+            <div id="plan-drill-chips" class="flex flex-wrap gap-1.5">
+              ${renderPlanDrillChipsHtml()}
+            </div>
+            <div id="new-plan-drill-row" class="hidden flex items-center gap-1.5">
+              <input id="new-plan-drill-input" type="text" onkeydown="if(event.key==='Enter'){event.preventDefault();saveCustomPlanDrill();}" class="flex-1 px-3 py-2 rounded-xl surface-soft text-xs font-semibold" placeholder="e.g., High tee inside-out 3/3/3" />
+              <button type="button" onclick="saveCustomPlanDrill()" class="px-3 py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold cursor-pointer shrink-0">Save &amp; Add</button>
             </div>
             <textarea id="session-plan-drills" name="drills" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm leading-snug" placeholder="• Tee: Extensions 3/3/3&#10;• FT: Shorty baseballs&#10;• Machine: Changeup timing">${esc(plan.drills)}</textarea>
           </div>
@@ -7363,7 +7430,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.5.0';
+    const APP_VERSION = 'v3.5.1';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Optimized for Coach Gina’s daily flow: Today-first schedule, per-session plans, 1-tap previous session review & live camera video recording';
 
