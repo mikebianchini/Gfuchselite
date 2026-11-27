@@ -4494,7 +4494,7 @@
             <span class="w-8 h-8 rounded-xl bg-[#010101] text-[#D5FF5F] font-extrabold text-[11px] flex items-center justify-center shrink-0">${a.initials}</span>
             <span class="font-extrabold text-xs truncate">${a.name}</span>
           </button>
-          <button type="button" onclick="state.homeQuickSearch=''; openSessionRecapModal('${a.id}', null);" class="px-2.5 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold shrink-0 cursor-pointer">Notes</button>
+          <button type="button" onclick="state.homeQuickSearch=''; openAthleteProfileNotes('${a.id}');" class="px-2.5 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold shrink-0 cursor-pointer">Notes</button>
         </div>
       `).join('');
     }
@@ -5759,7 +5759,7 @@
                             <button onclick="unarchiveAthlete('${a.id}')" class="px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer hover:brightness-95">Restore</button>
                           ` : `
                             <button onclick="openEditAthleteModal('${a.id}')" title="Edit Athlete Info" aria-label="Edit ${a.name}" class="w-8 h-8 rounded-xl surface-soft text-xs font-extrabold inline-flex items-center justify-center cursor-pointer hover:border-[#010101]">${uiIcon('edit')}</button>
-                            <button onclick="openSessionRecapModal('${a.id}', null)" title="Session Notes" class="px-2.5 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer">Notes</button>
+                            <button onclick="openAthleteProfileNotes('${a.id}')" title="View Player Notes" class="px-2.5 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer">Notes</button>
                             <button onclick="openAddSessionForAthleteModal('${a.id}')" title="Add Session" aria-label="Add session for ${a.name}" class="w-8 h-8 rounded-xl surface-soft text-xs font-extrabold inline-flex items-center justify-center cursor-pointer">+</button>
                           `}
                         </div>
@@ -6730,7 +6730,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           </div>
 
           <!-- Right: Session Notes & Video History -->
-          <div class="lg:col-span-7 card-white rounded-[28px] p-5 space-y-4">
+          <div id="athlete-profile-notes" class="lg:col-span-7 card-white rounded-[28px] p-5 space-y-4 scroll-mt-20">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h2 class="text-base font-extrabold tracking-tight">Session Notes &amp; Videos</h2>
@@ -8826,7 +8826,20 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.9.4';
+    function openAthleteProfileNotes(athId) {
+      if (!athId) return;
+      state.role = 'coach';
+      state.coachTab = 'athletes';
+      state.selectedAthleteId = athId;
+      state.rosterView = 'detail';
+      closeModal();
+      render();
+      requestAnimationFrame(() => {
+        document.getElementById('athlete-profile-notes')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+
+    const APP_VERSION = 'v3.9.5';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Redesigned Session Notes Studio (Warm Up Routine w/ Walking PVC & custom drills, Player Notes and Focus, What We Worked On Tee/Front Toss/Machine with drills & per-area video, Session Notes)';
 
