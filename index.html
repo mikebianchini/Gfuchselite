@@ -504,6 +504,8 @@
             duration: 45,
             durationLabel: '45m',
             price: 75,
+            cashPrice: 75,
+            cardPrice: 78,
             allowCredit: true,
             location: 'Gina Fuchs Elite Facility • Turf Field',
             desc: 'Infield/outfield footwork, glove-to-hand transfer, diving angles & throwing mechanics.',
@@ -517,6 +519,8 @@
             duration: 45,
             durationLabel: '45m',
             price: 75,
+            cashPrice: 75,
+            cardPrice: 78,
             allowCredit: true,
             location: 'Gina Fuchs Elite Facility • Cage 1',
             desc: 'Swing path, exit velo, slapping footwork or catcher pop-time & framing.',
@@ -530,6 +534,8 @@
             duration: 60,
             durationLabel: '60m',
             price: 45,
+            cashPrice: 45,
+            cardPrice: 47,
             allowCredit: false,
             location: 'Gina Fuchs Elite Facility • Turf Cage',
             desc: 'High-energy competitive reps capped at 6 players per session.',
@@ -543,6 +549,8 @@
             duration: 180,
             durationLabel: '3h',
             price: 95,
+            cashPrice: 95,
+            cardPrice: 98,
             allowCredit: false,
             location: 'Gina Fuchs Elite Facility • Main Indoor',
             desc: 'Intensive 3-hour weekend workshop covering exit velocity, barrel path & defensive footwork.',
@@ -1243,9 +1251,25 @@
       render();
     }
 
+    function getCashPrice(evt) {
+      return Number(evt?.cashPrice ?? evt?.price ?? 0);
+    }
+
+    function getCardPrice(evt) {
+      return Number(evt?.cardPrice ?? evt?.price ?? 0);
+    }
+
+    function formatDualPrice(evt) {
+      const cash = getCashPrice(evt);
+      const card = getCardPrice(evt);
+      return cash === card ? `$${cash}` : `$${cash} Cash • $${card} Card`;
+    }
+
     function calCartTotals() {
-      const cardTotal = state.cal.cart.reduce((sum, item) => sum + item.evt.price, 0);
-      return { cardTotal };
+      const cashTotal = state.cal.cart.reduce((sum, item) => sum + getCashPrice(item.evt), 0);
+      const cardTotal = state.cal.cart.reduce((sum, item) => sum + getCardPrice(item.evt), 0);
+      const activeTotal = state.cal.checkoutMethod === 'cash' ? cashTotal : cardTotal;
+      return { cashTotal, cardTotal, activeTotal };
     }
 
     function calAddToCart(time24, goToCheckout = false) {
@@ -1312,10 +1336,12 @@
       const parentName = e.target.parentName.value;
       const email = e.target.email.value;
       const phone = e.target.phone.value;
-      const { cardTotal } = calCartTotals();
+      const isCash = state.cal.checkoutMethod === 'cash';
+      const { activeTotal } = calCartTotals();
       const confirmedItems = [];
 
       state.cal.cart.forEach(item => {
+        const itemPrice = isCash ? getCashPrice(item.evt) : getCardPrice(item.evt);
 
         // Prevent double-booking
         state.cal.bookedSlots.push(item.slotKey);
@@ -1324,6 +1350,7 @@
         const shortDayKey = dayParts[0] + ' ' + item.iso.split('-')[2].replace(/^0/, '');
         state.sessions.unshift({
           id: 'ses-' + Date.now() + Math.random().toString(36).slice(2, 5),
+          dateIso: item.iso,
           dayKey: shortDayKey,
           day: item.dayNice,
           time: item.timeDisplay,
@@ -1334,26 +1361,24 @@
           athleteId: item.athleteId,
           spotsMax: item.evt.type === '1-on-1 Private' ? 1 : 6,
           status: 'Confirmed',
-          payment: state.cal.checkoutMethod === 'cash' ? `Cash Due ($${item.evt.price})` : `Clover Paid ($${item.evt.price})`,
-          price: item.evt.price,
+          payment: isCash ? `Cash Due ($${itemPrice})` : `Clover Paid ($${itemPrice})`,
+          price: itemPrice,
           img: item.evt.img
         });
 
         confirmedItems.push({
           ...item,
-          payLabel: state.cal.checkoutMethod === 'cash' ? `$${item.evt.price} Cash Due` : `$${item.evt.price} Clover`
+          payLabel: isCash ? `$${itemPrice} Cash Due` : `$${itemPrice} Clover`
         });
       });
 
-
-      const isCash = state.cal.checkoutMethod === 'cash';
-      if (cardTotal > 0) {
+      if (activeTotal > 0) {
         state.payments.unshift({
           id: 'pay-' + Date.now(),
           date: 'Today',
-          family: 'Miller Family',
+          family: parentName || 'Family',
           item: confirmedItems.length === 1 ? `${confirmedItems[0].evt.title} (${confirmedItems[0].dayNice})` : `Multi-Session Booking (${confirmedItems.length} sessions)`,
-          amount: cardTotal,
+          amount: activeTotal,
           method: isCash ? 'Cash (Due at Lesson)' : 'Clover • Card / Apple Pay',
           status: isCash ? 'Pending Cash' : 'Paid'
         });
@@ -1361,7 +1386,7 @@
 
       state.cal.lastBooking = {
         items: confirmedItems,
-        cardTotal,
+        cardTotal: activeTotal,
         checkoutMethod: state.cal.checkoutMethod,
         parentName,
         email,
@@ -1421,7 +1446,8 @@
     function renderParentBook() {
       const ath = getActiveAthlete();
       const evt = state.cal.eventTypes.find(e => e.id === state.cal.eventTypeId) || state.cal.eventTypes[0];
-      const { cardTotal } = calCartTotals();
+      const { cashTotal, cardTotal, activeTotal } = calCartTotals();
+      const isCashSelected = state.cal.checkoutMethod === 'cash';
 
       // STEP 3: MULTI-SESSION CONFIRMED SCREEN
       if (state.cal.step === 'confirmed' && state.cal.lastBooking) {
@@ -1482,7 +1508,7 @@
                     </div>
                     <div class="flex items-center justify-between pt-1.5 border-t border-[var(--border-subtle)]">
                       <span class="text-[11px] font-bold text-[var(--text-muted)]">${item.evt.durationLabel} • ${item.evt.location.split('•')[1] || 'Cage 1'}</span>
-                      <span class="font-extrabold">$${item.evt.price}</span>
+                      <span class="font-extrabold">$${isCashSelected ? getCashPrice(item.evt) : getCardPrice(item.evt)} <span class="text-[10px] font-semibold text-[var(--text-muted)]">${isCashSelected ? 'Cash' : 'Card'}</span></span>
                     </div>
                   </div>
                 `).join('')}
@@ -1490,8 +1516,8 @@
 
               <!-- Cart Totals Summary -->
               <div class="card-white rounded-2xl p-4 flex items-center justify-between text-sm">
-                <span class="font-extrabold">Total Due</span>
-                <span class="font-extrabold tabular-nums text-lg">$${cardTotal}</span>
+                <span class="font-extrabold">Total Due (${isCashSelected ? 'Cash' : 'Card'})</span>
+                <span class="font-extrabold tabular-nums text-lg">$${activeTotal}</span>
               </div>
             </div>
 
@@ -1516,23 +1542,23 @@
                 <label class="block text-[var(--text-muted)] font-bold mb-1">Focus Notes for Coach Gina (Optional)</label>
                 <textarea name="notes" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., Inside pitch barrel path, slapping footwork, infield transfers, pre-tournament tune-up..."></textarea>
               </div>
-              ${cardTotal > 0 ? `
+              ${activeTotal > 0 ? `
                 <div>
-                  <label class="block text-[var(--text-muted)] font-bold mb-1.5">Payment Method for $${cardTotal} Balance</label>
+                  <label class="block text-[var(--text-muted)] font-bold mb-1.5">Choose Payment Method</label>
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <button type="button" onclick="state.cal.checkoutMethod='clover'; render();" class="p-3.5 rounded-2xl border text-left cursor-pointer transition ${state.cal.checkoutMethod === 'clover' ? 'bg-[#010101] text-white border-[#010101] shadow-md' : 'surface-soft'}">
+                    <button type="button" onclick="state.cal.checkoutMethod='clover'; render(false);" class="p-3.5 rounded-2xl border text-left cursor-pointer transition ${!isCashSelected ? 'bg-[#010101] text-white border-[#010101] shadow-md' : 'surface-soft'}">
                       <div class="flex items-center justify-between">
-                        <span class="font-extrabold">🍀 Clover Checkout</span>
-                        ${state.cal.checkoutMethod === 'clover' ? `<span class="px-2 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">Selected</span>` : ''}
+                        <span class="font-extrabold">Clover Card • $${cardTotal}</span>
+                        ${!isCashSelected ? `<span class="px-2 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">Selected</span>` : ''}
                       </div>
                       <div class="text-[11px] opacity-75 mt-1">Card, Apple Pay, or Google Pay via Clover</div>
                     </button>
-                    <button type="button" onclick="state.cal.checkoutMethod='cash'; render();" class="p-3.5 rounded-2xl border text-left cursor-pointer transition ${state.cal.checkoutMethod === 'cash' ? 'bg-[#010101] text-white border-[#010101] shadow-md' : 'surface-soft'}">
+                    <button type="button" onclick="state.cal.checkoutMethod='cash'; render(false);" class="p-3.5 rounded-2xl border text-left cursor-pointer transition ${isCashSelected ? 'bg-[#010101] text-white border-[#010101] shadow-md' : 'surface-soft'}">
                       <div class="flex items-center justify-between">
-                        <span class="font-extrabold">💵 Pay Cash at Lesson</span>
-                        ${state.cal.checkoutMethod === 'cash' ? `<span class="px-2 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">Selected</span>` : ''}
+                        <span class="font-extrabold">Cash at Lesson • $${cashTotal}</span>
+                        ${isCashSelected ? `<span class="px-2 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">Selected</span>` : ''}
                       </div>
-                      <div class="text-[11px] opacity-75 mt-1">Reserve now • Pay Gina $${cardTotal} cash at check-in</div>
+                      <div class="text-[11px] opacity-75 mt-1">Reserve now • Pay Gina $${cashTotal} cash at lesson</div>
                     </button>
                   </div>
                 </div>
@@ -1542,7 +1568,7 @@
                 <span class="text-[11px] text-[var(--text-muted)]">I agree to the 24-hour reschedule &amp; cancellation policy for all sessions in my cart.</span>
               </label>
               <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
-                Confirm ${state.cal.cart.length} ${state.cal.cart.length === 1 ? 'Session' : 'Sessions'} • ${state.cal.checkoutMethod === 'cash' ? `$${cardTotal} Cash at Lesson` : `Pay $${cardTotal} w/ Clover`} →
+                Confirm ${state.cal.cart.length} ${state.cal.cart.length === 1 ? 'Session' : 'Sessions'} • ${isCashSelected ? `$${cashTotal} Cash at Lesson` : `Pay $${cardTotal} w/ Clover`} →
               </button>
             </form>
           </div>
@@ -1557,11 +1583,11 @@
             return `
               <button onclick="calSelectEvent('${t.id}')" class="text-left rounded-[24px] overflow-hidden transition cursor-pointer group ${active ? 'bg-[#010101] text-white shadow-xl ring-2 ring-[#D5FF5F]' : 'card-white hover:-translate-y-0.5'}">
                 <div class="relative h-24 w-full overflow-hidden">
-                  <img src="${t.img || 'assets/images/fastpitch-hitter.jpg'}" alt="${t.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" / loading="lazy" decoding="async">
+                  <img src="${t.img || 'assets/images/fastpitch-hitter.jpg'}" alt="${t.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy" decoding="async" />
                   <div class="absolute inset-0 bg-gradient-to-t from-[#010101]/70 via-[#010101]/15 to-transparent"></div>
                   <div class="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-2">
                     <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${active ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#010101]/70 text-white backdrop-blur'}">${t.durationLabel}</span>
-                    <span class="px-2.5 py-0.5 rounded-full bg-white/90 text-[#010101] text-[11px] font-extrabold tabular-nums">$${t.price}</span>
+                    <span class="px-2.5 py-0.5 rounded-full bg-white/90 text-[#010101] text-[10px] font-extrabold tabular-nums">${formatDualPrice(t)}</span>
                   </div>
                 </div>
                 <div class="p-3.5">
@@ -1653,7 +1679,7 @@
               <div class="space-y-2 text-xs font-semibold">
                 <div class="flex items-center gap-2"><span>⏱️</span><span>${evt.durationLabel} (${evt.duration} min)</span></div>
                 <div class="flex items-center gap-2"><span>📍</span><span>${evt.location}</span></div>
-                <div class="flex items-center gap-2"><span>💳</span><span>$${evt.price} • Clover or Cash</span></div>
+                <div class="flex items-center gap-2"><span>${uiIcon('card')}</span><span>${formatDualPrice(evt)}</span></div>
               </div>
             </div>
             <div>
@@ -2255,16 +2281,20 @@
           </div>
           <div class="grid grid-cols-2 gap-2.5">
             <div>
-              <label class="block text-[var(--text-muted)] font-bold mb-1">Price ($)</label>
-              <input name="price" type="number" min="0" value="${existing ? existing.price : 75}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
+              <label class="block text-[var(--text-muted)] font-bold mb-1">Cash Price ($)</label>
+              <input name="cashPrice" type="number" min="0" step="1" value="${existing ? getCashPrice(existing) : 75}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
             </div>
             <div>
-              <label class="block text-[var(--text-muted)] font-bold mb-1">Location / Cage</label>
-              <input name="location" list="gf-location-list" value="${existing ? existing.location.replace(/"/g, '&quot;') : (state.cal.locations?.[0]?.name || 'Gina Fuchs Elite Facility • Cage 1').replace(/"/g, '&quot;')}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
-              <datalist id="gf-location-list">
-                ${(state.cal.locations || []).map(l => `<option value="${l.name.replace(/"/g, '&quot;')}">`).join('')}
-              </datalist>
+              <label class="block text-[var(--text-muted)] font-bold mb-1">Card / Clover Price ($)</label>
+              <input name="cardPrice" type="number" min="0" step="1" value="${existing ? getCardPrice(existing) : 78}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
             </div>
+          </div>
+          <div>
+            <label class="block text-[var(--text-muted)] font-bold mb-1">Location / Cage</label>
+            <input name="location" list="gf-location-list" value="${existing ? existing.location.replace(/"/g, '&quot;') : (state.cal.locations?.[0]?.name || 'Gina Fuchs Elite Facility • Cage 1').replace(/"/g, '&quot;')}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
+            <datalist id="gf-location-list">
+              ${(state.cal.locations || []).map(l => `<option value="${l.name.replace(/"/g, '&quot;')}">`).join('')}
+            </datalist>
           </div>
           <div>
             <label class="block text-[var(--text-muted)] font-bold mb-1">Description</label>
@@ -2324,12 +2354,16 @@
       const durationLabel = dur >= 60 && dur % 60 === 0 ? `${dur / 60}h` : `${dur}m`;
       const availabilityMode = f.availabilityMode?.value === 'custom' ? 'custom' : 'coach';
       const checkedDays = Array.from(f.querySelectorAll('input[name="availDay"]:checked')).map(el => Number(el.value));
+      const cashPrice = Number(f.cashPrice.value);
+      const cardPrice = Number(f.cardPrice.value);
       const payload = {
         title: f.title.value.trim(),
         type: f.type.value,
         duration: dur,
         durationLabel,
-        price: Number(f.price.value),
+        price: cashPrice,
+        cashPrice,
+        cardPrice,
         location: f.location.value.trim(),
         desc: f.desc.value.trim() || 'Fastpitch training session with Coach Gina.',
         allowCredit: false,
@@ -2470,8 +2504,8 @@
                     <span class="px-2.5 py-1 rounded-full bg-[#010101]/85 text-[#D5FF5F] text-[10px] font-extrabold">${t.durationLabel} (${t.duration} min)</span>
                     <span class="px-2.5 py-1 rounded-full bg-white/90 text-[#010101] text-[10px] font-extrabold">${t.type}</span>
                   </div>
-                  <div class="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-sm font-extrabold tabular-nums shadow">
-                    $${t.price}
+                  <div class="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold tabular-nums shadow">
+                    ${formatDualPrice(t)}
                   </div>
                 </div>
                 <div class="p-4 space-y-2.5">
@@ -3209,7 +3243,7 @@
           <div>
             <label class="block font-bold text-[var(--text-muted)] mb-1">Class Type &amp; Length *</label>
             <select name="eventTypeId" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
-              ${state.cal.eventTypes.map(t => `<option value="${t.id}">${t.title} (${t.durationLabel} • $${t.price})</option>`).join('')}
+              ${state.cal.eventTypes.map(t => `<option value="${t.id}">${t.title} (${t.durationLabel} • ${formatDualPrice(t)})</option>`).join('')}
             </select>
           </div>
 
@@ -3232,10 +3266,10 @@
           <div>
             <label class="block font-bold text-[var(--text-muted)] mb-1">Payment Status</label>
             <select name="paymentMode" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
-              <option value="cash-pending">Cash at Lesson (Pending)</option>
-              <option value="cash-paid">Cash Collected ✓</option>
-              <option value="clover-paid">Clover Paid ✓</option>
-              <option value="venmo-paid">Venmo / Zelle Logged ✓</option>
+              <option value="cash-pending">Cash at Lesson (Pending — Cash Price)</option>
+              <option value="cash-paid">Cash Collected ✓ (Cash Price)</option>
+              <option value="clover-paid">Clover Card Paid ✓ (Card Price)</option>
+              <option value="venmo-paid">Venmo / Zelle Logged ✓ (Cash Price)</option>
             </select>
           </div>
 
@@ -3271,10 +3305,12 @@
       const dayKey = dObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }).replace(',', '');
       const focus = f.focus.value.trim() || evt.title;
       const payMode = f.paymentMode.value;
-      const payLabel = payMode === 'cash-pending' ? `Cash at Lesson ($${evt.price})`
-        : payMode === 'cash-paid' ? `Cash Paid ($${evt.price})`
-        : payMode === 'clover-paid' ? `Clover Paid ($${evt.price})`
-        : `Venmo/Zelle ($${evt.price})`;
+      const isCard = payMode === 'clover-paid';
+      const appliedPrice = isCard ? getCardPrice(evt) : getCashPrice(evt);
+      const payLabel = payMode === 'cash-pending' ? `Cash at Lesson ($${appliedPrice})`
+        : payMode === 'cash-paid' ? `Cash Paid ($${appliedPrice})`
+        : payMode === 'clover-paid' ? `Clover Paid ($${appliedPrice})`
+        : `Venmo/Zelle ($${appliedPrice})`;
 
       // 1. Add session to shared schedule (syncs to Coach Home, Coach Roster & Athlete Portal)
       state.sessions.unshift({
@@ -3291,7 +3327,7 @@
         spotsMax: evt.type === 'Small Group' ? 6 : 1,
         status: 'Confirmed',
         payment: payLabel,
-        price: evt.price,
+        price: appliedPrice,
         img: evt.img || getAthleteCoverImg(ath)
       });
 
@@ -3303,9 +3339,9 @@
       state.payments.unshift({
         id: 'pay-' + Date.now(),
         date: dObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        family: `${ath.parentName.split(' ').slice(-1)[0]} Family`,
+        family: `${(ath.parentName || ath.name).split(' ').slice(-1)[0]} Family`,
         item: `${focus} (${ath.name.split(' ')[0]})`,
-        amount: evt.price,
+        amount: appliedPrice,
         method: payMode === 'cash-pending' ? 'Cash at Lesson' : payMode === 'cash-paid' ? 'Cash (Collected ✓)' : payMode === 'clover-paid' ? 'Clover • Card' : 'Venmo / Zelle (Logged)',
         status: payMode === 'cash-pending' ? 'Pending Cash' : 'Paid'
       });
@@ -5161,7 +5197,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           <div>
             <label class="block font-bold text-[var(--text-muted)] mb-1">Class Type &amp; Length *</label>
             <select name="eventTypeId" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
-              ${state.cal.eventTypes.map(t => `<option value="${t.id}">${t.title} (${t.durationLabel} • $${t.price})</option>`).join('')}
+              ${state.cal.eventTypes.map(t => `<option value="${t.id}">${t.title} (${t.durationLabel} • ${formatDualPrice(t)})</option>`).join('')}
             </select>
           </div>
 
@@ -5184,10 +5220,10 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           <div>
             <label class="block font-bold text-[var(--text-muted)] mb-1">Payment Status</label>
             <select name="paymentMode" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
-              <option value="cash-pending">Cash at Lesson (Pending)</option>
-              <option value="cash-paid">Cash Collected ✓</option>
-              <option value="clover-paid">Clover Paid ✓</option>
-              <option value="venmo-paid">Venmo / Zelle Logged ✓</option>
+              <option value="cash-pending">Cash at Lesson (Pending — Cash Price)</option>
+              <option value="cash-paid">Cash Collected ✓ (Cash Price)</option>
+              <option value="clover-paid">Clover Card Paid ✓ (Card Price)</option>
+              <option value="venmo-paid">Venmo / Zelle Logged ✓ (Cash Price)</option>
             </select>
           </div>
 
