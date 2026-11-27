@@ -7445,86 +7445,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             </div>
           </div>
 
-          <!-- 6. Post-Lesson Wrap-Up (Payment, Rebook +7d & Group Share) -->
-          <div class="card-white rounded-[28px] p-5 space-y-3 text-xs">
-            <div class="inline-flex items-center gap-1.5 font-extrabold text-sm tracking-tight">${uiIcon('sliders', 'w-4 h-4 text-[#4E6075] dark:text-[#9AC0D6]')} Lesson Wrap-Up</div>
-
-            <!-- Inline Payment Logging -->
-            <div class="surface-soft rounded-2xl p-3.5 space-y-2.5">
-              <label class="flex items-center justify-between gap-3 cursor-pointer">
-                <div class="flex items-center gap-2.5">
-                  <span class="w-8 h-8 rounded-xl card-white flex items-center justify-center text-[#4E6075] dark:text-[#9AC0D6] shrink-0">${uiIcon('cash', 'w-4 h-4')}</span>
-                  <div>
-                    <div class="font-extrabold">Log Payment with Note</div>
-                    <div class="text-[11px] text-[var(--text-muted)]">Automatically records this lesson in Payments</div>
-                  </div>
-                </div>
-                <input type="checkbox" name="wrapLogPayment" onchange="document.getElementById('wrap-pay-fields')?.classList.toggle('hidden', !this.checked)" class="w-5 h-5 accent-[#010101]" />
-              </label>
-              <div id="wrap-pay-fields" class="hidden grid grid-cols-3 gap-2 pt-1">
-                <div>
-                  <label class="block text-[11px] font-bold text-[var(--text-muted)] mb-1">Amount ($)</label>
-                  <input type="number" name="wrapPayAmount" value="${defaultPrice}" min="0" class="w-full px-2.5 py-2 rounded-xl card-white font-extrabold text-xs" />
-                </div>
-                <div>
-                  <label class="block text-[11px] font-bold text-[var(--text-muted)] mb-1">Status</label>
-                  <select name="wrapPayStatus" onchange="togglePaidMethodVisibility(this, 'wrap-pay-method-wrap')" class="w-full px-2 py-2 rounded-xl card-white font-bold text-xs">
-                    <option value="Paid">Paid</option>
-                    <option value="Pending">Pending</option>
-                  </select>
-                </div>
-                <div id="wrap-pay-method-wrap">
-                  <label class="block text-[11px] font-bold text-[var(--text-muted)] mb-1">Method</label>
-                  <select name="wrapPayMethod" class="w-full px-2 py-2 rounded-xl card-white font-bold text-xs">
-                    <option value="Cash">Cash</option>
-                    <option value="Venmo">Venmo</option>
-                    <option value="Zelle">Zelle</option>
-                    <option value="Clover / Card">Clover / Card</option>
-                    <option value="Check / Other">Check / Other</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            ${ses ? `
-              <label class="flex items-center justify-between gap-3 p-3.5 rounded-2xl surface-soft cursor-pointer">
-                <div class="flex items-center gap-2.5">
-                  <span class="w-8 h-8 rounded-xl card-white flex items-center justify-center text-[#4E6075] dark:text-[#9AC0D6] shrink-0">${uiIcon('repeat', 'w-4 h-4')}</span>
-                  <div>
-                    <div class="font-extrabold">Rebook Same Time Next Week (+7d)</div>
-                    <div class="text-[11px] text-[var(--text-muted)]">Books ${ses.time} next week automatically if open</div>
-                  </div>
-                </div>
-                <input type="checkbox" name="wrapRebookNextWeek" class="w-5 h-5 accent-[#010101]" />
-              </label>
-            ` : ''}
-
-            ${groupAthletes.length > 1 ? `
-              <div class="surface-soft rounded-2xl p-3.5 space-y-2.5">
-                <label class="flex items-center justify-between gap-3 cursor-pointer">
-                  <div class="flex items-center gap-2.5">
-                    <span class="w-8 h-8 rounded-xl card-white flex items-center justify-center text-[#4E6075] dark:text-[#9AC0D6] shrink-0">${uiIcon('users', 'w-4 h-4')}</span>
-                    <div>
-                      <div class="font-extrabold">Share Group Note to All ${groupAthletes.length} Athletes</div>
-                      <div class="text-[11px] text-[var(--text-muted)]">${groupAthletes.map(a => a.name.split(' ')[0]).join(', ')}</div>
-                    </div>
-                  </div>
-                  <input type="checkbox" name="wrapShareGroup" checked onchange="document.getElementById('wrap-group-cues')?.classList.toggle('hidden', !this.checked)" class="w-5 h-5 accent-[#010101]" />
-                </label>
-                <div id="wrap-group-cues" class="space-y-1.5 pt-1">
-                  <div class="text-[11px] font-bold text-[var(--text-muted)]">Optional 1-line personal note per athlete:</div>
-                  ${groupAthletes.map(ga => `
-                    <div class="flex items-center gap-2">
-                      <span class="text-[11px] font-extrabold w-20 truncate shrink-0">${ga.name.split(' ')[0]}:</span>
-                      <input type="text" name="groupCue_${ga.id}" class="flex-1 px-3 py-1.5 rounded-xl card-white text-xs" placeholder="Personal note for ${ga.name.split(' ')[0]}..." />
-                    </div>
-                  `).join('')}
-                </div>
-              </div>
-            ` : ''}
-          </div>
-
-          <!-- 7. Send & Save Action Card -->
+          <!-- 6. Send & Save Action Card -->
           <div class="card-mist rounded-[28px] p-5 space-y-3.5">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div class="text-xs font-bold text-[var(--text-muted)]">
@@ -8870,7 +8791,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.9.2';
+    const APP_VERSION = 'v3.9.3';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Redesigned Session Notes Studio (Warm Up Routine w/ Walking PVC & custom drills, Player Notes and Focus, What We Worked On Tee/Front Toss/Machine with drills & per-area video, Session Notes)';
 
