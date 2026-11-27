@@ -293,29 +293,24 @@
       </div>
     </aside>
 
-    <!-- Floating Mobile Liquid Glass Header Capsule (iOS Safe-Area Aware) -->
+    <!-- Floating Mobile Liquid Glass Header Capsule (iOS Safe-Area Aware, 3-Element Layout) -->
     <div class="lg:hidden mobile-header-wrap">
-      <header class="glass-dock rounded-[26px] px-3 py-2 flex items-center justify-between gap-2">
-        <div class="flex items-center gap-2 min-w-0">
-          <button onclick="openMobileDrawer()" aria-label="Open full menu" class="w-10 h-10 rounded-full surface-soft flex items-center justify-center shrink-0 cursor-pointer">
+      <header class="glass-dock rounded-[26px] px-3 py-2 flex items-center justify-between gap-2.5">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <button onclick="openMobileDrawer()" aria-label="Open full menu" class="relative w-10 h-10 rounded-full surface-soft flex items-center justify-center shrink-0 cursor-pointer hover:border-[#010101] transition">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
+            <span id="mob-menu-badge" class="hidden absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#D5FF5F] text-[#010101] text-[9px] font-extrabold items-center justify-center shadow"></span>
           </button>
-          <div class="leading-tight truncate">
-            <div class="font-extrabold text-[13px] tracking-tight truncate">ELITE FASTPITCH</div>
-            <div class="text-[10.5px] text-[var(--text-muted)] font-medium truncate">Gina Fuchs Training</div>
+          <div class="leading-tight min-w-0">
+            <div class="font-extrabold text-[13.5px] tracking-tight truncate">ELITE FASTPITCH</div>
+            <div class="text-[10.5px] text-[var(--text-muted)] font-semibold truncate">Gina Fuchs Training</div>
           </div>
         </div>
 
-        <div class="flex items-center gap-1.5 shrink-0">
-          <div class="flex p-0.5 rounded-full surface-soft text-[11px] font-bold">
-            <button id="mob-role-parent" onclick="switchRole('parent')" class="px-2.5 py-1.5 min-h-[34px] rounded-full transition cursor-pointer">Athlete</button>
-            <button id="mob-role-coach" onclick="switchRole('coach')" class="px-2.5 py-1.5 min-h-[34px] rounded-full transition cursor-pointer">Coach</button>
-          </div>
-          <button onclick="openProfileFromName()" aria-label="View profile" class="w-9 h-9 rounded-full bg-[#010101] text-[#D5FF5F] font-extrabold text-[11px] flex items-center justify-center shrink-0 cursor-pointer" id="mob-avatar">GF</button>
-          <button onclick="toggleTheme()" class="w-9 h-9 rounded-full surface-soft flex items-center justify-center shrink-0 cursor-pointer" aria-label="Toggle light or dark theme">
-            <span id="mob-theme-icon" class="inline-flex items-center" aria-hidden="true"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path stroke-linecap="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></svg></span>
-          </button>
-        </div>
+        <button onclick="openMobileDrawer()" aria-label="Profile, Role &amp; Settings" class="flex items-center gap-2 pl-2.5 pr-1 py-1 rounded-full surface-soft shrink-0 cursor-pointer hover:border-[#010101] transition">
+          <span id="mob-role-pill-label" class="text-[11px] font-extrabold">Coach</span>
+          <span class="w-8 h-8 rounded-full bg-[#010101] text-[#D5FF5F] font-extrabold text-[11px] flex items-center justify-center shrink-0" id="mob-avatar">GF</span>
+        </button>
       </header>
     </div>
 
@@ -362,15 +357,18 @@
 
     <!-- Main Workspace -->
     <main class="flex-1 lg:pl-80 mobile-main-safe lg:pb-10">
-      <div id="app-root" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-4 sm:py-7 space-y-5"></div>
+      <div id="app-root" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-28 sm:py-7 space-y-5"></div>
     </main>
 
-    <!-- Floating Detached Mobile Liquid Glass Dock (Scroll-Safe for All Tabs) -->
-    <nav id="mobile-bottom-nav" aria-label="Primary navigation" class="lg:hidden fixed mobile-dock-safe left-3 right-3 z-30 glass-dock rounded-[30px] px-2 py-1.5 flex items-center justify-between sm:justify-around gap-0.5 overflow-x-auto no-scrollbar"></nav>
+    <!-- Soft Bottom Scrim Behind Floating Dock -->
+    <div class="lg:hidden fixed inset-x-0 bottom-0 h-24 pointer-events-none z-20 bg-gradient-to-t from-[var(--bg-canvas)] via-[var(--bg-canvas)]/70 to-transparent" aria-hidden="true"></div>
+
+    <!-- Floating Detached Mobile Liquid Glass Dock (5 Core Daily Tabs) -->
+    <nav id="mobile-bottom-nav" aria-label="Primary navigation" class="lg:hidden fixed mobile-dock-safe left-3 right-3 z-30 glass-dock rounded-[30px] px-2 py-1.5 flex items-center justify-around gap-1"></nav>
   </div>
 
-  <!-- Modal Root (Repetition Ruler / Session / Celebration) -->
-  <div id="modal-root" role="dialog" aria-modal="true" aria-label="Dialog" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 modal-backdrop"></div>
+  <!-- Modal Root (Bottom Sheet on Mobile, Centered Card on Desktop) -->
+  <div id="modal-root" role="dialog" aria-modal="true" aria-label="Dialog" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center p-0 sm:p-4 modal-backdrop"></div>
 
   <!-- Toast -->
   <div id="toast" role="status" aria-live="polite" class="fixed bottom-24 lg:bottom-6 right-4 z-50 hidden max-w-sm px-4 py-3 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-bold shadow-2xl"></div>
@@ -815,7 +813,8 @@
 
     function openModal(html, noPad = false) {
       const m = document.getElementById('modal-root');
-      m.innerHTML = `<div class="card-white rounded-[30px] max-w-md w-full ${noPad ? 'overflow-hidden' : 'p-5 sm:p-6 space-y-4'} shadow-2xl max-h-[90dvh] overflow-y-auto">${html}</div>`;
+      const handle = noPad ? '' : '<div class="sm:hidden w-10 h-1 rounded-full bg-[var(--text-muted)]/30 mx-auto -mt-1 mb-1"></div>';
+      m.innerHTML = `<div class="card-white rounded-t-[32px] sm:rounded-[30px] max-w-md w-full ${noPad ? 'overflow-hidden' : 'p-5 sm:p-6 pb-8 sm:pb-6 space-y-4'} shadow-2xl max-h-[90dvh] overflow-y-auto">${handle}${html}</div>`;
       m.classList.remove('hidden');
       m.classList.add('flex');
       m.onclick = (e) => { if (e.target === m) closeModal(); };
@@ -958,6 +957,19 @@
       if (drawerThemeLbl) drawerThemeLbl.textContent = document.documentElement.classList.contains('dark') ? 'Dark Mode' : 'Light Mode';
 
       const unread = state.threads.reduce((s, t) => s + t.unread, 0);
+      const mobRoleLbl = document.getElementById('mob-role-pill-label');
+      if (mobRoleLbl) mobRoleLbl.textContent = isCoach ? 'Coach' : 'Athlete';
+      const mobMenuBadge = document.getElementById('mob-menu-badge');
+      if (mobMenuBadge) {
+        if (isCoach && unread > 0) {
+          mobMenuBadge.textContent = String(unread);
+          mobMenuBadge.classList.remove('hidden');
+          mobMenuBadge.classList.add('flex');
+        } else {
+          mobMenuBadge.classList.add('hidden');
+          mobMenuBadge.classList.remove('flex');
+        }
+      }
 
       const navItems = isCoach
         ? [
@@ -993,15 +1005,17 @@
       const drawerNav = document.getElementById('mobile-drawer-nav');
       if (drawerNav) drawerNav.innerHTML = fullNavMarkup;
 
-      document.getElementById('mobile-bottom-nav').innerHTML = navItems.map(item => {
+      // Mobile bottom dock: 5 core daily tabs (Messages & Settings live in the ☰ drawer for generous touch targets)
+      const mobileDockItems = isCoach ? navItems.slice(0, 5) : navItems;
+      document.getElementById('mobile-bottom-nav').innerHTML = mobileDockItems.map(item => {
         const active = item.id === activeTab;
         return `
-          <button onclick="setTab('${item.id}')" ${active ? 'aria-current="page"' : ''} class="relative flex flex-col items-center justify-center gap-0.5 px-1.5 sm:px-2.5 py-1 min-h-[44px] min-w-[48px] shrink-0 rounded-2xl transition cursor-pointer ${active ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}">
-            <span class="relative p-1.5 rounded-xl ${active ? 'bg-[#D5FF5F] text-[#010101]' : ''}">
+          <button onclick="setTab('${item.id}')" ${active ? 'aria-current="page"' : ''} class="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-h-[48px] rounded-2xl transition cursor-pointer ${active ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}">
+            <span class="relative p-1.5 rounded-xl transition ${active ? 'bg-[#D5FF5F] text-[#010101] shadow-sm' : ''}">
               ${item.icon}
               ${item.badge ? `<span class="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[9px] font-extrabold flex items-center justify-center">${item.badge}</span>` : ''}
             </span>
-            <span class="text-[9.5px] sm:text-[10px] font-bold leading-tight">${item.label}</span>
+            <span class="text-[10px] font-bold leading-tight">${item.label}</span>
           </button>
         `;
       }).join('');
@@ -3180,22 +3194,23 @@
         next7: { label: 'Next 7 Days', sub: `${totalNext7Count} scheduled this week` }
       };
 
+      const activeAthletesCount = state.athletes.filter(a => !a.archived).length;
       const sectionHtmlMap = {
         metrics: `
           <div class="grid grid-cols-3 gap-2.5 sm:gap-3">
-            <div class="card-white rounded-2xl p-3.5">
+            <button onclick="scheduleSelectDate('${today.iso}', 'day'); setTab('schedule');" class="card-white rounded-2xl p-3.5 text-left hover:border-[#010101] transition cursor-pointer">
               <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Today</div>
               <div class="text-2xl font-extrabold mt-0.5">${todaySessions.length}</div>
-              <div class="text-[11px] text-[var(--text-muted)] font-semibold">session${todaySessions.length === 1 ? '' : 's'}</div>
-            </div>
-            <div class="card-white rounded-2xl p-3.5">
+              <div class="text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-bold">Day View →</div>
+            </button>
+            <button onclick="state.schedule.view='week'; setTab('schedule');" class="card-white rounded-2xl p-3.5 text-left hover:border-[#010101] transition cursor-pointer">
               <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Next 7 Days</div>
               <div class="text-2xl font-extrabold mt-0.5">${totalNext7Count}</div>
-              <div class="text-[11px] text-[var(--text-muted)] font-semibold">scheduled</div>
-            </div>
+              <div class="text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-bold">Week View →</div>
+            </button>
             <button onclick="setTab('athletes')" class="card-white rounded-2xl p-3.5 text-left hover:border-[#010101] transition cursor-pointer">
               <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Athletes</div>
-              <div class="text-2xl font-extrabold mt-0.5">${state.athletes.filter(a => !a.archived).length}</div>
+              <div class="text-2xl font-extrabold mt-0.5">${activeAthletesCount}</div>
               <div class="text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-bold">View Roster →</div>
             </button>
           </div>
@@ -3236,13 +3251,13 @@
           </div>
         ` : ''),
         today: `
-          <div class="space-y-3">
+          <div class="space-y-2.5">
             <div class="flex items-center justify-between">
               <div>
                 <h2 class="text-lg font-extrabold tracking-tight">Today’s Schedule</h2>
                 <p class="text-xs text-[var(--text-muted)]">${todayFullLabel}</p>
               </div>
-              <button onclick="openAddSessionModal('${today.iso}')" class="px-3.5 py-2 rounded-xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101] transition">+ Add Today</button>
+              ${todaySessions.length ? `<button onclick="openAddSessionModal('${today.iso}')" class="px-3 py-1.5 rounded-xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101] transition">+ Add Today</button>` : ''}
             </div>
 
             ${todaySessions.length ? `
@@ -3250,12 +3265,12 @@
                 ${todaySessions.map(s => renderCoachSessionRow(s, false)).join('')}
               </div>
             ` : `
-              <div class="card-white rounded-[24px] p-6 text-center space-y-2.5">
-                <div class="font-extrabold text-sm">No sessions scheduled for today</div>
-                <p class="text-xs text-[var(--text-muted)]">Add a 1-on-1 private or small group session to today’s cage schedule.</p>
-                <div class="pt-1">
-                  <button onclick="openAddSessionModal('${today.iso}')" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Add Session for Today</button>
+              <div class="card-white rounded-[22px] p-4 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="font-extrabold text-xs sm:text-sm">No sessions scheduled today</div>
+                  <div class="text-[11px] text-[var(--text-muted)] truncate">Your cage is open for 1-on-1 or group sessions</div>
                 </div>
+                <button onclick="openAddSessionModal('${today.iso}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shrink-0 hover:brightness-95 transition">+ Schedule</button>
               </div>
             `}
           </div>
@@ -3301,12 +3316,12 @@
                 ` : '').join('')}
               </div>
             ` : `
-              <div class="card-white rounded-[24px] p-6 text-center space-y-2.5">
-                <div class="font-extrabold text-sm">${activeDayFilter === 'all7' ? 'No sessions scheduled in the next 7 days' : 'No sessions on this day'}</div>
-                <p class="text-xs text-[var(--text-muted)]">Tap below to schedule a session for any lesson.</p>
-                <div class="pt-1">
-                  <button onclick="openAddSessionModal('${activeDayFilter === 'all7' ? today.iso : activeDayFilter}')" class="px-4 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">+ Add Session</button>
+              <div class="card-white rounded-[22px] p-4 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="font-extrabold text-xs sm:text-sm">${activeDayFilter === 'all7' ? 'No sessions in the next 7 days' : 'No sessions on this day'}</div>
+                  <div class="text-[11px] text-[var(--text-muted)] truncate">Schedule a session for any lesson</div>
                 </div>
+                <button onclick="openAddSessionModal('${activeDayFilter === 'all7' ? today.iso : activeDayFilter}')" class="px-3.5 py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer shrink-0">+ Add Session</button>
               </div>
             `}
           </div>
@@ -3347,29 +3362,45 @@
       }).filter(Boolean).join('');
 
       return `
-        <!-- Coach Home Header + Quick Add Actions -->
-        <div class="card-mist rounded-[28px] p-5 sm:p-6 space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${todayFullLabel} • Pittsburgh EST</div>
-              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">Coach Gina • Home</h1>
+        <!-- Coach Home Header + Quick Actions + 1-Tap Athlete Jump -->
+        <div class="card-mist rounded-[28px] p-4 sm:p-6 space-y-3.5">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${todayFullLabel} • EST</div>
+              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">Coach Gina</h1>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
-              <button onclick="toggleHomeReorderMode()" class="px-3.5 py-2.5 rounded-2xl text-xs font-extrabold cursor-pointer transition inline-flex items-center gap-1.5 ${isReordering ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'card-white hover:border-[#010101]'}">
-                ${isReordering ? '✓ Done Reordering' : '⇅ Reorder'}
-              </button>
-              <button onclick="openAddAthleteModal(null)" class="px-4 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer shadow-sm hover:opacity-90 transition inline-flex items-center gap-1.5">
-                + Add Athlete
-              </button>
-              <button onclick="openAddSessionModal()" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition inline-flex items-center gap-1.5">
-                + Add Session
-              </button>
-            </div>
+            <button onclick="toggleHomeReorderMode()" title="Reorder Home sections" aria-label="Reorder Home sections" class="px-3 py-2 rounded-2xl text-xs font-extrabold cursor-pointer transition shrink-0 inline-flex items-center gap-1 ${isReordering ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'card-white text-[var(--text-muted)] hover:text-[var(--text-main)] hover:border-[#010101]'}">
+              <span>⇅</span>
+              <span class="${isReordering ? '' : 'hidden sm:inline'}">${isReordering ? 'Done' : 'Reorder'}</span>
+            </button>
           </div>
+
+          <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
+            <button onclick="openAddSessionModal()" class="py-2.5 px-4 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition inline-flex items-center justify-center gap-1.5">
+              + Add Session
+            </button>
+            <button onclick="openAddAthleteModal(null)" class="py-2.5 px-4 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer shadow-sm hover:opacity-90 transition inline-flex items-center justify-center gap-1.5">
+              + Add Athlete
+            </button>
+          </div>
+
+          ${activeAthletesCount > 0 ? `
+            <div class="relative">
+              <svg class="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M20 20l-3.5-3.5"/></svg>
+              <input
+                type="search"
+                value="${(state.homeQuickSearch || '').replace(/"/g, '&quot;')}"
+                oninput="updateHomeQuickSearch(this.value)"
+                placeholder="Quick find any of ${activeAthletesCount} athletes &amp; notes…"
+                class="w-full pl-10 pr-4 py-2.5 rounded-2xl card-white text-[16px] sm:text-xs font-medium"
+              />
+              <div id="home-quick-search-results" class="${(state.homeQuickSearch || '').trim() ? '' : 'hidden'} mt-2 space-y-1.5">${renderHomeQuickSearchResults()}</div>
+            </div>
+          ` : ''}
 
           ${isReordering ? `
             <div class="card-white rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-              <span class="font-bold text-[var(--text-muted)]">Drag sections or tap <strong>↑ / ↓</strong> to customize your Home layout — syncs across devices.</span>
+              <span class="font-bold text-[var(--text-muted)]">Drag sections or tap <strong>↑ / ↓</strong> to customize Home — syncs across devices.</span>
               <button type="button" onclick="resetHomeSectionOrder()" class="px-3 py-1.5 rounded-xl surface-soft text-[11px] font-extrabold cursor-pointer hover:border-[#010101]">Reset Default</button>
             </div>
           ` : ''}
@@ -3377,6 +3408,39 @@
 
         ${renderedSections}
       `;
+    }
+
+    function renderHomeQuickSearchResults() {
+      const q = (state.homeQuickSearch || '').trim().toLowerCase();
+      if (!q) return '';
+      const matches = state.athletes
+        .filter(a => !a.archived && `${a.name} ${a.parentName || ''} ${a.team || ''}`.toLowerCase().includes(q))
+        .slice(0, 5);
+      if (!matches.length) {
+        return `<div class="card-white rounded-2xl p-3 text-xs text-[var(--text-muted)]">No active athletes match "${q}".</div>`;
+      }
+      return matches.map(a => `
+        <div class="card-white rounded-2xl p-2.5 flex items-center justify-between gap-2">
+          <button type="button" onclick="state.homeQuickSearch=''; jumpToAthlete('${a.id}');" class="flex items-center gap-2.5 min-w-0 flex-1 text-left cursor-pointer">
+            <span class="w-8 h-8 rounded-xl bg-[#010101] text-[#D5FF5F] font-extrabold text-[11px] flex items-center justify-center shrink-0">${a.initials}</span>
+            <span class="font-extrabold text-xs truncate">${a.name}</span>
+          </button>
+          <button type="button" onclick="state.homeQuickSearch=''; openSessionRecapModal('${a.id}', null);" class="px-2.5 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold shrink-0 cursor-pointer">Notes</button>
+        </div>
+      `).join('');
+    }
+
+    function updateHomeQuickSearch(val) {
+      state.homeQuickSearch = val;
+      const box = document.getElementById('home-quick-search-results');
+      if (!box) return;
+      if (!val.trim()) {
+        box.classList.add('hidden');
+        box.innerHTML = '';
+      } else {
+        box.classList.remove('hidden');
+        box.innerHTML = renderHomeQuickSearchResults();
+      }
     }
 
     const HOME_SECTION_DEFAULTS = ['metrics', 'actions', 'today', 'next7'];
@@ -6345,9 +6409,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v2.9.3';
-    const APP_BUILD_DATE = 'Nov 26, 2026';
-    const APP_RELEASE_NOTES = 'Pull-to-refresh full page reload, clean clips & formatted notes';
+    const APP_VERSION = 'v3.0.0';
+    const APP_BUILD_DATE = 'Nov 27, 2026';
+    const APP_RELEASE_NOTES = 'Mobile UX 3.0: 5-tab dock, bottom-sheet modals, Quick Find & clean header';
 
     function reloadLatestAppVersion() {
       try {
