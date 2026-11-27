@@ -2215,22 +2215,56 @@
 
     function openEditBioModal(athId) {
       const ath = ensureAthleteProfileExtras(state.athletes.find(a => a.id === athId));
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       openModal(`
         <div class="flex items-center justify-between">
-          <h3 class="font-extrabold text-sm">Edit Athlete Profile — ${ath.name}</h3>
+          <h3 class="font-extrabold text-sm">Edit Athlete Profile — ${esc(ath.name)}</h3>
           <button onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
         </div>
         <form onsubmit="saveAthleteBio(event, '${ath.id}')" class="space-y-3 text-xs">
           <div>
             <label class="block text-[var(--text-muted)] font-bold mb-1">Travel / School Team</label>
-            <input name="team" value="${ath.team}" class="w-full px-3 py-2 rounded-2xl surface-soft font-semibold" required />
+            <input name="team" value="${esc(ath.team || '')}" class="w-full px-3 py-2 rounded-2xl surface-soft font-semibold" />
           </div>
           <div class="grid grid-cols-3 gap-2.5">
-            <div><label class="block text-[var(--text-muted)] font-bold mb-1">Grad Year</label><input name="gradYear" type="number" value="${ath.gradYear}" class="w-full px-3 py-2 rounded-2xl surface-soft font-semibold" required /></div>
-            <div><label class="block text-[var(--text-muted)] font-bold mb-1">Height</label><input name="height" value="${ath.height}" class="w-full px-3 py-2 rounded-2xl surface-soft font-semibold" required /></div>
-            <div><label class="block text-[var(--text-muted)] font-bold mb-1">Bats / Throws</label><input name="batsThrows" value="${ath.batsThrows}" class="w-full px-3 py-2 rounded-2xl surface-soft font-semibold" required /></div>
+            <div><label class="block text-[var(--text-muted)] font-bold mb-1">Grad Year</label><input name="gradYear" type="number" value="${esc(ath.gradYear || '')}" class="w-full px-3 py-2 rounded-2xl surface-soft font-semibold" /></div>
+            <div><label class="block text-[var(--text-muted)] font-bold mb-1">Height</label><input name="height" value="${esc(ath.height || '')}" class="w-full px-3 py-2 rounded-2xl surface-soft font-semibold" /></div>
+            <div><label class="block text-[var(--text-muted)] font-bold mb-1">Bats / Throws</label><input name="batsThrows" value="${esc(ath.batsThrows || '')}" class="w-full px-3 py-2 rounded-2xl surface-soft font-semibold" /></div>
           </div>
-          <div><label class="block text-[var(--text-muted)] font-bold mb-1">Primary / Secondary Position</label><input name="position" value="${ath.position}" class="w-full px-3 py-2 rounded-2xl surface-soft font-semibold" required /></div>
+          <div><label class="block text-[var(--text-muted)] font-bold mb-1">Primary / Secondary Position</label><input name="position" value="${esc(ath.position || '')}" class="w-full px-3 py-2 rounded-2xl surface-soft font-semibold" /></div>
+
+          <div class="pt-1 border-t border-[var(--border-subtle)] space-y-2">
+            <div class="text-[11px] font-extrabold text-[var(--text-muted)]">Player Contact</div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[var(--text-muted)] font-bold mb-1">Player Phone</label>
+                <input name="playerPhone" type="tel" value="${esc(ath.playerPhone || '')}" placeholder="(412) 555-0144" class="w-full px-3 py-2 rounded-2xl surface-soft" />
+              </div>
+              <div>
+                <label class="block text-[var(--text-muted)] font-bold mb-1">Player Email</label>
+                <input name="playerEmail" type="email" value="${esc(ath.playerEmail || '')}" placeholder="player@email.com" class="w-full px-3 py-2 rounded-2xl surface-soft" />
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-1 border-t border-[var(--border-subtle)] space-y-2">
+            <div class="text-[11px] font-extrabold text-[var(--text-muted)]">Parent / Guardian Contact</div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[var(--text-muted)] font-bold mb-1">Parent Name</label>
+                <input name="parentName" value="${esc(ath.parentName || '')}" placeholder="e.g., Amanda Morgan" class="w-full px-3 py-2 rounded-2xl surface-soft" />
+              </div>
+              <div>
+                <label class="block text-[var(--text-muted)] font-bold mb-1">Parent Phone</label>
+                <input name="parentPhone" type="tel" value="${esc(ath.parentPhone || '')}" placeholder="(412) 555-0199" class="w-full px-3 py-2 rounded-2xl surface-soft" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-[var(--text-muted)] font-bold mb-1">Parent Email</label>
+              <input name="parentEmail" type="email" value="${esc(ath.parentEmail || '')}" placeholder="parent@email.com" class="w-full px-3 py-2 rounded-2xl surface-soft" />
+            </div>
+          </div>
+
           <button type="submit" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold cursor-pointer">Save Athlete Profile</button>
         </form>
       `);
@@ -2239,11 +2273,18 @@
     function saveAthleteBio(e, athId) {
       e.preventDefault();
       const ath = state.athletes.find(a => a.id === athId);
-      ath.team = e.target.team.value;
-      ath.gradYear = Number(e.target.gradYear.value);
-      ath.height = e.target.height.value;
-      ath.batsThrows = e.target.batsThrows.value;
-      ath.position = e.target.position.value;
+      const f = e.target;
+      ath.team = f.team.value.trim();
+      ath.gradYear = f.gradYear.value ? Number(f.gradYear.value) : '';
+      ath.height = f.height.value.trim();
+      ath.batsThrows = f.batsThrows.value.trim();
+      ath.position = f.position.value.trim();
+      ath.playerPhone = f.playerPhone.value.trim();
+      ath.playerEmail = f.playerEmail.value.trim();
+      ath.parentName = f.parentName.value.trim();
+      ath.parentPhone = f.parentPhone.value.trim();
+      ath.parentEmail = f.parentEmail.value.trim();
+      ath._modifiedAt = Date.now();
       closeModal();
       render();
       showToast('Athlete profile updated!');
@@ -2304,6 +2345,24 @@
                 <div class="text-xl font-extrabold tabular-nums mt-0.5">${recaps.length} Logged</div>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Player & Parent Contact Info -->
+        <div class="card-white rounded-[28px] p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="font-extrabold text-[var(--text-muted)]">Player Contact</span>
+              <button type="button" onclick="openEditBioModal('${ath.id}')" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">Edit</button>
+            </div>
+            <div><span class="text-[var(--text-muted)]">Phone:</span> ${ath.playerPhone ? `<a href="tel:${ath.playerPhone}" class="font-bold hover:underline">${ath.playerPhone}</a>` : `<span class="text-[var(--text-muted)]">Not set</span>`}</div>
+            <div><span class="text-[var(--text-muted)]">Email:</span> ${ath.playerEmail ? `<a href="mailto:${ath.playerEmail}" class="font-bold hover:underline">${ath.playerEmail}</a>` : `<span class="text-[var(--text-muted)]">Not set</span>`}</div>
+          </div>
+          <div class="space-y-1.5 sm:border-l sm:border-[var(--border-subtle)] sm:pl-4">
+            <div class="font-extrabold text-[var(--text-muted)]">Parent / Guardian Contact</div>
+            <div><span class="text-[var(--text-muted)]">Parent:</span> <strong>${ath.parentName || 'Not set'}</strong></div>
+            <div><span class="text-[var(--text-muted)]">Phone:</span> ${ath.parentPhone ? `<a href="tel:${ath.parentPhone}" class="font-bold hover:underline">${ath.parentPhone}</a>` : `<span class="text-[var(--text-muted)]">Not set</span>`}</div>
+            <div><span class="text-[var(--text-muted)]">Email:</span> ${ath.parentEmail ? `<a href="mailto:${ath.parentEmail}" class="font-bold hover:underline">${ath.parentEmail}</a>` : `<span class="text-[var(--text-muted)]">Not set</span>`}</div>
           </div>
         </div>
 
@@ -4242,14 +4301,35 @@
             <input name="team" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., Pittsburgh Passion 14U" />
           </div>
 
-          <div class="grid grid-cols-2 gap-2.5">
-            <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Parent / Guardian *</label>
-              <input name="parentName" value="${isParentFlow ? 'Sarah Miller' : ''}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., Amanda Morgan" required />
+          <div class="pt-1 border-t border-[var(--border-subtle)] space-y-2">
+            <div class="text-[11px] font-extrabold text-[var(--text-muted)]">Player Contact (Optional)</div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block font-bold text-[var(--text-muted)] mb-1">Player Phone</label>
+                <input name="playerPhone" type="tel" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="(412) 555-0144" />
+              </div>
+              <div>
+                <label class="block font-bold text-[var(--text-muted)] mb-1">Player Email</label>
+                <input name="playerEmail" type="email" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="player@email.com" />
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-1 border-t border-[var(--border-subtle)] space-y-2">
+            <div class="text-[11px] font-extrabold text-[var(--text-muted)]">Parent / Guardian Contact</div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block font-bold text-[var(--text-muted)] mb-1">Parent / Guardian *</label>
+                <input name="parentName" value="${isParentFlow ? 'Sarah Miller' : ''}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., Amanda Morgan" required />
+              </div>
+              <div>
+                <label class="block font-bold text-[var(--text-muted)] mb-1">Parent Phone *</label>
+                <input name="parentPhone" type="tel" value="${isParentFlow ? '(555) 234-8910' : ''}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="(412) 555-0199" required />
+              </div>
             </div>
             <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Parent Phone *</label>
-              <input name="parentPhone" value="${isParentFlow ? '(555) 234-8910' : ''}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="(412) 555-0199" required />
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Parent Email (Optional)</label>
+              <input name="parentEmail" type="email" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="parent@email.com" />
             </div>
           </div>
 
@@ -4281,8 +4361,11 @@
         initials,
         name,
         familyId: familyId || ('fam-' + Date.now()),
+        playerPhone: (f.playerPhone?.value || '').trim(),
+        playerEmail: (f.playerEmail?.value || '').trim(),
         parentName: f.parentName.value.trim(),
         parentPhone: f.parentPhone.value.trim(),
+        parentEmail: (f.parentEmail?.value || '').trim(),
         ageGroup: f.ageGroup.value,
         gradYear: Number(f.gradYear.value) || 2030,
         position,
@@ -4392,8 +4475,22 @@
             <input name="team" value="${esc(ath.team || '')}" placeholder="e.g., Pittsburgh Passion 14U" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" />
           </div>
 
+          <div class="pt-1 border-t border-[var(--border-subtle)] space-y-2">
+            <div class="text-[11px] font-extrabold text-[var(--text-muted)]">Player Contact</div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block font-bold text-[var(--text-muted)] mb-1">Player Phone</label>
+                <input name="playerPhone" type="tel" value="${esc(ath.playerPhone || '')}" placeholder="(412) 555-0144" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" />
+              </div>
+              <div>
+                <label class="block font-bold text-[var(--text-muted)] mb-1">Player Email</label>
+                <input name="playerEmail" type="email" value="${esc(ath.playerEmail || '')}" placeholder="player@email.com" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" />
+              </div>
+            </div>
+          </div>
+
           <div class="pt-1 border-t border-[var(--border-subtle)]">
-            <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)] mb-2">Parent / Guardian Contact</div>
+            <div class="text-[11px] font-extrabold text-[var(--text-muted)] mb-2">Parent / Guardian Contact</div>
             <div class="grid grid-cols-2 gap-2.5">
               <div>
                 <label class="block font-bold text-[var(--text-muted)] mb-1">Parent Name</label>
@@ -4401,7 +4498,7 @@
               </div>
               <div>
                 <label class="block font-bold text-[var(--text-muted)] mb-1">Parent Phone</label>
-                <input name="parentPhone" value="${esc(ath.parentPhone || '')}" placeholder="(412) 555-0199" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" />
+                <input name="parentPhone" type="tel" value="${esc(ath.parentPhone || '')}" placeholder="(412) 555-0199" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" />
               </div>
             </div>
             <div class="mt-2.5">
@@ -4411,7 +4508,7 @@
           </div>
 
           <div class="pt-1 border-t border-[var(--border-subtle)] space-y-2.5">
-            <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Safety &amp; Medical</div>
+            <div class="text-[11px] font-extrabold text-[var(--text-muted)]">Safety &amp; Medical</div>
             <div>
               <label class="block font-bold text-[var(--text-muted)] mb-1">Emergency Contact</label>
               <input name="emergencyContact" value="${esc(ath.emergencyContact || '')}" placeholder="Name — Phone" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" />
@@ -4455,6 +4552,8 @@
       ath.position = f.position.value.trim();
       ath.batsThrows = f.batsThrows.value;
       ath.team = f.team.value.trim();
+      ath.playerPhone = (f.playerPhone?.value || '').trim();
+      ath.playerEmail = (f.playerEmail?.value || '').trim();
       ath.parentName = f.parentName.value.trim();
       ath.parentPhone = f.parentPhone.value.trim();
       ath.parentEmail = f.parentEmail.value.trim();
@@ -5743,15 +5842,43 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                 </div>
               ` : ''}
 
-              ${(sel.parentName || sel.parentPhone || sel.parentEmail || sel.emergencyContact || sel.medicalNotes || sel.coachBio) ? `
-                <div class="text-xs space-y-1">
-                  ${sel.parentName || sel.parentPhone ? `<div><span class="text-[var(--text-muted)]">Parent:</span> <strong>${[sel.parentName, sel.parentPhone].filter(Boolean).join(' • ')}</strong></div>` : ''}
-                  ${sel.parentEmail ? `<div><span class="text-[var(--text-muted)]">Email:</span> <strong>${sel.parentEmail}</strong></div>` : ''}
-                  ${sel.emergencyContact ? `<div><span class="text-[var(--text-muted)]">Emergency:</span> <strong>${sel.emergencyContact}</strong></div>` : ''}
-                  ${sel.medicalNotes ? `<div><span class="text-[var(--text-muted)]">Medical:</span> <strong>${sel.medicalNotes}</strong></div>` : ''}
-                  ${sel.coachBio ? `<div class="pt-1"><span class="text-[var(--text-muted)]">Coach Notes:</span> <strong>${sel.coachBio}</strong></div>` : ''}
+              <div class="card-white rounded-2xl p-3.5 space-y-2 text-xs">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">Contact Info</span>
+                  <button type="button" onclick="openEditAthleteModal('${sel.id}')" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">Edit</button>
                 </div>
-              ` : ''}
+                <div class="space-y-1">
+                  <div>
+                    <span class="text-[var(--text-muted)]">Player Phone:</span>
+                    ${sel.playerPhone ? `<a href="tel:${esc(sel.playerPhone)}" class="font-bold hover:underline">${esc(sel.playerPhone)}</a>` : `<span class="text-[var(--text-muted)]">—</span>`}
+                  </div>
+                  <div>
+                    <span class="text-[var(--text-muted)]">Player Email:</span>
+                    ${sel.playerEmail ? `<a href="mailto:${esc(sel.playerEmail)}" class="font-bold hover:underline">${esc(sel.playerEmail)}</a>` : `<span class="text-[var(--text-muted)]">—</span>`}
+                  </div>
+                </div>
+                <div class="pt-1.5 border-t border-[var(--border-subtle)] space-y-1">
+                  <div>
+                    <span class="text-[var(--text-muted)]">Parent:</span>
+                    <strong>${esc(sel.parentName || '—')}</strong>
+                  </div>
+                  <div>
+                    <span class="text-[var(--text-muted)]">Parent Phone:</span>
+                    ${sel.parentPhone ? `<a href="tel:${esc(sel.parentPhone)}" class="font-bold hover:underline">${esc(sel.parentPhone)}</a>` : `<span class="text-[var(--text-muted)]">—</span>`}
+                  </div>
+                  <div>
+                    <span class="text-[var(--text-muted)]">Parent Email:</span>
+                    ${sel.parentEmail ? `<a href="mailto:${esc(sel.parentEmail)}" class="font-bold hover:underline">${esc(sel.parentEmail)}</a>` : `<span class="text-[var(--text-muted)]">—</span>`}
+                  </div>
+                </div>
+                ${(sel.emergencyContact || sel.medicalNotes || sel.coachBio) ? `
+                  <div class="pt-1.5 border-t border-[var(--border-subtle)] space-y-1">
+                    ${sel.emergencyContact ? `<div><span class="text-[var(--text-muted)]">Emergency:</span> <strong>${esc(sel.emergencyContact)}</strong></div>` : ''}
+                    ${sel.medicalNotes ? `<div><span class="text-[var(--text-muted)]">Medical:</span> <strong>${esc(sel.medicalNotes)}</strong></div>` : ''}
+                    ${sel.coachBio ? `<div><span class="text-[var(--text-muted)]">Coach Notes:</span> <strong>${esc(sel.coachBio)}</strong></div>` : ''}
+                  </div>
+                ` : ''}
+              </div>
               <div class="pt-2 border-t border-[#010101]/10 flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-1.5">
                   <button onclick="openAddSessionForAthleteModal('${sel.id}')" class="px-3 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold cursor-pointer transition">
@@ -7473,7 +7600,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.5.2';
+    const APP_VERSION = 'v3.5.3';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Optimized for Coach Gina’s daily flow: Today-first schedule, per-session plans, 1-tap previous session review & live camera video recording';
 
