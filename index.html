@@ -1210,7 +1210,128 @@
       showToast(role === 'coach' ? 'Switched to Coach Gina Dashboard' : 'Switched to Athlete Training Hub');
     }
 
+    const _navHistory = [];
+    let _isPoppingNav = false;
+
+    function captureNavSnapshot() {
+      return {
+        role: state.role,
+        coachTab: state.coachTab,
+        parentTab: state.parentTab,
+        rosterView: state.rosterView || 'list',
+        selectedAthleteId: state.selectedAthleteId || null,
+        mobileMsgOpen: Boolean(state.mobileMsgOpen)
+      };
+    }
+
+    function pushNavHistory() {
+      if (_isPoppingNav) return;
+      const snap = captureNavSnapshot();
+      const prev = _navHistory[_navHistory.length - 1];
+      if (prev && prev.role === snap.role && prev.coachTab === snap.coachTab && prev.parentTab === snap.parentTab && prev.rosterView === snap.rosterView && prev.selectedAthleteId === snap.selectedAthleteId && prev.mobileMsgOpen === snap.mobileMsgOpen) {
+        return;
+      }
+      _navHistory.push(snap);
+      if (_navHistory.length > 30) _navHistory.shift();
+      try {
+        if (typeof history !== 'undefined' && typeof history.pushState === 'function') {
+          history.pushState({ gfuchsNav: _navHistory.length }, '');
+        }
+      } catch (_) {}
+    }
+
+    function canNavigateBack() {
+      const modalOpen = !document.getElementById('modal-root')?.classList.contains('hidden');
+      const drawerOpen = !document.getElementById('mobile-drawer')?.classList.contains('hidden');
+      if (modalOpen || drawerOpen) return true;
+      if (state.role === 'coach' && state.coachTab === 'recap') return true;
+      if (state.role === 'coach' && state.coachTab === 'messaging' && state.mobileMsgOpen) return true;
+      if (state.role === 'coach' && state.coachTab === 'athletes' && state.rosterView === 'detail') return true;
+      return _navHistory.length > 0;
+    }
+
+    function getSwipeBackLabel() {
+      const modalOpen = !document.getElementById('modal-root')?.classList.contains('hidden');
+      if (modalOpen) return 'Close';
+      const drawerOpen = !document.getElementById('mobile-drawer')?.classList.contains('hidden');
+      if (drawerOpen) return 'Close Menu';
+      if (_navHistory.length > 0) {
+        const prev = _navHistory[_navHistory.length - 1];
+        if (prev.role === 'coach') {
+          if (prev.coachTab === 'athletes' && prev.rosterView === 'detail') return 'Profile';
+          const map = { today: 'Home', schedule: 'Schedule', athletes: 'Athletes', messaging: 'Messages', payments: 'Payments', settings: 'Settings', recap: 'Notes' };
+          return map[prev.coachTab] || 'Back';
+        } else {
+          const map = { home: 'Home', schedule: 'Schedule', profile: 'Profile', payments: 'Payments', messages: 'Messages' };
+          return map[prev.parentTab] || 'Back';
+        }
+      }
+      if (state.role === 'coach' && state.coachTab === 'recap') return 'Back';
+      if (state.role === 'coach' && state.coachTab === 'messaging' && state.mobileMsgOpen) return 'Inbox';
+      if (state.role === 'coach' && state.coachTab === 'athletes' && state.rosterView === 'detail') return 'Athletes';
+      return 'Back';
+    }
+
+    function navigateBack() {
+      const modalOpen = !document.getElementById('modal-root')?.classList.contains('hidden');
+      if (modalOpen) {
+        closeModal();
+        return true;
+      }
+      const drawerOpen = !document.getElementById('mobile-drawer')?.classList.contains('hidden');
+      if (drawerOpen) {
+        closeMobileDrawer();
+        return true;
+      }
+      if (_navHistory.length > 0) {
+        if (state.role === 'coach' && state.coachTab === 'recap') {
+          autoSaveRecapDraft(true);
+          _recapActiveAthId = null;
+          _recapActiveSesId = null;
+        }
+        const prev = _navHistory.pop();
+        _isPoppingNav = true;
+        try {
+          state.role = prev.role;
+          state.coachTab = prev.coachTab;
+          state.parentTab = prev.parentTab;
+          state.rosterView = prev.rosterView;
+          state.selectedAthleteId = prev.selectedAthleteId;
+          state.mobileMsgOpen = prev.mobileMsgOpen;
+          render(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } finally {
+          _isPoppingNav = false;
+        }
+        return true;
+      }
+      if (state.role === 'coach' && state.coachTab === 'recap') {
+        closeRecapComposer();
+        return true;
+      }
+      if (state.role === 'coach' && state.coachTab === 'messaging' && state.mobileMsgOpen) {
+        state.mobileMsgOpen = false;
+        render(false);
+        return true;
+      }
+      if (state.role === 'coach' && state.coachTab === 'athletes' && state.rosterView === 'detail') {
+        state.rosterView = 'list';
+        render(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return true;
+      }
+      return false;
+    }
+
+    window.addEventListener('popstate', () => {
+      if (canNavigateBack()) {
+        navigateBack();
+      }
+    });
+
     function setTab(tab) {
+      const currentTab = state.role === 'coach' ? state.coachTab : state.parentTab;
+      if (currentTab !== tab) pushNavHistory();
       if (state.role === 'coach') state.coachTab = tab;
       else state.parentTab = tab;
       closeMobileDrawer();
@@ -1219,6 +1340,7 @@
     }
 
     function openProfileFromName(athId = null) {
+      pushNavHistory();
       if (athId) state.activeSiblingId = athId;
       if (state.role === 'coach') {
         state.coachTab = 'athletes';
@@ -5777,6 +5899,7 @@
     }
 
     function openCoachAthleteDetail(id) {
+      pushNavHistory();
       state.selectedAthleteId = id;
       state.rosterView = 'detail';
       render(false);
@@ -7161,7 +7284,10 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     function openSessionRecapModal(athId, sessionId) {
       const ath = state.athletes.find(a => a.id === athId) || state.athletes[0];
       const ses = sessionId ? state.sessions.find(s => s.id === sessionId) : null;
-      if (state.coachTab !== 'recap') _recapReturnTab = state.coachTab || 'athletes';
+      if (state.coachTab !== 'recap') {
+        pushNavHistory();
+        _recapReturnTab = state.coachTab || 'athletes';
+      }
       _recapActiveAthId = ath.id;
       _recapActiveSesId = ses ? ses.id : null;
       state.selectedAthleteId = ath.id;
@@ -8266,11 +8392,12 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Session canceled.');
     }
     function notifyWaitlist(id) { state.waitlist.find(x => x.id === id).status = 'Notified'; render(); showToast('Waitlist SMS sent!'); }
-    function jumpToAthlete(id) { state.selectedAthleteId = id; state.rosterView = 'detail'; state.coachTab = 'athletes'; render(); }
+    function jumpToAthlete(id) { pushNavHistory(); state.selectedAthleteId = id; state.rosterView = 'detail'; state.coachTab = 'athletes'; render(); }
     function toggleDrill(a, d) { const dr = state.athletes.find(x => x.id === a).drills.find(x => x.id === d); dr.done = !dr.done; render(); showToast(dr.done ? 'Drill completed!' : 'Drill unchecked.'); }
     function markVideoReviewed(id) { state.videos.find(x => x.id === id).status = 'Reviewed'; render(); showToast('Marked reviewed & notified parent!'); }
     function addVideoCue(e, id) { e.preventDefault(); state.videos.find(x => x.id === id).cues.push({ time: e.target.time.value, pct: 60, note: e.target.note.value }); render(); showToast('Cue added!'); }
     function openThread(id) {
+      if (!state.mobileMsgOpen) pushNavHistory();
       state.activeThreadId = id;
       state.mobileMsgOpen = true;
       const t = state.threads.find(x => x.id === id);
@@ -8876,6 +9003,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
     function openAthleteProfileNotes(athId) {
       if (!athId) return;
+      pushNavHistory();
       state.role = 'coach';
       state.coachTab = 'athletes';
       state.selectedAthleteId = athId;
@@ -8887,9 +9015,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.10.1';
+    const APP_VERSION = 'v3.11.0';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Redesigned Session Notes Studio (Warm Up Routine w/ Walking PVC & custom drills, Player Notes and Focus, What We Worked On Tee/Front Toss/Machine with drills & per-area video, Session Notes)';
+    const APP_RELEASE_NOTES = 'Native mobile swipe-back navigation with floating back indicator, full navigation history stack, browser back-gesture support, and improved 3-zone sheet swipe-down';
 
     function reloadLatestAppVersion() {
       try {
@@ -10849,21 +10977,25 @@ create policy "Allow media update" on storage.objects
         }, { passive: true });
       }
 
-      // 3. Swipe-Down to Dismiss Bottom-Sheet Modals
+      // 3. Swipe-Down to Dismiss Bottom-Sheet Modals (supports 3-zone .modal-scroll-body)
       const modalRoot = document.getElementById('modal-root');
       if (modalRoot) {
         let mCtx = null;
+        const getSheetScrollTop = (sheet) => {
+          const inner = sheet?.querySelector?.('.modal-scroll-body');
+          return (inner ? inner.scrollTop : 0) || sheet?.scrollTop || 0;
+        };
         modalRoot.addEventListener('touchstart', (e) => {
           if (e.touches.length !== 1) return;
           const sheet = modalRoot.firstElementChild;
-          if (!sheet || sheet.scrollTop > 2) return;
+          if (!sheet || getSheetScrollTop(sheet) > 2) return;
           mCtx = { sheet, x0: e.touches[0].clientX, y0: e.touches[0].clientY, dy: 0 };
         }, { passive: true });
         modalRoot.addEventListener('touchmove', (e) => {
           if (!mCtx) return;
           const dx = e.touches[0].clientX - mCtx.x0;
           const dy = e.touches[0].clientY - mCtx.y0;
-          if (dy > 10 && dy > Math.abs(dx) * 1.25 && mCtx.sheet.scrollTop <= 2) {
+          if (dy > 10 && dy > Math.abs(dx) * 1.25 && getSheetScrollTop(mCtx.sheet) <= 2) {
             mCtx.dy = dy;
             mCtx.sheet.style.transition = 'none';
             mCtx.sheet.style.transform = `translateY(${Math.round(dy * 0.72)}px)`;
@@ -10889,8 +11021,11 @@ create policy "Allow media update" on storage.objects
         if (state.role !== 'coach' || state.coachTab !== 'schedule') return;
         const modalOpen = !document.getElementById('modal-root')?.classList.contains('hidden');
         if (modalOpen) return;
+        const x0 = e.touches[0].clientX;
+        // Let left-edge swipe-back win when navigation history is available
+        if (x0 <= 44 && canNavigateBack()) return;
         if (e.target.closest?.('.swipe-row, .overflow-x-auto, input, select, textarea')) return;
-        schedCtx = { x0: e.touches[0].clientX, y0: e.touches[0].clientY };
+        schedCtx = { x0, y0: e.touches[0].clientY };
       }, { passive: true });
       document.addEventListener('touchend', (e) => {
         if (!schedCtx || !e.changedTouches?.length) return;
@@ -10901,6 +11036,139 @@ create policy "Allow media update" on storage.objects
           vibrateTap();
           scheduleStep(dx < 0 ? 1 : -1);
         }
+      }, { passive: true });
+
+      // 5. Swipe Right to Go Back to Previous Page (Edge Swipe Everywhere + Full-Width on Sub-Pages)
+      const BACK_EDGE_PX = 44;
+      const BACK_THRESHOLD = 68;
+      let backPill = null;
+      const ensureBackPill = () => {
+        if (backPill) return backPill;
+        if (!document.body || typeof document.createElement !== 'function') return null;
+        const el = document.createElement('div');
+        el.id = 'swipe-back-pill';
+        el.className = 'fixed left-0 top-1/2 z-[80] pointer-events-none flex items-center gap-1.5 pl-3 pr-3.5 py-2 rounded-r-full shadow-lg border font-extrabold text-xs tracking-tight';
+        el.style.cssText = 'opacity:0;transform:translate3d(-110%, -50%, 0);transition:opacity 0.18s ease, transform 0.2s cubic-bezier(0.22,1,0.36,1), background-color 0.14s ease, color 0.14s ease;background:#010101;color:#FFFFFF;border-color:rgba(255,255,255,0.16);';
+        el.innerHTML = '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg><span data-back-label>Back</span>';
+        document.body.appendChild(el);
+        backPill = el;
+        return el;
+      };
+
+      const isOnSubPage = () => {
+        if (state.role === 'coach') {
+          if (state.coachTab === 'recap') return true;
+          if (state.coachTab === 'athletes' && state.rosterView === 'detail') return true;
+          if (state.coachTab === 'messaging' && state.mobileMsgOpen) return true;
+        }
+        return false;
+      };
+
+      let backCtx = null;
+      const resetBackVisuals = () => {
+        if (backPill) {
+          backPill.style.transition = 'opacity 0.18s ease, transform 0.22s cubic-bezier(0.22,1,0.36,1)';
+          backPill.style.opacity = '0';
+          backPill.style.transform = 'translate3d(-110%, -50%, 0)';
+        }
+        const mainEl = document.getElementById('main-content');
+        if (mainEl && mainEl.style.transform) {
+          mainEl.style.transition = 'transform 0.22s cubic-bezier(0.22,1,0.36,1)';
+          mainEl.style.transform = '';
+        }
+      };
+
+      document.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        const modalOpen = !document.getElementById('modal-root')?.classList.contains('hidden');
+        const drawerOpen = !document.getElementById('mobile-drawer')?.classList.contains('hidden');
+        if (modalOpen || drawerOpen) return;
+        if (!canNavigateBack()) return;
+        const x0 = e.touches[0].clientX;
+        const y0 = e.touches[0].clientY;
+        const fromEdge = x0 <= BACK_EDGE_PX;
+        if (!fromEdge && !isOnSubPage()) return;
+        if (!fromEdge && e.target.closest?.('.swipe-row, .overflow-x-auto, input, select, textarea, [contenteditable]')) return;
+        if (fromEdge && e.target.closest?.('.swipe-row')) return;
+        backCtx = {
+          x0,
+          y0,
+          dx: 0,
+          locked: null,
+          armed: false,
+          label: getSwipeBackLabel()
+        };
+      }, { passive: true });
+
+      document.addEventListener('touchmove', (e) => {
+        if (!backCtx) return;
+        const dx = e.touches[0].clientX - backCtx.x0;
+        const dy = e.touches[0].clientY - backCtx.y0;
+        if (!backCtx.locked) {
+          if (dx < -8 || (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx))) {
+            backCtx = null;
+            return;
+          }
+          if (dx > 12 && dx > Math.abs(dy) * 1.35) {
+            backCtx.locked = 'x';
+            const pill = ensureBackPill();
+            if (pill) {
+              const span = pill.querySelector('[data-back-label]');
+              if (span) span.textContent = backCtx.label;
+              pill.style.transition = 'background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease';
+            }
+          } else {
+            return;
+          }
+        }
+        const clamped = Math.max(0, Math.min(130, dx));
+        backCtx.dx = clamped;
+        const progress = Math.min(1, clamped / BACK_THRESHOLD);
+        const nowArmed = clamped >= BACK_THRESHOLD;
+        if (nowArmed && !backCtx.armed) {
+          backCtx.armed = true;
+          vibrateTap();
+        } else if (!nowArmed && backCtx.armed) {
+          backCtx.armed = false;
+        }
+        const pill = ensureBackPill();
+        if (pill) {
+          const slideX = Math.round(-20 + progress * 20);
+          pill.style.opacity = String(Math.min(1, progress * 1.15));
+          pill.style.transform = `translate3d(${slideX}px, -50%, 0)`;
+          if (nowArmed) {
+            pill.style.background = '#D5FF5F';
+            pill.style.color = '#010101';
+            pill.style.borderColor = '#010101';
+          } else {
+            pill.style.background = '#010101';
+            pill.style.color = '#FFFFFF';
+            pill.style.borderColor = 'rgba(255,255,255,0.16)';
+          }
+        }
+        const mainEl = document.getElementById('main-content');
+        if (mainEl) {
+          mainEl.style.transition = 'none';
+          mainEl.style.transform = `translate3d(${Math.round(progress * 16)}px, 0, 0)`;
+        }
+      }, { passive: true });
+
+      document.addEventListener('touchend', () => {
+        if (!backCtx) return;
+        const { dx, locked } = backCtx;
+        backCtx = null;
+        if (locked !== 'x') return;
+        resetBackVisuals();
+        if (dx >= BACK_THRESHOLD) {
+          vibrateTap();
+          navigateBack();
+        }
+      }, { passive: true });
+
+      document.addEventListener('touchcancel', () => {
+        if (!backCtx) return;
+        backCtx = null;
+        resetBackVisuals();
       }, { passive: true });
     })();
   </script>
