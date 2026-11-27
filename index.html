@@ -5285,11 +5285,20 @@
 
         <div>
           <label class="block text-xs font-bold mb-1.5">Payment Status</label>
-          <select name="paymentMode" class="w-full px-3.5">
-            <option value="cash-pending">Cash at Session (Pending — Cash Price)</option>
-            <option value="cash-paid">Cash Collected ✓ (Cash Price)</option>
-            <option value="clover-paid">Clover Card Paid ✓ (Card Price)</option>
-            <option value="venmo-paid">Venmo / Zelle Logged ✓ (Cash Price)</option>
+          <select name="paymentStatus" onchange="togglePaidMethodVisibility(this, 'ath-sched-pay-method-wrap')" class="w-full px-3.5">
+            <option value="Pending">Pending</option>
+            <option value="Paid">Paid</option>
+          </select>
+        </div>
+
+        <div id="ath-sched-pay-method-wrap" class="hidden">
+          <label class="block text-xs font-bold mb-1.5">Payment Method</label>
+          <select name="paymentMethod" class="w-full px-3.5">
+            <option value="Cash">Cash</option>
+            <option value="Venmo">Venmo</option>
+            <option value="Zelle">Zelle</option>
+            <option value="Clover / Card">Clover / Card</option>
+            <option value="Check / Other">Check / Other</option>
           </select>
         </div>
 
@@ -5317,6 +5326,15 @@
       });
     }
 
+    function togglePaidMethodVisibility(statusEl, methodWrapId) {
+      const wrap = document.getElementById(methodWrapId);
+      const isPaid = statusEl?.value === 'Paid';
+      if (wrap) wrap.classList.toggle('hidden', !isPaid);
+      if (typeof updateScheduleOptionsSummary === 'function' && statusEl?.form) {
+        updateScheduleOptionsSummary(statusEl.form);
+      }
+    }
+
     function submitAddSessionForAthlete(e, athId, extraAthleteIds = []) {
       e.preventDefault();
       const f = e.target;
@@ -5335,8 +5353,10 @@
       const durMin = Number(f.durationMin?.value) || Number(evt?.duration) || 45;
       const durLabel = durMin >= 60 && durMin % 60 === 0 ? `${durMin / 60}H` : `${durMin}M`;
       const focus = f.focus.value.trim() || evt.title;
-      const payMode = f.paymentMode.value;
-      const isCard = payMode === 'clover-paid';
+      const payStatus = f.paymentStatus?.value || 'Pending';
+      const payMethod = f.paymentMethod?.value || 'Cash';
+      const isPaidSelected = payStatus === 'Paid';
+      const isCard = isPaidSelected && /clover|card/i.test(payMethod);
       const appliedPrice = isCard ? getCardPrice(evt) : getCashPrice(evt);
 
       // Collect all selected athletes (primary + any group multi-select)
@@ -5346,10 +5366,8 @@
       const athNames = selectedAthletes.map(a => a.name);
 
       const payLabel = !primaryAth ? `${formatDualPrice(evt)}`
-        : payMode === 'cash-pending' ? `Cash at Session ($${appliedPrice})`
-        : payMode === 'cash-paid' ? `Cash Paid ($${appliedPrice})`
-        : payMode === 'clover-paid' ? `Clover Paid ($${appliedPrice})`
-        : `Venmo/Zelle ($${appliedPrice})`;
+        : isPaidSelected ? `${payMethod} Paid ($${appliedPrice})`
+        : `Pending ($${appliedPrice})`;
 
       // Build occurrence dates for single or recurring bookings
       const repeatMode = f.repeatMode?.value || 'none';
@@ -5407,11 +5425,11 @@
 
         if (!state.cal.bookedSlots.includes(slotKey)) state.cal.bookedSlots.push(slotKey);
 
-        // Log payment entry for each athlete on the first occurrence (or pending cash on future)
+        // Log payment entry for each athlete on the first occurrence (or pending on future)
         selectedAthletes.forEach((ath, aIdx) => {
           const isFuture = i > 0;
           const _nowPay = Date.now() + i * 10 + aIdx;
-          const _isPaidNow = !(isFuture || payMode === 'cash-pending');
+          const _isPaidNow = !isFuture && isPaidSelected;
           state.payments.unshift({
             id: 'pay-' + _nowPay,
             date: dObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -5423,8 +5441,8 @@
             family: `${(ath.parentName || ath.name).split(' ').slice(-1)[0]} Family`,
             item: `${evt.title} (${ath.name.split(' ')[0]})`,
             amount: appliedPrice,
-            method: (isFuture || payMode === 'cash-pending') ? 'Cash at Session' : payMode === 'cash-paid' ? 'Cash (Collected ✓)' : payMode === 'clover-paid' ? 'Clover • Card' : 'Venmo / Zelle (Logged)',
-            status: _isPaidNow ? 'Paid' : 'Pending Cash',
+            method: _isPaidNow ? payMethod : 'Pending',
+            status: _isPaidNow ? 'Paid' : 'Pending',
             _modifiedAt: _nowPay
           });
         });
@@ -7355,18 +7373,20 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                   <input type="number" name="wrapPayAmount" value="${defaultPrice}" min="0" class="w-full px-2.5 py-2 rounded-xl card-white font-extrabold text-xs" />
                 </div>
                 <div>
+                  <label class="block text-[11px] font-bold text-[var(--text-muted)] mb-1">Status</label>
+                  <select name="wrapPayStatus" onchange="togglePaidMethodVisibility(this, 'wrap-pay-method-wrap')" class="w-full px-2 py-2 rounded-xl card-white font-bold text-xs">
+                    <option value="Paid">Paid</option>
+                    <option value="Pending">Pending</option>
+                  </select>
+                </div>
+                <div id="wrap-pay-method-wrap">
                   <label class="block text-[11px] font-bold text-[var(--text-muted)] mb-1">Method</label>
                   <select name="wrapPayMethod" class="w-full px-2 py-2 rounded-xl card-white font-bold text-xs">
                     <option value="Cash">Cash</option>
-                    <option value="Venmo / Zelle">Venmo / Zelle</option>
-                    <option value="Clover • Card">Clover</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block text-[11px] font-bold text-[var(--text-muted)] mb-1">Status</label>
-                  <select name="wrapPayStatus" class="w-full px-2 py-2 rounded-xl card-white font-bold text-xs">
-                    <option value="Paid">Paid ✓</option>
-                    <option value="Unpaid">Unpaid</option>
+                    <option value="Venmo">Venmo</option>
+                    <option value="Zelle">Zelle</option>
+                    <option value="Clover / Card">Clover / Card</option>
+                    <option value="Check / Other">Check / Other</option>
                   </select>
                 </div>
               </div>
@@ -7529,8 +7549,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             family: `${(targetAth.parentName || targetAth.name).split(' ').slice(-1)[0]} Family`,
             item: `${ses?.lessonTitle || 'Training Session'} (${targetAth.name.split(' ')[0]})`,
             amount: amt,
-            method: status === 'Paid' ? `${method} (Collected ✓)` : method,
-            status: status === 'Paid' ? 'Paid' : 'Unpaid',
+            method: status === 'Paid' ? method : 'Pending',
+            status: status === 'Paid' ? 'Paid' : 'Pending',
             _modifiedAt: _nowWrap
           });
         }
@@ -8332,9 +8352,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const el = document.getElementById('sched-options-summary');
       if (!f || !el) return;
       const repMap = { none: 'One-time', 'weekly-4': 'Weekly × 4', 'weekly-8': 'Weekly × 8', 'biweekly-4': 'Bi-weekly × 4' };
-      const payMap = { 'cash-pending': 'Cash at Session', 'cash-paid': 'Cash Paid', 'clover-paid': 'Clover Paid', 'venmo-paid': 'Venmo / Zelle' };
       const rep = repMap[f.repeatMode?.value] || 'One-time';
-      const pay = payMap[f.paymentMode?.value] || 'Cash at Session';
+      const payStatus = f.paymentStatus?.value || 'Pending';
+      const pay = payStatus === 'Paid' ? `Paid (${f.paymentMethod?.value || 'Cash'})` : 'Pending';
       const notify = f.notify?.checked ? 'Notify ✓' : 'No alert';
       const hasNotes = Boolean((f.focus?.value || '').trim());
       el.textContent = [rep, pay, hasNotes ? 'Notes added' : null, notify].filter(Boolean).join(' • ');
@@ -8411,7 +8431,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           <summary class="px-3.5 py-3 flex items-center justify-between gap-2 cursor-pointer select-none list-none">
             <div class="min-w-0">
               <div class="text-xs font-extrabold text-slate-900 dark:text-white">Session Options</div>
-              <div id="sched-options-summary" class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">One-time • Cash at Session • Notify ✓</div>
+              <div id="sched-options-summary" class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">One-time • Pending • Notify ✓</div>
             </div>
             <span class="text-xs font-bold text-slate-500 dark:text-slate-400 shrink-0">Edit ▾</span>
           </summary>
@@ -8433,11 +8453,20 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
             <div>
               <label class="block text-xs font-bold mb-1.5">Payment Status</label>
-              <select name="paymentMode" onchange="updateScheduleOptionsSummary(this.form)" class="w-full px-3.5">
-                <option value="cash-pending">Cash at Session (Pending — Cash Price)</option>
-                <option value="cash-paid">Cash Collected ✓ (Cash Price)</option>
-                <option value="clover-paid">Clover Card Paid ✓ (Card Price)</option>
-                <option value="venmo-paid">Venmo / Zelle Logged ✓ (Cash Price)</option>
+              <select name="paymentStatus" onchange="togglePaidMethodVisibility(this, 'sched-pay-method-wrap')" class="w-full px-3.5">
+                <option value="Pending">Pending</option>
+                <option value="Paid">Paid</option>
+              </select>
+            </div>
+
+            <div id="sched-pay-method-wrap" class="hidden">
+              <label class="block text-xs font-bold mb-1.5">Payment Method</label>
+              <select name="paymentMethod" onchange="updateScheduleOptionsSummary(this.form)" class="w-full px-3.5">
+                <option value="Cash">Cash</option>
+                <option value="Venmo">Venmo</option>
+                <option value="Zelle">Zelle</option>
+                <option value="Clover / Card">Clover / Card</option>
+                <option value="Check / Other">Check / Other</option>
               </select>
             </div>
 
@@ -8745,7 +8774,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.8.0';
+    const APP_VERSION = 'v3.8.1';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Unified Modal Design System (solid high-contrast sheets, 44px aligned inputs/selects, sticky header & CTA footer, streamlined multi-athlete group picker)';
 
@@ -9010,17 +9039,18 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const familyName = ath ? ath.name : typed;
       if (!familyName) { showToast('Please select or enter an athlete/family name.'); return; }
       const _now = Date.now();
+      const isPaid = form.st.value === 'Paid';
       state.payments.unshift({
         id: 'p' + _now,
         date: 'Today',
         dateIso: getTodayIsoEst(),
         createdAt: _now,
-        paidAt: form.st.value === 'Paid' ? _now : null,
+        paidAt: isPaid ? _now : null,
         family: familyName,
         item: form.item.value.trim(),
         amount: Number(form.amt.value),
-        method: form.m.value,
-        status: form.st.value,
+        method: isPaid ? (form.m?.value || 'Cash') : 'Pending',
+        status: isPaid ? 'Paid' : 'Pending',
         externalNote: (form.extNote.value || '').trim(),
         internalNote: (form.intNote.value || '').trim(),
         _modifiedAt: _now
@@ -9046,21 +9076,21 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             <input name="amt" type="number" value="60" class="w-full px-3.5" required />
           </div>
           <div>
-            <label class="block text-xs font-bold mb-1.5">Method</label>
-            <select name="m" class="w-full px-3">
-              <option>Cash (Collected ✓)</option>
-              <option>Cash at Session</option>
-              <option>Clover • Terminal Tap</option>
-              <option>Venmo (Logged)</option>
-              <option>Zelle (Logged)</option>
+            <label class="block text-xs font-bold mb-1.5">Payment Status</label>
+            <select name="st" onchange="togglePaidMethodVisibility(this, 'logpay-method-wrap')" class="w-full px-3">
+              <option value="Paid">Paid</option>
+              <option value="Pending">Pending</option>
             </select>
           </div>
         </div>
-        <div>
-          <label class="block text-xs font-bold mb-1.5">Status</label>
-          <select name="st" class="w-full px-3.5">
-            <option value="Paid">Paid ✓</option>
-            <option value="Pending Cash">Unpaid / Pending</option>
+        <div id="logpay-method-wrap">
+          <label class="block text-xs font-bold mb-1.5">Payment Method</label>
+          <select name="m" class="w-full px-3.5">
+            <option value="Cash">Cash</option>
+            <option value="Venmo">Venmo</option>
+            <option value="Zelle">Zelle</option>
+            <option value="Clover / Card">Clover / Card</option>
+            <option value="Check / Other">Check / Other</option>
           </select>
         </div>
         <div>
