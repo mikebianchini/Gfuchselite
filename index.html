@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
   <title>Gina Fuchs Elite Fastpitch — Training App</title>
   <meta name="description" content="Personal fastpitch training app for Gina Fuchs Elite Fastpitch: Peloton-inspired drill workouts, live booking, velocity tracking, video mechanics, packages & waivers." />
   <link rel="icon" href="favicon.ico" sizes="any" />
@@ -225,6 +225,15 @@
       background-color: var(--bg-page);
       color: var(--text-main);
       overflow-x: clip;
+    }
+
+    /* Prevent iOS Safari auto-zoom when focusing inputs/textareas/selects */
+    @media (pointer: coarse), (max-width: 1024px) {
+      input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+      textarea,
+      select {
+        font-size: 16px !important;
+      }
     }
 
     h1 { letter-spacing: -0.03em; }
@@ -9168,9 +9177,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.12.0';
+    const APP_VERSION = 'v3.12.1';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Session Notes Studio videos now upload directly to Supabase Storage cloud with live progress, persistent cross-device playback, and tap-to-preview';
+    const APP_RELEASE_NOTES = 'Fixed iOS Safari page magnification when entering text in notes and forms; cloud video uploads via Supabase Storage';
 
     function reloadLatestAppVersion() {
       try {
