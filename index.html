@@ -2614,10 +2614,10 @@
                     ${lessonSessions.length ? `
                       <div class="space-y-1">
                         ${lessonSessions.slice(0, 3).map(s => `
-                          <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl card-white">
+                          <button type="button" onclick="openManageSessionModal('${s.id}')" class="w-full text-left flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl card-white hover:border-[#010101] cursor-pointer transition">
                             <span class="font-extrabold truncate">${s.day || s.dateIso || 'Scheduled'} • ${s.time} (${s.duration})</span>
                             <span class="text-[10px] font-bold text-[var(--text-muted)] truncate max-w-[120px]">${(s.athletes && s.athletes.length) ? s.athletes.join(', ') : 'Open Session'}</span>
-                          </div>
+                          </button>
                         `).join('')}
                         ${lessonSessions.length > 3 ? `<button onclick="setTab('schedule')" class="text-[10px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer pl-1">+${lessonSessions.length - 3} more on Schedule →</button>` : ''}
                       </div>
@@ -2742,26 +2742,236 @@
       return s.dayKey === d.dayKey || s.day === d.shortLabel;
     }
 
+    function parseTime12To24(tStr) {
+      const t = String(tStr || '4:00 PM').trim();
+      const m24 = t.match(/^(\d{1,2}):(\d{2})$/);
+      if (m24) return `${String(Number(m24[1])).padStart(2, '0')}:${m24[2]}`;
+      const m12 = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if (m12) {
+        let hh = Number(m12[1]) % 12;
+        if (m12[3].toUpperCase() === 'PM') hh += 12;
+        return `${String(hh).padStart(2, '0')}:${m12[2]}`;
+      }
+      return '16:00';
+    }
+
+    function openManageSessionModal(sessionId) {
+      const s = state.sessions.find(x => x.id === sessionId);
+      if (!s) return;
+      const iso = s.dateIso || getTodayIsoEst();
+      const time24 = parseTime12To24(s.time);
+      const { durMin } = parseSessionDateTimeRange(s);
+      const durations = [15, 30, 45, 60, 75, 90, 120, 180];
+      if (!durations.includes(durMin)) durations.push(durMin);
+      durations.sort((a, b) => a - b);
+      const lessonLabel = s.lessonTitle || s.focus || 'Session';
+      const players = (s.athletes && s.athletes.length) ? s.athletes.join(', ') : 'Open Session';
+      const isCanceled = s.status === 'Canceled';
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="text-[11px] font-extrabold uppercase tracking-wider ${isCanceled ? 'text-red-500' : 'text-[#4E6075] dark:text-[#9AC0D6]'}">${isCanceled ? 'Canceled Session' : 'Manage Session'}</div>
+            <h3 class="font-extrabold text-base mt-0.5">${esc(lessonLabel)}</h3>
+            <p class="text-[11px] text-[var(--text-muted)] mt-0.5">${esc(players)} • ${esc(s.day || iso)} at ${esc(s.time)} (${esc(s.duration)})</p>
+          </div>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+
+        <form onsubmit="submitRescheduleSession(event, '${s.id}')" class="space-y-3 text-xs">
+          <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Reschedule Date, Time or Length</div>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Date *</label>
+              <input name="date" type="date" value="${esc(iso)}" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs" required />
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Start (EST) *</label>
+              <input name="time" type="time" value="${esc(time24)}" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs" required />
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Length *</label>
+              <select name="durationMin" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs">
+                ${durations.map(m => `<option value="${m}" ${durMin === m ? 'selected' : ''}>${m >= 60 && m % 60 === 0 ? `${m / 60}h` : `${m}m`}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Session Notes / Focus</label>
+            <input name="focus" value="${esc(s.focus || '')}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm" placeholder="e.g., Slapping Footwork & Timing" />
+          </div>
+
+          ${s.athleteId ? `
+            <label class="flex items-center justify-between gap-3 p-3 rounded-2xl card-mist cursor-pointer">
+              <div>
+                <div class="font-extrabold">Log Update in Coach Messages</div>
+                <div class="text-[11px] text-[var(--text-muted)]">Records the new date &amp; time in the family’s thread</div>
+              </div>
+              <input type="checkbox" name="notify" checked class="w-5 h-5 accent-[#010101]" />
+            </label>
+          ` : ''}
+
+          <button type="submit" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
+            ${isCanceled ? 'Reschedule & Restore Session' : 'Save Rescheduled Time'}
+          </button>
+        </form>
+
+        <div class="pt-3 border-t border-[var(--border-subtle)] space-y-2">
+          ${!isCanceled ? `
+            <button type="button" onclick="cancelSessionCoach('${s.id}')" class="w-full py-2.5 rounded-2xl bg-red-600/10 text-red-600 dark:text-red-400 text-xs font-extrabold cursor-pointer hover:bg-red-600/20 transition">
+              Cancel Session (Opens Slot on Calendar)
+            </button>
+          ` : `
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" onclick="restoreSessionCoach('${s.id}')" class="py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer hover:opacity-90 transition">
+                Restore Session
+              </button>
+              <button type="button" onclick="deleteSessionCoach('${s.id}')" class="py-2.5 rounded-2xl bg-red-600 text-white text-xs font-extrabold cursor-pointer hover:bg-red-700 transition">
+                Delete Permanently
+              </button>
+            </div>
+          `}
+        </div>
+      `);
+    }
+
+    function submitRescheduleSession(e, sessionId) {
+      e.preventDefault();
+      const s = state.sessions.find(x => x.id === sessionId);
+      if (!s) return;
+      const f = e.target;
+      const oldSlotKey = s.dateIso ? `${s.dateIso}@${parseTime12To24(s.time)}` : null;
+
+      const iso = f.date.value;
+      const hm = f.time.value;
+      const [hh, mm] = hm.split(':').map(Number);
+      const ampm = hh >= 12 ? 'PM' : 'AM';
+      const h12 = hh % 12 || 12;
+      const timeNice = `${h12}:${String(mm).padStart(2, '0')} ${ampm}`;
+      const dObj = new Date(iso + 'T12:00:00');
+      const dayNice = dObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const dayKey = dObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }).replace(',', '');
+      const durMin = Number(f.durationMin?.value) || Number(s.durationMin) || 45;
+      const durLabel = durMin >= 60 && durMin % 60 === 0 ? `${durMin / 60}H` : `${durMin}M`;
+      const newFocus = f.focus.value.trim() || s.lessonTitle || s.focus;
+
+      if (oldSlotKey) {
+        state.cal.bookedSlots = (state.cal.bookedSlots || []).filter(k => k !== oldSlotKey);
+      }
+      const newSlotKey = `${iso}@${hm}`;
+      if (!state.cal.bookedSlots.includes(newSlotKey)) state.cal.bookedSlots.push(newSlotKey);
+
+      s.dateIso = iso;
+      s.day = dayNice;
+      s.dayKey = dayKey;
+      s.time = timeNice;
+      s.durationMin = durMin;
+      s.duration = durLabel;
+      s.focus = newFocus;
+      s.status = 'Confirmed';
+      s._modifiedAt = Date.now();
+
+      if (s.athleteId && f.notify?.checked) {
+        const ath = state.athletes.find(a => a.id === s.athleteId);
+        const parentKey = ath?.parentName || ath?.name || (s.athletes?.[0] || 'Family');
+        let thread = state.threads.find(t => t.parent === parentKey);
+        if (!thread) {
+          thread = { id: 'msg-' + Date.now(), parent: parentKey, athletes: ath?.name || (s.athletes?.[0] || ''), unread: 0, messages: [] };
+          state.threads.unshift(thread);
+        }
+        thread.messages.push({
+          from: 'coach',
+          time: 'Just now',
+          text: `Rescheduled ${s.lessonTitle || s.focus} session to ${dayNice} at ${timeNice} EST (${durLabel.toLowerCase()}). See you then!`
+        });
+      }
+
+      closeModal();
+      render();
+      showToast(`Rescheduled to ${dayNice} at ${timeNice} — calendar synced!`);
+    }
+
+    function cancelSessionCoach(sessionId) {
+      const s = state.sessions.find(x => x.id === sessionId);
+      if (!s) return;
+      const oldSlotKey = s.dateIso ? `${s.dateIso}@${parseTime12To24(s.time)}` : null;
+      if (oldSlotKey) {
+        state.cal.bookedSlots = (state.cal.bookedSlots || []).filter(k => k !== oldSlotKey);
+      }
+      s.status = 'Canceled';
+      s._modifiedAt = Date.now();
+
+      if (s.athleteId) {
+        const ath = state.athletes.find(a => a.id === s.athleteId);
+        const parentKey = ath?.parentName || ath?.name || (s.athletes?.[0] || 'Family');
+        let thread = state.threads.find(t => t.parent === parentKey);
+        if (!thread) {
+          thread = { id: 'msg-' + Date.now(), parent: parentKey, athletes: ath?.name || (s.athletes?.[0] || ''), unread: 0, messages: [] };
+          state.threads.unshift(thread);
+        }
+        thread.messages.push({
+          from: 'coach',
+          time: 'Just now',
+          text: `Canceled ${s.lessonTitle || s.focus} session originally scheduled for ${s.day || s.dateIso} at ${s.time} EST.`
+        });
+      }
+
+      closeModal();
+      render();
+      showToast('Session canceled & time slot reopened!');
+    }
+
+    function restoreSessionCoach(sessionId) {
+      const s = state.sessions.find(x => x.id === sessionId);
+      if (!s) return;
+      s.status = 'Confirmed';
+      s._modifiedAt = Date.now();
+      if (s.dateIso) {
+        const slotKey = `${s.dateIso}@${parseTime12To24(s.time)}`;
+        if (!state.cal.bookedSlots.includes(slotKey)) state.cal.bookedSlots.push(slotKey);
+      }
+      closeModal();
+      render();
+      showToast('Session restored to schedule!');
+    }
+
+    function deleteSessionCoach(sessionId) {
+      const s = state.sessions.find(x => x.id === sessionId);
+      if (!s) return;
+      const oldSlotKey = s.dateIso ? `${s.dateIso}@${parseTime12To24(s.time)}` : null;
+      if (oldSlotKey) {
+        state.cal.bookedSlots = (state.cal.bookedSlots || []).filter(k => k !== oldSlotKey);
+      }
+      recordDeletedId('sessions', sessionId);
+      state.sessions = state.sessions.filter(x => x.id !== sessionId);
+      closeModal();
+      render();
+      showToast('Session permanently deleted.');
+    }
+
     function renderCoachSessionRow(s, showDate = false) {
       const lessonLabel = s.lessonTitle || s.focus;
       const customFocus = s.lessonTitle && s.focus && s.focus !== s.lessonTitle ? s.focus : '';
       const athDisplay = (s.athletes && s.athletes.length)
         ? s.athletes.join(', ')
         : `Open Session (0/${s.spotsMax || 1} spots)`;
+      const isCanceled = s.status === 'Canceled';
       return `
-        <div class="card-white rounded-[24px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="card-white rounded-[24px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isCanceled ? 'opacity-65' : ''}">
           <div class="flex items-center gap-3.5 min-w-0">
-            <img src="${s.img || 'assets/images/fastpitch-hitter.jpg'}" class="w-14 h-14 rounded-2xl object-cover shrink-0" alt="Fastpitch softball training" loading="lazy" decoding="async" />
+            <img src="${s.img || 'assets/images/fastpitch-hitter.jpg'}" class="w-14 h-14 rounded-2xl object-cover shrink-0 ${isCanceled ? 'grayscale' : ''}" alt="Fastpitch softball training" loading="lazy" decoding="async" />
             <div class="min-w-0">
               <div class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${showDate && s.day ? `${s.day} • ` : ''}${s.time} • ${s.duration} • ${s.type}</div>
-              <div class="font-extrabold text-sm truncate">${lessonLabel}${customFocus ? ` — ${customFocus}` : ''}</div>
+              <div class="font-extrabold text-sm truncate ${isCanceled ? 'line-through' : ''}">${lessonLabel}${customFocus ? ` — ${customFocus}` : ''}</div>
               <div class="text-xs text-[var(--text-muted)] truncate">${athDisplay} • ${s.payment || 'Scheduled'}</div>
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-2 shrink-0">
-            ${s.athleteId ? `<button onclick="openSessionRecapModal('${s.athleteId}', '${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5">${uiIcon('note')} Notes</button>` : ''}
-            <button onclick="openCalendarSyncModal('${s.id}')" title="Add session to Apple / Google / Outlook Calendar" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer hover:border-[#010101]">+ Cal</button>
-            ${s.status === 'Canceled' ? `<span class="px-2.5 py-1.5 rounded-xl bg-[#D6DFE2] text-[#010101] text-[11px] font-extrabold">Canceled</span>` : ''}
+            ${s.athleteId && !isCanceled ? `<button onclick="openSessionRecapModal('${s.athleteId}', '${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5">${uiIcon('note')} Notes</button>` : ''}
+            <button onclick="openManageSessionModal('${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101]">${isCanceled ? 'Restore / Delete' : 'Reschedule / Cancel'}</button>
+            ${!isCanceled ? `<button onclick="openCalendarSyncModal('${s.id}')" title="Add session to Apple / Google / Outlook Calendar" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer hover:border-[#010101]">+ Cal</button>` : `<span class="px-2.5 py-1.5 rounded-xl bg-red-500/15 text-red-600 dark:text-red-400 text-[11px] font-extrabold">Canceled</span>`}
             ${s.athleteId ? `<button onclick="jumpToAthlete('${s.athleteId}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">Profile</button>` : ''}
           </div>
         </div>
@@ -4541,13 +4751,16 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               </div>
               <div class="space-y-2">
                 ${athSessions.length ? athSessions.map(s => `
-                  <div class="surface-soft rounded-2xl p-3 flex items-center justify-between gap-2">
+                  <div class="surface-soft rounded-2xl p-3 flex items-center justify-between gap-2 ${s.status === 'Canceled' ? 'opacity-60' : ''}">
                     <div class="min-w-0">
-                      <div class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${s.day} • ${s.time} • ${s.duration}</div>
-                      <div class="text-xs font-extrabold truncate">${s.focus}</div>
+                      <div class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${s.day} • ${s.time} • ${s.duration}${s.status === 'Canceled' ? ' • Canceled' : ''}</div>
+                      <div class="text-xs font-extrabold truncate ${s.status === 'Canceled' ? 'line-through' : ''}">${s.lessonTitle || s.focus}</div>
                       <div class="text-[11px] text-[var(--text-muted)]">${s.payment}</div>
                     </div>
-                    <button onclick="openSessionRecapModal('${sel.id}', '${s.id}')" class="px-2.5 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold shrink-0 cursor-pointer">Notes</button>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      <button onclick="openManageSessionModal('${s.id}')" class="px-2.5 py-1.5 rounded-xl card-white text-[10px] font-extrabold cursor-pointer hover:border-[#010101]">Manage</button>
+                      ${s.status !== 'Canceled' ? `<button onclick="openSessionRecapModal('${sel.id}', '${s.id}')" class="px-2.5 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold cursor-pointer">Notes</button>` : ''}
+                    </div>
                   </div>
                 `).join('') : `<div class="p-3 text-xs text-[var(--text-muted)] surface-soft rounded-2xl">No sessions scheduled yet. Tap "+ Add Session" to book ${sel.name.split(' ')[0]}.</div>`}
               </div>
@@ -5786,9 +5999,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v2.5.2';
+    const APP_VERSION = 'v2.6.0';
     const APP_BUILD_DATE = 'Nov 26, 2026';
-    const APP_RELEASE_NOTES = '1–6h Minimum Notice options, reorderable Home & Sync v2';
+    const APP_RELEASE_NOTES = 'Coach Reschedule / Cancel sessions, reorderable Home & Sync v2';
 
     function reloadLatestAppVersion() {
       try {
