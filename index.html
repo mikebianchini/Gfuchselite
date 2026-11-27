@@ -4955,6 +4955,16 @@
     function setRosterSort(col) {
       if (state.rosterSortCol === col) state.rosterSortDir = state.rosterSortDir === 'asc' ? 'desc' : 'asc';
       else { state.rosterSortCol = col; state.rosterSortDir = 'asc'; }
+      const sel = document.getElementById('roster-sort-select');
+      if (sel) sel.value = `${state.rosterSortCol}:${state.rosterSortDir}`;
+      const box = document.getElementById('roster-list-container');
+      if (box) box.innerHTML = renderRosterRowsHtml();
+    }
+
+    function setRosterSortPreset(val) {
+      const [col, dir] = String(val || 'firstName:asc').split(':');
+      state.rosterSortCol = col || 'firstName';
+      state.rosterSortDir = dir === 'desc' ? 'desc' : 'asc';
       const box = document.getElementById('roster-list-container');
       if (box) box.innerHTML = renderRosterRowsHtml();
     }
@@ -4970,7 +4980,7 @@
         state.sessions.filter(s => s.dateIso === todayIso || s.dayKey === 'Thu 26' || (s.day || '').includes('Today')).map(s => s.athleteId).filter(Boolean)
       );
       const draftIds = new Set(state.sessionRecaps.filter(r => r.isDraft).map(r => r.athleteId));
-      const col = state.rosterSortCol || 'name';
+      const col = state.rosterSortCol || 'firstName';
       const dir = state.rosterSortDir === 'desc' ? -1 : 1;
 
       return state.athletes
@@ -4986,19 +4996,37 @@
             if (['10U', '12U', '14U', '16U', '18U'].includes(f) && a.ageGroup !== f) return false;
           }
           if (q) {
-            const hay = `${a.name} ${a.parentName} ${a.position} ${a.ageGroup} ${a.team || ''}`.toLowerCase();
+            const hay = `${a.name} ${a.firstName || ''} ${a.lastName || ''} ${a.parentName || ''} ${a.position || ''} ${a.ageGroup || ''} ${a.gradYear || ''} ${a.team || ''}`.toLowerCase();
             if (!hay.includes(q)) return false;
           }
           return true;
         })
         .sort((a, b) => {
-          if (col === 'age') return (parseInt(a.ageGroup, 10) - parseInt(b.ageGroup, 10)) * dir || a.name.localeCompare(b.name);
+          const sa = splitAthleteName(a);
+          const sb = splitAthleteName(b);
+          if (col === 'lastName') {
+            const la = (sa.lastName || sa.firstName || '').toLowerCase();
+            const lb = (sb.lastName || sb.firstName || '').toLowerCase();
+            return la.localeCompare(lb) * dir || sa.firstName.localeCompare(sb.firstName);
+          }
+          if (col === 'age') {
+            const na = parseInt(a.ageGroup, 10);
+            const nb = parseInt(b.ageGroup, 10);
+            const va = isNaN(na) ? 999 : na;
+            const vb = isNaN(nb) ? 999 : nb;
+            return (va - vb) * dir || (a.name || '').localeCompare(b.name || '');
+          }
+          if (col === 'gradYear') {
+            const ga = Number(a.gradYear) || 9999;
+            const gb = Number(b.gradYear) || 9999;
+            return (ga - gb) * dir || (a.name || '').localeCompare(b.name || '');
+          }
           if (col === 'lastSeen') {
             const da = getAthleteLastSeenInfo(a.id).daysAgo ?? 9999;
             const db = getAthleteLastSeenInfo(b.id).daysAgo ?? 9999;
-            return (da - db) * dir || a.name.localeCompare(b.name);
+            return (da - db) * dir || (a.name || '').localeCompare(b.name || '');
           }
-          return a.name.localeCompare(b.name) * dir;
+          return (sa.firstName || a.name || '').localeCompare(sb.firstName || b.name || '') * dir || (sa.lastName || '').localeCompare(sb.lastName || '');
         });
     }
 
@@ -5842,17 +5870,37 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               </div>
             </div>
 
-            <!-- Instant Search + Filter Pills -->
+            <!-- Instant Search + Sort + Filter Pills -->
             <div class="card-mist rounded-[26px] p-3.5 space-y-3">
-              <div class="relative">
-                <svg class="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M20 20l-3.5-3.5"/></svg>
-                <input
-                  type="search"
-                  value="${(state.rosterSearch || '').replace(/"/g, '&quot;')}"
-                  oninput="updateRosterSearch(this.value)"
-                  placeholder="Search ${state.rosterFilter === 'archived' ? archivedCount + ' archived' : activeCount + ' active'} athletes by name, parent, position, or team…"
-                  class="w-full pl-10 pr-4 py-2.5 rounded-2xl card-white text-[16px] sm:text-sm font-medium"
-                />
+              <div class="flex flex-col sm:flex-row gap-2">
+                <div class="relative flex-1">
+                  <svg class="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M20 20l-3.5-3.5"/></svg>
+                  <input
+                    type="search"
+                    value="${(state.rosterSearch || '').replace(/"/g, '&quot;')}"
+                    oninput="updateRosterSearch(this.value)"
+                    placeholder="Search ${state.rosterFilter === 'archived' ? archivedCount + ' archived' : activeCount + ' active'} athletes…"
+                    class="w-full pl-10 pr-4 py-2.5 rounded-2xl card-white text-[16px] sm:text-sm font-medium"
+                  />
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <label for="roster-sort-select" class="text-xs font-bold text-[var(--text-muted)] whitespace-nowrap pl-1">Sort:</label>
+                  <select id="roster-sort-select" aria-label="Sort athletes" onchange="setRosterSortPreset(this.value)" class="flex-1 sm:flex-none px-3 py-2.5 rounded-2xl card-white text-xs font-extrabold cursor-pointer">
+                    ${[
+                      { val: 'firstName:asc', label: 'First Name (A → Z)' },
+                      { val: 'firstName:desc', label: 'First Name (Z → A)' },
+                      { val: 'lastName:asc', label: 'Last Name (A → Z)' },
+                      { val: 'lastName:desc', label: 'Last Name (Z → A)' },
+                      { val: 'lastSeen:asc', label: 'Last Seen (Recent)' },
+                      { val: 'lastSeen:desc', label: 'Last Seen (Oldest)' },
+                      { val: 'gradYear:asc', label: 'Grad Year (Soonest)' },
+                      { val: 'age:asc', label: 'Age Group (10U → 18U)' }
+                    ].map(opt => {
+                      const cur = `${state.rosterSortCol || 'firstName'}:${state.rosterSortDir || 'asc'}`;
+                      return `<option value="${opt.val}" ${cur === opt.val ? 'selected' : ''}>${opt.label}</option>`;
+                    }).join('')}
+                  </select>
+                </div>
               </div>
               <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
                 ${filters.map(f => {
@@ -7756,7 +7804,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.6.0';
+    const APP_VERSION = 'v3.6.1';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Optimized for Coach Gina’s daily flow: Today-first schedule, per-session plans, 1-tap previous session review & live camera video recording';
 
