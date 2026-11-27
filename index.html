@@ -295,15 +295,14 @@
 
     <!-- Floating Mobile Liquid Glass Header Capsule (iOS Safe-Area Aware) -->
     <div class="lg:hidden mobile-header-wrap">
-      <header class="glass-dock rounded-[26px] px-3.5 py-2 flex items-center justify-between gap-2">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <svg class="h-8 w-8 shrink-0 text-[var(--text-main)]" viewBox="15 42 165 168" fill="none" aria-hidden="true">
-            <polygon fill="#4E6075" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
-            <polygon fill="currentColor" points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
-          </svg>
+      <header class="glass-dock rounded-[26px] px-3 py-2 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <button onclick="openMobileDrawer()" aria-label="Open full menu" class="w-10 h-10 rounded-full surface-soft flex items-center justify-center shrink-0 cursor-pointer">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
+          </button>
           <div class="leading-tight truncate">
-            <div class="font-extrabold text-[13px] tracking-tight">ELITE FASTPITCH</div>
-            <div class="text-[11px] text-[var(--text-muted)] font-medium">Gina Fuchs Training</div>
+            <div class="font-extrabold text-[13px] tracking-tight truncate">ELITE FASTPITCH</div>
+            <div class="text-[10.5px] text-[var(--text-muted)] font-medium truncate">Gina Fuchs Training</div>
           </div>
         </div>
 
@@ -312,11 +311,53 @@
             <button id="mob-role-parent" onclick="switchRole('parent')" class="px-2.5 py-1.5 min-h-[34px] rounded-full transition cursor-pointer">Athlete</button>
             <button id="mob-role-coach" onclick="switchRole('coach')" class="px-2.5 py-1.5 min-h-[34px] rounded-full transition cursor-pointer">Coach</button>
           </div>
-          <button onclick="toggleTheme()" class="w-10 h-10 rounded-full surface-soft flex items-center justify-center cursor-pointer" aria-label="Toggle light or dark theme">
+          <button onclick="openProfileFromName()" aria-label="View profile" class="w-9 h-9 rounded-full bg-[#010101] text-[#D5FF5F] font-extrabold text-[11px] flex items-center justify-center shrink-0 cursor-pointer" id="mob-avatar">GF</button>
+          <button onclick="toggleTheme()" class="w-9 h-9 rounded-full surface-soft flex items-center justify-center shrink-0 cursor-pointer" aria-label="Toggle light or dark theme">
             <span id="mob-theme-icon" class="inline-flex items-center" aria-hidden="true"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path stroke-linecap="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></svg></span>
           </button>
         </div>
       </header>
+    </div>
+
+    <!-- Mobile Full-Menu Slide-Over Drawer (100% Desktop Sidebar Parity) -->
+    <div id="mobile-drawer" onclick="if (event.target === this) closeMobileDrawer();" class="lg:hidden fixed inset-0 z-50 hidden modal-backdrop">
+      <div class="glass-dock w-80 max-w-[86vw] h-full p-5 flex flex-col justify-between overflow-y-auto" style="padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.25rem);">
+        <div class="space-y-5">
+          <div class="flex items-center justify-between gap-2">
+            <div class="leading-tight">
+              <div class="font-extrabold text-sm tracking-tight">ELITE FASTPITCH</div>
+              <div class="text-[11px] text-[var(--text-muted)] font-semibold">Gina Fuchs Training</div>
+            </div>
+            <button onclick="closeMobileDrawer()" aria-label="Close menu" class="w-9 h-9 rounded-full surface-soft flex items-center justify-center text-xs font-bold cursor-pointer">✕</button>
+          </div>
+
+          <div class="p-1.5 rounded-2xl surface-soft grid grid-cols-2 gap-1 text-xs font-bold">
+            <button id="drawer-role-parent" onclick="switchRole('parent'); closeMobileDrawer();" class="py-2 rounded-xl transition cursor-pointer">Athlete</button>
+            <button id="drawer-role-coach" onclick="switchRole('coach'); closeMobileDrawer();" class="py-2 rounded-xl transition cursor-pointer">Coach Gina</button>
+          </div>
+
+          <nav id="mobile-drawer-nav" class="space-y-1.5"></nav>
+        </div>
+
+        <div class="space-y-3 pt-4 border-t border-[var(--border-subtle)]">
+          <div class="flex items-center justify-between px-1">
+            <span class="text-xs font-semibold text-[var(--text-muted)]">Liquid Glass</span>
+            <button onclick="toggleTheme()" class="px-3.5 py-2 rounded-full surface-soft text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+              <span id="drawer-theme-label">Toggle Theme</span>
+            </button>
+          </div>
+          <button id="drawer-user-card" onclick="openProfileFromName(); closeMobileDrawer();" class="w-full text-left p-3 rounded-2xl surface-soft flex items-center justify-between gap-3 cursor-pointer">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-9 h-9 rounded-full bg-[#010101] text-[#D5FF5F] font-extrabold text-xs flex items-center justify-center shrink-0" id="drawer-avatar">GF</div>
+              <div class="min-w-0">
+                <div class="text-xs font-extrabold truncate" id="drawer-user-name">Gina Fuchs</div>
+                <div class="text-[11px] text-[var(--text-muted)] truncate" id="drawer-user-sub">Head Coach • Elite Fastpitch</div>
+              </div>
+            </div>
+            <span class="text-xs font-extrabold text-[var(--text-muted)]">›</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Main Workspace -->
@@ -324,12 +365,12 @@
       <div id="app-root" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-4 sm:py-7 space-y-5"></div>
     </main>
 
-    <!-- Floating Detached Mobile Liquid Glass Dock (iOS 26 Signature!) -->
-    <nav id="mobile-bottom-nav" aria-label="Primary navigation" class="lg:hidden fixed mobile-dock-safe left-3 right-3 z-30 glass-dock rounded-[30px] px-2 py-2 flex items-center justify-around"></nav>
+    <!-- Floating Detached Mobile Liquid Glass Dock (Scroll-Safe for All Tabs) -->
+    <nav id="mobile-bottom-nav" aria-label="Primary navigation" class="lg:hidden fixed mobile-dock-safe left-3 right-3 z-30 glass-dock rounded-[30px] px-2 py-1.5 flex items-center justify-between sm:justify-around gap-0.5 overflow-x-auto no-scrollbar"></nav>
   </div>
 
   <!-- Modal Root (Repetition Ruler / Session / Celebration) -->
-  <div id="modal-root" role="dialog" aria-modal="true" aria-label="Dialog" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop"></div>
+  <div id="modal-root" role="dialog" aria-modal="true" aria-label="Dialog" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 modal-backdrop"></div>
 
   <!-- Toast -->
   <div id="toast" role="status" aria-live="polite" class="fixed bottom-24 lg:bottom-6 right-4 z-50 hidden max-w-sm px-4 py-3 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-bold shadow-2xl"></div>
@@ -700,10 +741,20 @@
 
     function openModal(html, noPad = false) {
       const m = document.getElementById('modal-root');
-      m.innerHTML = `<div class="card-white rounded-[30px] max-w-md w-full ${noPad ? 'overflow-hidden' : 'p-6 space-y-4'} shadow-2xl max-h-[92vh] overflow-y-auto">${html}</div>`;
+      m.innerHTML = `<div class="card-white rounded-[30px] max-w-md w-full ${noPad ? 'overflow-hidden' : 'p-5 sm:p-6 space-y-4'} shadow-2xl max-h-[90dvh] overflow-y-auto">${html}</div>`;
       m.classList.remove('hidden');
       m.classList.add('flex');
       m.onclick = (e) => { if (e.target === m) closeModal(); };
+    }
+
+    function openMobileDrawer() {
+      const d = document.getElementById('mobile-drawer');
+      if (d) d.classList.remove('hidden');
+    }
+
+    function closeMobileDrawer() {
+      const d = document.getElementById('mobile-drawer');
+      if (d) d.classList.add('hidden');
     }
 
     function switchRole(role) {
@@ -715,6 +766,7 @@
     function setTab(tab) {
       if (state.role === 'coach') state.coachTab = tab;
       else state.parentTab = tab;
+      closeMobileDrawer();
       render();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -726,6 +778,7 @@
       } else {
         state.parentTab = 'profile';
       }
+      closeMobileDrawer();
       render();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -738,27 +791,30 @@
       const activeRoleCls = 'bg-[#010101] text-[#D5FF5F] font-extrabold';
       const idleRoleCls = 'text-[var(--text-muted)] hover:text-[var(--text-main)]';
 
-      ['desk-role-coach', 'mob-role-coach'].forEach(id => {
+      ['desk-role-coach', 'mob-role-coach', 'drawer-role-coach'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.className = `${id.startsWith('desk') ? 'py-2 rounded-xl' : 'px-2.5 py-1 rounded-full'} transition cursor-pointer ${isCoach ? activeRoleCls : idleRoleCls}`;
+        if (el) el.className = `${id.startsWith('mob') ? 'px-2.5 py-1.5 min-h-[34px] rounded-full' : 'py-2 rounded-xl'} transition cursor-pointer ${isCoach ? activeRoleCls : idleRoleCls}`;
       });
-      ['desk-role-parent', 'mob-role-parent'].forEach(id => {
+      ['desk-role-parent', 'mob-role-parent', 'drawer-role-parent'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.className = `${id.startsWith('desk') ? 'py-2 rounded-xl' : 'px-2.5 py-1 rounded-full'} transition cursor-pointer ${!isCoach ? activeRoleCls : idleRoleCls}`;
+        if (el) el.className = `${id.startsWith('mob') ? 'px-2.5 py-1.5 min-h-[34px] rounded-full' : 'py-2 rounded-xl'} transition cursor-pointer ${!isCoach ? activeRoleCls : idleRoleCls}`;
       });
 
       const ath = getActiveAthlete();
-      const uName = document.getElementById('sidebar-user-name');
-      const uSub = document.getElementById('sidebar-user-sub');
-      const uAv = document.getElementById('sidebar-avatar');
-      const uCard = document.getElementById('sidebar-user-card');
-      if (uName) uName.textContent = isCoach ? 'Gina Fuchs' : ath.name;
-      if (uSub) uSub.textContent = isCoach ? 'Head Coach • Elite Fastpitch' : `${ath.ageGroup} • View Profile`;
-      if (uAv) uAv.textContent = isCoach ? 'GF' : ath.initials;
-      if (uCard) {
-        const isProfileActive = !isCoach && state.parentTab === 'profile';
-        uCard.className = `w-full text-left p-3 rounded-2xl flex items-center justify-between gap-3 transition cursor-pointer ${isProfileActive ? 'bg-[#D5FF5F] text-[#010101] shadow-md' : 'surface-soft hover:border-[#010101]'}`;
-      }
+      const dispName = isCoach ? 'Gina Fuchs' : ath.name;
+      const dispSub = isCoach ? 'Head Coach • Elite Fastpitch' : `${ath.ageGroup ? ath.ageGroup + ' • ' : ''}View Profile`;
+      const dispAv = isCoach ? 'GF' : (ath.initials || 'EF');
+      const isProfileActive = !isCoach && state.parentTab === 'profile';
+
+      ['sidebar-user-name', 'drawer-user-name'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = dispName; });
+      ['sidebar-user-sub', 'drawer-user-sub'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = dispSub; });
+      ['sidebar-avatar', 'drawer-avatar', 'mob-avatar'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = dispAv; });
+      ['sidebar-user-card', 'drawer-user-card'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.className = `w-full text-left p-3 rounded-2xl flex items-center justify-between gap-3 transition cursor-pointer ${isProfileActive ? 'bg-[#D5FF5F] text-[#010101] shadow-md' : 'surface-soft hover:border-[#010101]'}`;
+      });
+      const drawerThemeLbl = document.getElementById('drawer-theme-label');
+      if (drawerThemeLbl) drawerThemeLbl.textContent = document.documentElement.classList.contains('dark') ? 'Dark Mode' : 'Light Mode';
 
       const unread = state.threads.reduce((s, t) => s + t.unread, 0);
 
@@ -782,7 +838,7 @@
 
       const activeTab = isCoach ? state.coachTab : state.parentTab;
 
-      document.getElementById('desktop-nav').innerHTML = navItems.map(item => {
+      const fullNavMarkup = navItems.map(item => {
         const active = item.id === activeTab;
         return `
           <button onclick="setTab('${item.id}')" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-sm font-bold transition cursor-pointer ${active ? 'bg-[#D5FF5F] text-[#010101]' : 'text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-main)]'}">
@@ -792,12 +848,19 @@
         `;
       }).join('');
 
+      document.getElementById('desktop-nav').innerHTML = fullNavMarkup;
+      const drawerNav = document.getElementById('mobile-drawer-nav');
+      if (drawerNav) drawerNav.innerHTML = fullNavMarkup;
+
       document.getElementById('mobile-bottom-nav').innerHTML = navItems.map(item => {
         const active = item.id === activeTab;
         return `
-          <button onclick="setTab('${item.id}')" ${active ? 'aria-current="page"' : ''} class="relative flex flex-col items-center justify-center gap-0.5 px-1 sm:px-2.5 py-1 min-h-[44px] min-w-[44px] shrink-0 rounded-2xl transition cursor-pointer ${active ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}">
-            <span class="p-1.5 rounded-xl ${active ? 'bg-[#D5FF5F] text-[#010101]' : ''}">${item.icon}</span>
-            <span class="text-[9px] sm:text-[10px] font-bold leading-tight">${item.label}</span>
+          <button onclick="setTab('${item.id}')" ${active ? 'aria-current="page"' : ''} class="relative flex flex-col items-center justify-center gap-0.5 px-1.5 sm:px-2.5 py-1 min-h-[44px] min-w-[48px] shrink-0 rounded-2xl transition cursor-pointer ${active ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}">
+            <span class="relative p-1.5 rounded-xl ${active ? 'bg-[#D5FF5F] text-[#010101]' : ''}">
+              ${item.icon}
+              ${item.badge ? `<span class="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[9px] font-extrabold flex items-center justify-center">${item.badge}</span>` : ''}
+            </span>
+            <span class="text-[9.5px] sm:text-[10px] font-bold leading-tight">${item.label}</span>
           </button>
         `;
       }).join('');
@@ -3364,7 +3427,7 @@
                               <span class="font-extrabold text-[13px] truncate">${a.name}</span>
                               ${hasDraft ? `<span class="px-1.5 py-0.5 rounded bg-[#D5FF5F] text-[#010101] text-[9px] font-extrabold shrink-0">DRAFT</span>` : ''}
                             </div>
-                            <div class="md:hidden text-[11px] text-[var(--text-muted)] truncate">${a.position || ''}</div>
+                            ${[a.position, a.team, a.parentName].filter(Boolean).length ? `<div class="md:hidden text-[11px] text-[var(--text-muted)] truncate">${[a.position, a.team, a.parentName].filter(Boolean).join(' • ')}</div>` : ''}
                           </div>
                         </div>
                       </td>
