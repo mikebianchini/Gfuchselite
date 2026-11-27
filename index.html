@@ -8774,7 +8774,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.8.2';
+    const APP_VERSION = 'v3.8.3';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Unified Modal Design System (solid high-contrast sheets, 44px aligned inputs/selects, sticky header & CTA footer, streamlined multi-athlete group picker)';
 
@@ -10319,8 +10319,8 @@ create policy "Allow media update" on storage.objects
                   <button onclick="openAddSessionModal('${d.iso}')" class="w-full py-2 rounded-xl surface-soft text-[11px] font-extrabold cursor-pointer hover:border-[#010101] dark:hover:border-white/40 transition">
                     + Session
                   </button>
-                  <button onclick="openDayAvailabilityModal('${d.iso}')" class="w-full py-2 rounded-xl border border-slate-200/80 dark:border-white/15 bg-white/70 dark:bg-white/[0.06] hover:bg-[#010101] hover:text-[#D5FF5F] dark:hover:bg-[#D5FF5F] dark:hover:text-[#010101] text-[11px] font-bold text-slate-700 dark:text-slate-200 inline-flex items-center justify-center gap-1 cursor-pointer transition">
-                    ${uiIcon('clock', 'w-3 h-3')} ${d.eff.off ? 'Set Hours' : 'Availability'}
+                  <button onclick="openDayAvailabilityModal('${d.iso}')" class="w-full py-2 rounded-xl surface-soft text-[11px] font-extrabold cursor-pointer hover:border-[#010101] dark:hover:border-white/40 transition">
+                    + Availability
                   </button>
                 </div>
               </div>
