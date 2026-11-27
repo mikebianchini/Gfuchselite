@@ -2971,7 +2971,7 @@
           <div class="flex flex-wrap items-center gap-2 shrink-0">
             ${s.athleteId && !isCanceled ? `<button onclick="openSessionRecapModal('${s.athleteId}', '${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5">${uiIcon('note')} Notes</button>` : ''}
             <button onclick="openManageSessionModal('${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101]">${isCanceled ? 'Restore / Delete' : 'Reschedule / Cancel'}</button>
-            ${!isCanceled ? `<button onclick="openCalendarSyncModal('${s.id}')" title="Add session to Apple / Google / Outlook Calendar" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer hover:border-[#010101]">+ Cal</button>` : `<span class="px-2.5 py-1.5 rounded-xl bg-red-500/15 text-red-600 dark:text-red-400 text-[11px] font-extrabold">Canceled</span>`}
+            ${isCanceled ? `<span class="px-2.5 py-1.5 rounded-xl bg-red-500/15 text-red-600 dark:text-red-400 text-[11px] font-extrabold">Canceled</span>` : ''}
             ${s.athleteId ? `<button onclick="jumpToAthlete('${s.athleteId}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">Profile</button>` : ''}
           </div>
         </div>
@@ -6059,9 +6059,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v2.7.0';
+    const APP_VERSION = 'v2.7.1';
     const APP_BUILD_DATE = 'Nov 26, 2026';
-    const APP_RELEASE_NOTES = 'Archive/Restore athletes, Reschedule/Cancel sessions & Sync v2';
+    const APP_RELEASE_NOTES = 'Clean session rows, Archive athletes, Reschedule/Cancel & Sync v2';
 
     function reloadLatestAppVersion() {
       try {
