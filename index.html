@@ -4109,15 +4109,23 @@
       `;
     }
 
+    function sortSessionsByTimeAsc(list) {
+      return (list || []).slice().sort((a, b) => {
+        const ta = parseTime12To24(a?.time || '23:59');
+        const tb = parseTime12To24(b?.time || '23:59');
+        return ta.localeCompare(tb);
+      });
+    }
+
     function renderCoachToday() {
       const days = getRolling7Days();
       const today = days[0];
       const todayFullLabel = new Date(today.iso + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
-      const todaySessions = state.sessions.filter(s => sessionMatchesDay(s, today));
+      const todaySessions = sortSessionsByTimeAsc(state.sessions.filter(s => sessionMatchesDay(s, today)));
       const next7DaysWithSessions = days.map(d => ({
         ...d,
-        sessions: state.sessions.filter(s => sessionMatchesDay(s, d))
+        sessions: sortSessionsByTimeAsc(state.sessions.filter(s => sessionMatchesDay(s, d)))
       }));
       const totalNext7Count = next7DaysWithSessions.reduce((sum, d) => sum + d.sessions.length, 0);
 
@@ -8762,7 +8770,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.8.5';
+    const APP_VERSION = 'v3.8.6';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Unified Modal Design System (solid high-contrast sheets, 44px aligned inputs/selects, sticky header & CTA footer, streamlined multi-athlete group picker)';
 
@@ -9695,10 +9703,10 @@ create policy "Allow media update" on storage.objects
       const dt = parseIsoLocal(iso);
       const dayKey = dt.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }).replace(',', '');
       const shortLabel = dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-      return state.sessions.filter(s => {
+      return sortSessionsByTimeAsc(state.sessions.filter(s => {
         if (s.dateIso) return s.dateIso === iso;
         return s.dayKey === dayKey || s.day === shortLabel;
-      });
+      }));
     }
 
     function scheduleSetView(view) {
