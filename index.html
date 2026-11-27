@@ -2211,7 +2211,7 @@
           <div class="lg:col-span-6 card-mist rounded-[28px] p-6 space-y-4">
             <div class="flex items-center justify-between">
               <h2 class="text-base font-extrabold tracking-tight">Training Consistency</h2>
-              <span class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold">${ath.weeklyDuration.toUpperCase()}</span>
+              <span class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold">${(ath.weeklyDuration || 'ACTIVE').toUpperCase()}</span>
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div class="surface-soft rounded-2xl p-3.5">
@@ -2871,6 +2871,431 @@
       return '16:00';
     }
 
+    // =========================================================================
+    // COACH GINA PERFORMANCE & CLIENT MANAGEMENT HELPERS (v3.3.0)
+    // =========================================================================
+    function parseFlexibleDateToIso(str) {
+      if (!str) return null;
+      const s = String(str).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      if (/^today$/i.test(s)) return getTodayIsoEst();
+      const slash = s.match(/^(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?$/);
+      if (slash) {
+        const m = Number(slash[1]);
+        const d = Number(slash[2]);
+        let y = slash[3] ? Number(slash[3]) : new Date().getFullYear();
+        if (y < 100) y += 2000;
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+          return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        }
+      }
+      const parsed = Date.parse(s.includes(',') || /\d{4}/.test(s) ? s : `${s}, ${new Date().getFullYear()}`);
+      if (!isNaN(parsed)) {
+        const dt = new Date(parsed);
+        return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+      }
+      return null;
+    }
+
+    function getAthleteLastSeenInfo(athId) {
+      const ath = state.athletes.find(a => a.id === athId);
+      if (!ath) return { daysAgo: null, label: 'New', isAtRisk: false, lastFocus: '', lastHomework: '', hasUpcoming: false };
+      const todayIso = getTodayIsoEst();
+      const todayMs = new Date(todayIso + 'T12:00:00').getTime();
+
+      const recaps = getSortedRecapsForAthlete(ath.id, false);
+      const latestRecap = recaps[0] || null;
+      let latestMs = null;
+
+      recaps.forEach(r => {
+        const iso = parseFlexibleDateToIso(r.date);
+        const ms = iso ? new Date(iso + 'T12:00:00').getTime() : (r.createdAt || null);
+        if (ms && ms <= todayMs + 86400000 && (!latestMs || ms > latestMs)) latestMs = ms;
+      });
+
+      let hasUpcoming = false;
+      state.sessions.forEach(s => {
+        const matchesAth = s.athleteId === ath.id
+          || (Array.isArray(s.athleteIds) && s.athleteIds.includes(ath.id))
+          || (Array.isArray(s.athletes) && s.athletes.includes(ath.name));
+        if (!matchesAth || s.status === 'Canceled' || s.status === 'No-Show' || s.status === 'Late Cancel') return;
+        const iso = s.dateIso || parseFlexibleDateToIso(s.day);
+        if (!iso) return;
+        const ms = new Date(iso + 'T12:00:00').getTime();
+        if (ms > todayMs) {
+          hasUpcoming = true;
+        } else if (!latestMs || ms > latestMs) {
+          latestMs = ms;
+        }
+      });
+
+      const daysAgo = latestMs !== null ? Math.max(0, Math.round((todayMs - latestMs) / 86400000)) : null;
+      const label = daysAgo === null ? 'No sessions'
+        : daysAgo === 0 ? 'Today'
+        : daysAgo === 1 ? 'Yesterday'
+        : daysAgo < 14 ? `${daysAgo}d ago`
+        : daysAgo < 60 ? `${Math.floor(daysAgo / 7)}w ago`
+        : `${Math.floor(daysAgo / 30)}mo ago`;
+
+      const isAtRisk = !ath.archived && !hasUpcoming && daysAgo !== null && daysAgo >= 21;
+      const lastFocus = (latestRecap?.focus || latestRecap?.note || '').split('\n').map(l => l.trim()).find(Boolean) || '';
+      const lastHomework = (latestRecap?.homework || '').split('\n').map(l => l.trim()).find(Boolean) || '';
+      return { daysAgo, label, isAtRisk, lastFocus, lastHomework, hasUpcoming };
+    }
+
+    function getAthleteUnpaidInfo(athId) {
+      const ath = state.athletes.find(a => a.id === athId);
+      if (!ath) return { count: 0, total: 0 };
+      const first = (ath.name || '').split(/\s+/)[0]?.toLowerCase() || '';
+      const last = (ath.parentName || ath.name || '').split(/\s+/).slice(-1)[0]?.toLowerCase() || '';
+      let count = 0;
+      let total = 0;
+      state.payments.forEach(p => {
+        const unpaid = p.status === 'Pending Cash' || p.status === 'Unpaid';
+        if (!unpaid) return;
+        const matchById = p.athleteId && p.athleteId === ath.id;
+        const itemL = (p.item || '').toLowerCase();
+        const famL = (p.family || '').toLowerCase();
+        const matchByName = (first && itemL.includes(`(${first})`)) || (last && last.length > 2 && famL.includes(last) && (!first || itemL.includes(first)));
+        if (matchById || matchByName) {
+          count++;
+          total += Number(p.amount) || 0;
+        }
+      });
+      return { count, total };
+    }
+
+    function getAthleteAllClips(athId) {
+      const recaps = getSortedRecapsForAthlete(athId, false);
+      const clips = [];
+      recaps.forEach(r => {
+        const list = Array.isArray(r.clips) && r.clips.length ? r.clips : (r.videoUrl ? [{ title: r.videoTitle || 'Session Clip', url: r.videoUrl, img: r.videoImg }] : []);
+        list.forEach((c, idx) => {
+          if (c && c.url) {
+            clips.push({
+              id: `${r.id}-${idx}`,
+              date: r.date || 'Session',
+              title: formatClipLabel(c.title || r.videoTitle || 'Clip', idx),
+              url: c.url,
+              img: c.img || r.videoImg || 'assets/images/fastpitch-hitter.jpg'
+            });
+          }
+        });
+      });
+      return clips;
+    }
+
+    function getCustomCues(station) {
+      if (!state.cal.customCues) state.cal.customCues = { tee: [], ft: [], machine: [], homework: [] };
+      return Array.isArray(state.cal.customCues[station]) ? state.cal.customCues[station] : [];
+    }
+
+    function addCustomCuePrompt(station) {
+      const labels = { tee: 'Tee Drill / Cue', ft: 'Front Toss Drill / Cue', machine: 'Machine Drill / Cue', homework: 'Homework Cue' };
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h3 class="font-extrabold text-base">Save Custom ${labels[station] || 'Cue'}</h3>
+            <p class="text-xs text-[var(--text-muted)] mt-0.5">Adds a 1-tap quick chip to your Session Notes Studio.</p>
+          </div>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-9 h-9 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+        <form onsubmit="submitCustomCue(event, '${station}')" class="space-y-3 text-xs">
+          <input name="cue" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm font-semibold" placeholder="e.g., High tee inside-out 3/3/3" required autofocus />
+          <button type="submit" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer">Save Quick Chip</button>
+        </form>
+      `);
+    }
+
+    function submitCustomCue(e, station) {
+      e.preventDefault();
+      const val = (e.target.cue.value || '').trim();
+      if (!val) return;
+      if (!state.cal.customCues) state.cal.customCues = { tee: [], ft: [], machine: [], homework: [] };
+      if (!Array.isArray(state.cal.customCues[station])) state.cal.customCues[station] = [];
+      if (!state.cal.customCues[station].includes(val)) {
+        state.cal.customCues[station].push(val);
+      }
+      closeModal();
+      render();
+      showToast(`Saved "${val}" to your quick cues!`);
+    }
+
+    function copyLastRecapIntoDraft(athId) {
+      const prev = getSortedRecapsForAthlete(athId, false)[0];
+      if (!prev) return;
+      const focusEl = document.getElementById('recap-focus-input');
+      const hwEl = document.getElementById('recap-homework-input');
+      if (focusEl && prev.focus) {
+        focusEl.value = focusEl.value.trim() ? `${focusEl.value.trim()}\n${prev.focus}` : prev.focus;
+      }
+      if (hwEl && prev.homework) {
+        hwEl.value = prev.homework;
+      }
+      autoSaveRecapDraft(true);
+      showToast('Copied last session focus & homework!');
+    }
+
+    function addDaysToIso(iso, days) {
+      const d = new Date(iso + 'T12:00:00');
+      d.setDate(d.getDate() + days);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function rebookSessionNextWeek(sessionId, silent = false) {
+      const s = state.sessions.find(x => x.id === sessionId);
+      if (!s) return null;
+      const baseIso = s.dateIso || getTodayIsoEst();
+      const nextIso = addDaysToIso(baseIso, 7);
+      const hm = parseTime12To24(s.time);
+      const slotKey = `${nextIso}@${hm}`;
+      const conflict = state.sessions.find(x => x.status !== 'Canceled' && x.dateIso === nextIso && parseTime12To24(x.time) === hm);
+      if (conflict) {
+        if (!silent) showToast(`Conflict: ${conflict.athletes?.join(', ') || conflict.lessonTitle} is already booked on ${nextIso} at ${s.time}.`);
+        return null;
+      }
+      const dObj = new Date(nextIso + 'T12:00:00');
+      const dayNice = dObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const dayKey = dObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }).replace(',', '');
+      const cloned = {
+        ...s,
+        id: 'ses-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+        dateIso: nextIso,
+        day: dayNice,
+        dayKey,
+        status: 'Confirmed',
+        payment: s.price ? `Cash at Session ($${s.price})` : (s.payment || 'Scheduled'),
+        _modifiedAt: Date.now()
+      };
+      state.sessions.unshift(cloned);
+      if (!state.cal.bookedSlots.includes(slotKey)) state.cal.bookedSlots.push(slotKey);
+      if (!silent) {
+        closeModal();
+        render();
+        showToast(`Rebooked for ${dayNice} at ${s.time}!`);
+      }
+      return cloned;
+    }
+
+    function setSessionAttendanceStatus(sessionId, newStatus) {
+      const s = state.sessions.find(x => x.id === sessionId);
+      if (!s) return;
+      s.status = newStatus;
+      s._modifiedAt = Date.now();
+      closeModal();
+      render();
+      showToast(`Marked session as ${newStatus}.`);
+    }
+
+    function openEditCurrentFocusModal(athId) {
+      const ath = state.athletes.find(a => a.id === athId);
+      if (!ath) return;
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h3 class="font-extrabold text-base">Pinned Focus — ${esc(ath.name.split(' ')[0])}</h3>
+            <p class="text-xs text-[var(--text-muted)] mt-0.5">Stays pinned at the top of ${esc(ath.name.split(' ')[0])}’s profile and Today’s brief.</p>
+          </div>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-9 h-9 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+        <form onsubmit="submitCurrentFocus(event, '${ath.id}')" class="space-y-3 text-xs">
+          <textarea name="currentFocus" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm" placeholder="e.g., Stay back on off-speed • Hand path inside-out • 14U Nationals prep">${esc(ath.currentFocus || '')}</textarea>
+          <button type="submit" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer">Save Pinned Focus</button>
+        </form>
+      `);
+    }
+
+    function submitCurrentFocus(e, athId) {
+      e.preventDefault();
+      const ath = state.athletes.find(a => a.id === athId);
+      if (!ath) return;
+      ath.currentFocus = (e.target.currentFocus.value || '').trim();
+      ath._modifiedAt = Date.now();
+      closeModal();
+      render();
+      showToast('Pinned focus updated!');
+    }
+
+    function openCheckInMessageModal(athId) {
+      const ath = state.athletes.find(a => a.id === athId);
+      if (!ath) return;
+      const parentFirst = (ath.parentName || 'there').split(' ')[0];
+      const athFirst = ath.name.split(' ')[0];
+      const defaultMsg = `Hey ${parentFirst}! Checking in on ${athFirst} — hope the season is going great. Let me know if you'd like to grab a cage slot next week! – Coach Gina`;
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h3 class="font-extrabold text-base">Check In with ${esc(ath.name)}</h3>
+            <p class="text-xs text-[var(--text-muted)] mt-0.5">${esc(ath.parentName || 'Parent')}${ath.parentPhone ? ` • ${esc(ath.parentPhone)}` : ''}</p>
+          </div>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-9 h-9 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+        <form onsubmit="sendCheckInMessage(event, '${ath.id}')" class="space-y-3 text-xs">
+          <textarea id="checkin-msg-text" name="text" rows="4" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm leading-relaxed" required>${esc(defaultMsg)}</textarea>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="copyTextFromEl('checkin-msg-text', 'Check-in text copied!')" class="py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101]">Copy for SMS</button>
+            <button type="submit" class="py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Send in Messages</button>
+          </div>
+        </form>
+      `);
+    }
+
+    function copyTextFromEl(elId, toastMsg) {
+      const txt = document.getElementById(elId)?.value || '';
+      if (!txt) return;
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(txt).then(() => showToast(toastMsg || 'Copied!'));
+      } else {
+        showToast(toastMsg || 'Ready to paste!');
+      }
+    }
+
+    function sendCheckInMessage(e, athId) {
+      e.preventDefault();
+      const ath = state.athletes.find(a => a.id === athId);
+      if (!ath) return;
+      const text = (e.target.text.value || '').trim();
+      if (!text) return;
+      const parentKey = ath.parentName || ath.name;
+      let thread = state.threads.find(t => t.parent === parentKey);
+      if (!thread) {
+        thread = { id: 'msg-' + Date.now(), parent: parentKey, athletes: ath.name, unread: 0, messages: [] };
+        state.threads.unshift(thread);
+      }
+      thread.messages.push({ from: 'coach', time: 'Just now', text });
+      closeModal();
+      render();
+      showToast(`Check-in sent to ${parentKey}!`);
+    }
+
+    function copyPaymentReminder(paymentId) {
+      const p = state.payments.find(x => x.id === paymentId);
+      if (!p) return;
+      const msg = `Hi ${p.family}! Friendly reminder for ${p.item} on ${p.date} ($${p.amount}). You can send via Venmo, Zelle, Cash at our next lesson, or Clover. Thanks! – Coach Gina`;
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(msg).then(() => showToast(`Reminder copied for ${p.family} ($${p.amount})!`));
+      } else {
+        showToast(`Reminder ready for ${p.family} ($${p.amount})`);
+      }
+    }
+
+    function exportPaymentsCsv() {
+      const rows = [['Date', 'Family', 'Item', 'Method', 'Status', 'Amount']];
+      state.payments.forEach(p => {
+        rows.push([p.date || '', p.family || '', p.item || '', p.method || '', p.status || '', String(p.amount || 0)]);
+      });
+      const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      try {
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `gfuchs-payments-${getTodayIsoEst()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast('Payments CSV downloaded!');
+      } catch (_) {
+        showToast('Unable to export CSV on this browser.');
+      }
+    }
+
+    let _compareAthId = null;
+    let _compareIdxA = 1;
+    let _compareIdxB = 0;
+
+    function openCompareClipsModal(athId) {
+      const ath = state.athletes.find(a => a.id === athId);
+      const clips = getAthleteAllClips(athId);
+      if (!ath || clips.length < 2) {
+        showToast('Attach at least 2 video clips to compare Before & After.');
+        return;
+      }
+      _compareAthId = athId;
+      _compareIdxB = 0; // Most recent ("After")
+      _compareIdxA = Math.min(clips.length - 1, 1); // Earlier ("Before")
+      renderCompareClipsModal();
+    }
+
+    function renderCompareClipsModal() {
+      const ath = state.athletes.find(a => a.id === _compareAthId);
+      const clips = getAthleteAllClips(_compareAthId);
+      if (!ath || clips.length < 2) return;
+      const clipA = clips[_compareIdxA] || clips[clips.length - 1];
+      const clipB = clips[_compareIdxB] || clips[0];
+      const isImg = (u) => /\.(jpe?g|png|webp|gif|heic)(\?|$)/i.test(u || '');
+      const renderMedia = (clip, id) => isImg(clip.url)
+        ? `<img src="${clip.url}" class="w-full h-52 object-contain bg-black rounded-2xl" alt="${clip.title}" />`
+        : `<video id="${id}" src="${clip.url}" playsinline controls muted class="w-full h-52 object-contain bg-black rounded-2xl"></video>`;
+
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h3 class="font-extrabold text-base">Before / After Comparison</h3>
+            <p class="text-xs text-[var(--text-muted)]">${ath.name} • ${clips.length} clips available</p>
+          </div>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-9 h-9 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div class="surface-soft rounded-2xl p-3 space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-extrabold text-[var(--text-muted)]">Before</span>
+              <select onchange="_compareIdxA=Number(this.value); renderCompareClipsModal();" class="px-2 py-1 rounded-xl card-white text-[11px] font-bold max-w-[175px]">
+                ${clips.map((c, i) => `<option value="${i}" ${i === _compareIdxA ? 'selected' : ''}>${c.date} — ${c.title}</option>`).join('')}
+              </select>
+            </div>
+            ${renderMedia(clipA, 'compare-vid-a')}
+          </div>
+          <div class="surface-soft rounded-2xl p-3 space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-extrabold text-[#4E6075] dark:text-[#D5FF5F]">After</span>
+              <select onchange="_compareIdxB=Number(this.value); renderCompareClipsModal();" class="px-2 py-1 rounded-xl card-white text-[11px] font-bold max-w-[175px]">
+                ${clips.map((c, i) => `<option value="${i}" ${i === _compareIdxB ? 'selected' : ''}>${c.date} — ${c.title}</option>`).join('')}
+              </select>
+            </div>
+            ${renderMedia(clipB, 'compare-vid-b')}
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <div class="flex items-center gap-1.5">
+            <button type="button" onclick="syncCompareVideos('play')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">▶ Play Both</button>
+            <button type="button" onclick="syncCompareVideos('pause')" class="px-3 py-2 rounded-xl surface-soft text-xs font-extrabold cursor-pointer">⏸ Pause</button>
+            <button type="button" onclick="syncCompareVideos('restart')" class="px-3 py-2 rounded-xl surface-soft text-xs font-extrabold cursor-pointer">↺ Sync Start</button>
+          </div>
+          <div class="inline-flex items-center gap-1 p-1 rounded-xl surface-soft text-[11px] font-extrabold">
+            <button type="button" onclick="setCompareSpeed(0.25)" class="px-2 py-1 rounded-lg hover:bg-white/60 cursor-pointer">0.25x</button>
+            <button type="button" onclick="setCompareSpeed(0.5)" class="px-2 py-1 rounded-lg hover:bg-white/60 cursor-pointer">0.5x</button>
+            <button type="button" onclick="setCompareSpeed(1)" class="px-2 py-1 rounded-lg hover:bg-white/60 cursor-pointer">1x</button>
+          </div>
+        </div>
+      `);
+    }
+
+    function syncCompareVideos(action) {
+      const a = document.getElementById('compare-vid-a');
+      const b = document.getElementById('compare-vid-b');
+      [a, b].forEach(v => {
+        if (!v) return;
+        if (action === 'restart') { v.currentTime = 0; v.play?.().catch(() => {}); }
+        else if (action === 'play') { v.play?.().catch(() => {}); }
+        else if (action === 'pause') { v.pause?.(); }
+      });
+    }
+
+    function setCompareSpeed(rate) {
+      ['compare-vid-a', 'compare-vid-b'].forEach(id => {
+        const v = document.getElementById(id);
+        if (v) v.playbackRate = rate;
+      });
+      showToast(`Playback speed set to ${rate}x`);
+    }
+
     function openManageSessionModal(sessionId) {
       const s = state.sessions.find(x => x.id === sessionId);
       if (!s) return;
@@ -2888,7 +3313,7 @@
       openModal(`
         <div class="flex items-start justify-between gap-2">
           <div>
-            <div class="text-[11px] font-extrabold uppercase tracking-wider ${isCanceled ? 'text-red-500' : 'text-[#4E6075] dark:text-[#9AC0D6]'}">${isCanceled ? 'Canceled Session' : 'Manage Session'}</div>
+            <div class="text-xs font-bold ${isCanceled ? 'text-red-500' : 'text-[#4E6075] dark:text-[#9AC0D6]'}">${isCanceled ? 'Canceled session' : 'Manage session'}</div>
             <h3 class="font-extrabold text-base mt-0.5">${esc(lessonLabel)}</h3>
             <p class="text-[11px] text-[var(--text-muted)] mt-0.5">${esc(players)} • ${esc(s.day || iso)} at ${esc(s.time)} (${esc(s.duration)})</p>
           </div>
@@ -2896,7 +3321,7 @@
         </div>
 
         <form onsubmit="submitRescheduleSession(event, '${s.id}')" class="space-y-3 text-xs">
-          <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Reschedule Date, Time or Length</div>
+          <div class="text-xs font-bold text-[var(--text-muted)]">Reschedule date, time or length</div>
           <div class="grid grid-cols-3 gap-2">
             <div>
               <label class="block font-bold text-[var(--text-muted)] mb-1">Date *</label>
@@ -2936,6 +3361,17 @@
 
         <div class="pt-3 border-t border-[var(--border-subtle)] space-y-2">
           ${!isCanceled ? `
+            <button type="button" onclick="rebookSessionNextWeek('${s.id}')" class="w-full py-2.5 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101] transition">
+              + Rebook Same Time Next Week (+7d)
+            </button>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" onclick="setSessionAttendanceStatus('${s.id}', 'No-Show')" class="py-2 rounded-2xl surface-soft text-xs font-extrabold text-amber-700 dark:text-amber-300 cursor-pointer hover:border-amber-500 transition">
+                Mark No-Show
+              </button>
+              <button type="button" onclick="setSessionAttendanceStatus('${s.id}', 'Late Cancel')" class="py-2 rounded-2xl surface-soft text-xs font-extrabold text-amber-700 dark:text-amber-300 cursor-pointer hover:border-amber-500 transition">
+                Mark Late Cancel
+              </button>
+            </div>
             <button type="button" onclick="cancelSessionCoach('${s.id}')" class="w-full py-2.5 rounded-2xl bg-red-600/10 text-red-600 dark:text-red-400 text-xs font-extrabold cursor-pointer hover:bg-red-600/20 transition">
               Cancel Session (Opens Slot on Calendar)
             </button>
@@ -3103,6 +3539,13 @@
         ? s.athletes.join(', ')
         : `Open Session (0/${s.spotsMax || 1} spots)`;
       const isCanceled = s.status === 'Canceled';
+      const isAttendanceFlag = s.status === 'No-Show' || s.status === 'Late Cancel';
+      const primaryAth = s.athleteId ? state.athletes.find(a => a.id === s.athleteId) : null;
+      const lastInfo = primaryAth ? getAthleteLastSeenInfo(primaryAth.id) : null;
+      const unpaidInfo = primaryAth ? getAthleteUnpaidInfo(primaryAth.id) : { count: 0, total: 0 };
+      const briefCue = primaryAth?.currentFocus || lastInfo?.lastFocus || '';
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
       return `
         <div class="swipe-row relative overflow-hidden rounded-[24px]" data-swipe-type="session" data-swipe-id="${s.id}" data-athlete-id="${s.athleteId || ''}" data-canceled="${isCanceled ? '1' : '0'}">
           <div class="lg:hidden absolute inset-0 flex items-center justify-between px-5 pointer-events-none select-none" aria-hidden="true">
@@ -3113,9 +3556,14 @@
             <div class="flex items-center gap-3.5 min-w-0">
               <img src="${s.img || 'assets/images/fastpitch-hitter.jpg'}" class="w-14 h-14 rounded-2xl object-cover shrink-0 ${isCanceled ? 'grayscale' : ''}" alt="Fastpitch softball training" loading="lazy" decoding="async" />
               <div class="min-w-0">
-                <div class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${showDate && s.day ? `${s.day} • ` : ''}${s.time} • ${s.duration} • ${s.type}</div>
+                <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">
+                  <span>${showDate && s.day ? `${s.day} • ` : ''}${s.time} • ${s.duration} • ${s.type}</span>
+                  ${unpaidInfo.total > 0 && !isCanceled ? `<button type="button" onclick="event.stopPropagation(); state.paymentFilterUnpaid=true; setTab('payments');" class="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold cursor-pointer">$${unpaidInfo.total} due</button>` : ''}
+                  ${isAttendanceFlag ? `<span class="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold">${s.status}</span>` : ''}
+                </div>
                 <div class="font-extrabold text-sm truncate ${isCanceled ? 'line-through' : ''}">${lessonLabel}${customFocus ? ` — ${customFocus}` : ''}</div>
                 <div class="text-xs text-[var(--text-muted)] truncate">${athDisplay} • ${s.payment || 'Scheduled'}</div>
+                ${briefCue && !isCanceled ? `<div class="text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-semibold truncate mt-0.5">${primaryAth?.currentFocus ? 'Focus:' : 'Last:'} ${esc(briefCue)}</div>` : ''}
               </div>
             </div>
             <div class="flex flex-wrap items-center gap-2 shrink-0">
@@ -3937,96 +4385,140 @@
       `);
     }
 
-    function submitAddSessionForAthlete(e, athId) {
+    function submitAddSessionForAthlete(e, athId, extraAthleteIds = []) {
       e.preventDefault();
-      const ath = athId ? state.athletes.find(a => a.id === athId) : null;
       const f = e.target;
       const evt = state.cal.eventTypes.find(t => t.id === f.eventTypeId.value) || state.cal.eventTypes[0];
-      const iso = f.date.value;
+      const baseIso = f.date.value;
       const hm = f.time.value; // "16:00"
       const [hh, mm] = hm.split(':').map(Number);
       const ampm = hh >= 12 ? 'PM' : 'AM';
       const h12 = hh % 12 || 12;
       const timeNice = `${h12}:${String(mm).padStart(2, '0')} ${ampm}`;
-      const dObj = new Date(iso + 'T12:00:00');
-      const dayNice = dObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-      const dayKey = dObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }).replace(',', '');
       const durMin = Number(f.durationMin?.value) || Number(evt?.duration) || 45;
       const durLabel = durMin >= 60 && durMin % 60 === 0 ? `${durMin / 60}H` : `${durMin}M`;
       const focus = f.focus.value.trim() || evt.title;
       const payMode = f.paymentMode.value;
       const isCard = payMode === 'clover-paid';
       const appliedPrice = isCard ? getCardPrice(evt) : getCashPrice(evt);
-      const payLabel = !ath ? `${formatDualPrice(evt)}`
+
+      // Collect all selected athletes (primary + any group multi-select)
+      const allIds = [...new Set([athId, ...(Array.isArray(extraAthleteIds) ? extraAthleteIds : [])].filter(Boolean))];
+      const selectedAthletes = allIds.map(id => state.athletes.find(a => a.id === id)).filter(Boolean);
+      const primaryAth = selectedAthletes[0] || null;
+      const athNames = selectedAthletes.map(a => a.name);
+
+      const payLabel = !primaryAth ? `${formatDualPrice(evt)}`
         : payMode === 'cash-pending' ? `Cash at Session ($${appliedPrice})`
         : payMode === 'cash-paid' ? `Cash Paid ($${appliedPrice})`
         : payMode === 'clover-paid' ? `Clover Paid ($${appliedPrice})`
         : `Venmo/Zelle ($${appliedPrice})`;
 
-      // 1. Add session linked to its parent Lesson
-      state.sessions.unshift({
-        id: 'ses-' + Date.now(),
-        lessonId: evt.id,
-        lessonTitle: evt.title,
-        dateIso: iso,
-        dayKey,
-        day: dayNice,
-        time: timeNice,
-        durationMin: durMin,
-        duration: durLabel,
-        type: evt.type,
-        location: evt.location || '',
-        focus,
-        athletes: ath ? [ath.name] : [],
-        athleteId: ath ? ath.id : null,
-        spotsMax: evt.type === 'Small Group' ? 6 : evt.type === 'Camp / Clinic' ? 16 : 1,
-        status: 'Confirmed',
-        payment: payLabel,
-        price: appliedPrice,
-        img: evt.img || (ath ? getAthleteCoverImg(ath) : 'assets/images/fastpitch-hitter.jpg'),
-        _modifiedAt: Date.now()
-      });
+      // Build occurrence dates for single or recurring bookings
+      const repeatMode = f.repeatMode?.value || 'none';
+      let count = 1;
+      let stepDays = 7;
+      if (repeatMode === 'weekly-4') { count = 4; stepDays = 7; }
+      else if (repeatMode === 'weekly-8') { count = 8; stepDays = 7; }
+      else if (repeatMode === 'biweekly-4') { count = 4; stepDays = 14; }
 
-      // 2. Block slot on Coach Gina's live booking calendar
-      const slotKey = `${iso}@${hm}`;
-      if (!state.cal.bookedSlots.includes(slotKey)) state.cal.bookedSlots.push(slotKey);
+      const recGroupId = count > 1 ? 'recgrp-' + Date.now() : null;
+      let createdCount = 0;
+      let skippedCount = 0;
+      let firstCreatedId = null;
+      let firstDayNice = '';
 
-      // 3. Log payment entry if an athlete is assigned
-      if (ath) {
-        state.payments.unshift({
-          id: 'pay-' + Date.now(),
-          date: dObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          family: `${(ath.parentName || ath.name).split(' ').slice(-1)[0]} Family`,
-          item: `${evt.title} (${ath.name.split(' ')[0]})`,
-          amount: appliedPrice,
-          method: payMode === 'cash-pending' ? 'Cash at Session' : payMode === 'cash-paid' ? 'Cash (Collected ✓)' : payMode === 'clover-paid' ? 'Clover • Card' : 'Venmo / Zelle (Logged)',
-          status: payMode === 'cash-pending' ? 'Pending Cash' : 'Paid',
+      for (let i = 0; i < count; i++) {
+        const iso = i === 0 ? baseIso : addDaysToIso(baseIso, i * stepDays);
+        const slotKey = `${iso}@${hm}`;
+        const hasConflict = i > 0 && state.sessions.some(x => x.status !== 'Canceled' && x.dateIso === iso && parseTime12To24(x.time) === hm);
+        if (hasConflict) {
+          skippedCount++;
+          continue;
+        }
+        const dObj = new Date(iso + 'T12:00:00');
+        const dayNice = dObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const dayKey = dObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }).replace(',', '');
+        if (!firstDayNice) firstDayNice = dayNice;
+        const sesId = 'ses-' + (Date.now() + i);
+        if (!firstCreatedId) firstCreatedId = sesId;
+
+        state.sessions.unshift({
+          id: sesId,
+          lessonId: evt.id,
+          lessonTitle: evt.title,
+          dateIso: iso,
+          dayKey,
+          day: dayNice,
+          time: timeNice,
+          durationMin: durMin,
+          duration: durLabel,
+          type: selectedAthletes.length > 1 ? 'Small Group' : evt.type,
+          location: evt.location || '',
+          focus,
+          athletes: athNames,
+          athleteId: primaryAth ? primaryAth.id : null,
+          athleteIds: selectedAthletes.map(a => a.id),
+          recurrenceGroupId: recGroupId,
+          spotsMax: evt.type === 'Small Group' ? Math.max(6, selectedAthletes.length) : evt.type === 'Camp / Clinic' ? 16 : Math.max(1, selectedAthletes.length),
+          status: 'Confirmed',
+          payment: payLabel,
+          price: appliedPrice,
+          img: evt.img || (primaryAth ? getAthleteCoverImg(primaryAth) : 'assets/images/fastpitch-hitter.jpg'),
           _modifiedAt: Date.now()
         });
+
+        if (!state.cal.bookedSlots.includes(slotKey)) state.cal.bookedSlots.push(slotKey);
+
+        // Log payment entry for each athlete on the first occurrence (or pending cash on future)
+        selectedAthletes.forEach((ath, aIdx) => {
+          const isFuture = i > 0;
+          state.payments.unshift({
+            id: 'pay-' + (Date.now() + i * 10 + aIdx),
+            date: dObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            dateIso: iso,
+            athleteId: ath.id,
+            sessionId: sesId,
+            family: `${(ath.parentName || ath.name).split(' ').slice(-1)[0]} Family`,
+            item: `${evt.title} (${ath.name.split(' ')[0]})`,
+            amount: appliedPrice,
+            method: (isFuture || payMode === 'cash-pending') ? 'Cash at Session' : payMode === 'cash-paid' ? 'Cash (Collected ✓)' : payMode === 'clover-paid' ? 'Clover • Card' : 'Venmo / Zelle (Logged)',
+            status: (isFuture || payMode === 'cash-pending') ? 'Pending Cash' : 'Paid',
+            _modifiedAt: Date.now()
+          });
+        });
+        createdCount++;
       }
 
-      // 4. Optional confirmation message to parent
-      if (ath && f.notify?.checked) {
-        const parentKey = ath.parentName || ath.name;
-        let thread = state.threads.find(t => t.parent === parentKey);
-        if (!thread) {
-          thread = { id: 'msg-' + Date.now(), parent: parentKey, athletes: ath.name, unread: 0, messages: [] };
-          state.threads.unshift(thread);
-        }
-        thread.messages.push({
-          from: 'coach',
-          time: 'Just now',
-          text: `Scheduled ${ath.name.split(' ')[0]} for ${evt.title} session on ${dayNice} at ${timeNice} EST (${durLabel.toLowerCase()}, ${payLabel}). See you in the cage!`
+      // Optional confirmation message to each parent
+      if (selectedAthletes.length && f.notify?.checked) {
+        const seriesNote = createdCount > 1 ? ` (${createdCount} recurring sessions)` : '';
+        selectedAthletes.forEach((ath, aIdx) => {
+          const parentKey = ath.parentName || ath.name;
+          let thread = state.threads.find(t => t.parent === parentKey);
+          if (!thread) {
+            thread = { id: 'msg-' + (Date.now() + aIdx), parent: parentKey, athletes: ath.name, unread: 0, messages: [] };
+            state.threads.unshift(thread);
+          }
+          thread.messages.push({
+            from: 'coach',
+            time: 'Just now',
+            text: `Scheduled ${ath.name.split(' ')[0]} for ${evt.title} session on ${firstDayNice} at ${timeNice} EST${seriesNote} (${durLabel.toLowerCase()}, ${payLabel}). See you in the cage!`
+          });
         });
       }
 
       closeModal();
       render();
-      showToast(ath
-        ? `Scheduled ${evt.title} session on ${dayNice} at ${timeNice} for ${ath.name.split(' ')[0]}!`
-        : `Scheduled ${evt.title} session on ${dayNice} at ${timeNice} (${durLabel.toLowerCase()})!`);
-      if (state.cal?.calendarSync?.autoPrompt && state.sessions[0]?.id) {
-        openCalendarSyncModal(state.sessions[0].id);
+      const whoLabel = selectedAthletes.length > 1
+        ? `${selectedAthletes.length} athletes`
+        : (primaryAth ? primaryAth.name.split(' ')[0] : 'Open Session');
+      const skipMsg = skippedCount ? ` (${skippedCount} skipped due to conflict)` : '';
+      showToast(createdCount > 1
+        ? `Scheduled ${createdCount} recurring sessions for ${whoLabel} starting ${firstDayNice} at ${timeNice}!${skipMsg}`
+        : `Scheduled ${evt.title} on ${firstDayNice} at ${timeNice} for ${whoLabel}!`);
+      if (state.cal?.calendarSync?.autoPrompt && firstCreatedId) {
+        openCalendarSyncModal(firstCreatedId);
       }
     }
 
@@ -4086,6 +4578,7 @@
           } else {
             if (isArchived) return false;
             if (f === 'today' && !(todayIds.has(a.id) || todayNames.has(a.name))) return false;
+            if (f === 'atRisk' && !getAthleteLastSeenInfo(a.id).isAtRisk) return false;
             if (f === 'waiver' && a.waiverSigned) return false;
             if (f === 'drafts' && !draftIds.has(a.id)) return false;
             if (['10U', '12U', '14U', '16U', '18U'].includes(f) && a.ageGroup !== f) return false;
@@ -4098,7 +4591,11 @@
         })
         .sort((a, b) => {
           if (col === 'age') return (parseInt(a.ageGroup, 10) - parseInt(b.ageGroup, 10)) * dir || a.name.localeCompare(b.name);
-          if (col === 'waiver') return (Number(a.waiverSigned) - Number(b.waiverSigned)) * dir || a.name.localeCompare(b.name);
+          if (col === 'lastSeen') {
+            const da = getAthleteLastSeenInfo(a.id).daysAgo ?? 9999;
+            const db = getAthleteLastSeenInfo(b.id).daysAgo ?? 9999;
+            return (da - db) * dir || a.name.localeCompare(b.name);
+          }
           return a.name.localeCompare(b.name) * dir;
         });
     }
@@ -4121,8 +4618,8 @@
         }
         return `
           <div class="card-white rounded-[28px] p-8 text-center space-y-2">
-            <div class="text-sm font-extrabold">${state.rosterFilter === 'archived' && !state.rosterSearch ? 'No archived athletes' : `No athletes match "${state.rosterSearch || state.rosterFilter}"`}</div>
-            <p class="text-xs text-[var(--text-muted)]">${state.rosterFilter === 'archived' ? 'Archived athletes appear here with all their session notes and videos preserved.' : 'Try clearing your search or switching age group filters.'}</p>
+            <div class="text-sm font-extrabold">${state.rosterFilter === 'archived' && !state.rosterSearch ? 'No archived athletes' : state.rosterFilter === 'atRisk' ? 'All active athletes are on track!' : `No athletes match "${state.rosterSearch || state.rosterFilter}"`}</div>
+            <p class="text-xs text-[var(--text-muted)]">${state.rosterFilter === 'archived' ? 'Archived athletes appear here with all their session notes and videos preserved.' : state.rosterFilter === 'atRisk' ? 'No active players have gone 21+ days without a session or upcoming booking.' : 'Try clearing your search or switching age group filters.'}</p>
             <button onclick="state.rosterSearch=''; state.rosterFilter='all'; render(false);" class="mt-1 px-4 py-2 rounded-full bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Show All ${activeTotal} Active Athletes</button>
           </div>
         `;
@@ -4142,9 +4639,11 @@
                     <button type="button" onclick="setRosterSort('name')" class="cursor-pointer hover:text-[var(--text-main)]">Athlete${arrow('name')}</button>
                   </th>
                   <th class="py-3 px-2">
+                    <button type="button" onclick="setRosterSort('lastSeen')" class="cursor-pointer hover:text-[var(--text-main)]">Last seen${arrow('lastSeen')}</button>
+                  </th>
+                  <th class="py-3 px-2 hidden md:table-cell">
                     <button type="button" onclick="setRosterSort('age')" class="cursor-pointer hover:text-[var(--text-main)]">Age${arrow('age')}</button>
                   </th>
-                  <th class="py-3 px-2 hidden md:table-cell">Position &amp; team</th>
                   <th class="py-3 px-2 hidden sm:table-cell">Parent</th>
                   <th class="py-3 pl-2 pr-4 text-right">Actions</th>
                 </tr>
@@ -4153,6 +4652,8 @@
                 ${list.map(a => {
                   const hasDraft = draftIds.has(a.id);
                   const isArchived = Boolean(a.archived);
+                  const seen = getAthleteLastSeenInfo(a.id);
+                  const unpaid = getAthleteUnpaidInfo(a.id);
                   return `
                     <tr onclick="openCoachAthleteDetail('${a.id}')" class="hover:bg-white/50 dark:hover:bg-white/5 transition cursor-pointer ${isArchived ? 'opacity-75' : ''}">
                       <td class="py-3 pl-4 pr-2">
@@ -4161,23 +4662,21 @@
                             ${a.initials}
                           </div>
                           <div class="min-w-0">
-                            <div class="flex items-center gap-1.5">
+                            <div class="flex items-center gap-1.5 flex-wrap">
                               <span class="font-extrabold text-[13px] truncate">${a.name}</span>
                               ${isArchived ? `<span class="px-1.5 py-0.5 rounded surface-soft text-[var(--text-muted)] text-[9px] font-extrabold shrink-0">ARCHIVED</span>` : ''}
                               ${hasDraft ? `<span class="px-1.5 py-0.5 rounded bg-[#D5FF5F] text-[#010101] text-[9px] font-extrabold shrink-0">DRAFT</span>` : ''}
+                              ${unpaid.total > 0 && !isArchived ? `<span class="px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-800 dark:text-amber-300 text-[9px] font-extrabold shrink-0">$${unpaid.total} due</span>` : ''}
                             </div>
-                            ${[a.position, a.team, a.parentName].filter(Boolean).length ? `<div class="md:hidden text-[11px] text-[var(--text-muted)] truncate">${[a.position, a.team, a.parentName].filter(Boolean).join(' • ')}</div>` : ''}
+                            ${[a.ageGroup, a.position, a.team].filter(Boolean).length ? `<div class="md:hidden text-[11px] text-[var(--text-muted)] truncate">${[a.ageGroup, a.position, a.team].filter(Boolean).join(' • ')}</div>` : ''}
                           </div>
                         </div>
                       </td>
                       <td class="py-3 px-2 whitespace-nowrap">
-                        ${a.ageGroup ? `<span class="px-2 py-0.5 rounded-full surface-soft text-[11px] font-extrabold">${a.ageGroup}</span>` : `<span class="text-[var(--text-muted)]">—</span>`}
+                        <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${seen.isAtRisk ? 'bg-amber-400/20 text-amber-800 dark:text-amber-300' : 'surface-soft text-[var(--text-muted)]'}">${seen.label}</span>
                       </td>
-                      <td class="py-3 px-2 hidden md:table-cell">
-                        ${a.position || a.team ? `
-                          <div class="font-bold truncate max-w-[190px]">${a.position || '—'}</div>
-                          ${a.team ? `<div class="text-[11px] text-[var(--text-muted)] truncate max-w-[190px]">${a.team}</div>` : ''}
-                        ` : `<span class="text-[var(--text-muted)]">—</span>`}
+                      <td class="py-3 px-2 hidden md:table-cell whitespace-nowrap">
+                        ${a.ageGroup ? `<span class="px-2 py-0.5 rounded-full surface-soft text-[11px] font-extrabold">${a.ageGroup}</span>` : `<span class="text-[var(--text-muted)]">—</span>`}
                       </td>
                       <td class="py-3 px-2 hidden sm:table-cell">
                         ${a.parentName || a.parentPhone ? `
@@ -4189,6 +4688,9 @@
                         <div class="inline-flex items-center gap-1.5">
                           ${isArchived ? `
                             <button onclick="unarchiveAthlete('${a.id}')" class="px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer hover:brightness-95">Restore</button>
+                          ` : seen.isAtRisk ? `
+                            <button onclick="openCheckInMessageModal('${a.id}')" class="px-2.5 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold cursor-pointer">Check In</button>
+                            <button onclick="openSessionRecapModal('${a.id}', null)" title="Session Notes" class="px-2.5 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer">Notes</button>
                           ` : `
                             <button onclick="openEditAthleteModal('${a.id}')" title="Edit Athlete Info" aria-label="Edit ${a.name}" class="w-8 h-8 rounded-xl surface-soft text-xs font-extrabold inline-flex items-center justify-center cursor-pointer hover:border-[#010101]">${uiIcon('edit')}</button>
                             <button onclick="openSessionRecapModal('${a.id}', null)" title="Session Notes" class="px-2.5 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer">Notes</button>
@@ -4912,10 +5414,12 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       if (state.rosterView !== 'detail') {
         const activeCount = state.athletes.filter(a => !a.archived).length;
         const archivedCount = state.athletes.filter(a => a.archived).length;
+        const atRiskCount = state.athletes.filter(a => !a.archived && getAthleteLastSeenInfo(a.id).isAtRisk).length;
         const draftCount = new Set(state.sessionRecaps.filter(r => r.isDraft).map(r => r.athleteId)).size;
         const filters = [
           { id: 'all', label: `Active (${activeCount})` },
           { id: 'today', label: 'Today' },
+          ...(atRiskCount ? [{ id: 'atRisk', label: `Needs Check-In (${atRiskCount})` }] : []),
           { id: '10U', label: '10U' },
           { id: '12U', label: '12U' },
           { id: '14U', label: '14U' },
@@ -4972,13 +5476,19 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       // PLAYER DETAIL MODE
       const activeTotal = state.athletes.filter(a => !a.archived).length;
       const recaps = getSortedRecapsForAthlete(sel.id, true);
-      const athSessions = state.sessions.filter(s => s.athleteId === sel.id || (s.athletes && s.athletes.includes(sel.name)));
+      const athSessions = state.sessions.filter(s => s.athleteId === sel.id || (Array.isArray(s.athleteIds) && s.athleteIds.includes(sel.id)) || (s.athletes && s.athletes.includes(sel.name)));
+      const seenInfo = getAthleteLastSeenInfo(sel.id);
+      const unpaidInfo = getAthleteUnpaidInfo(sel.id);
+      const allClips = getAthleteAllClips(sel.id);
+      const attendanceFlags = athSessions.filter(s => s.status === 'No-Show' || s.status === 'Late Cancel');
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       return `
         <div class="flex flex-wrap items-center justify-between gap-2">
           <button onclick="state.rosterView='list'; render(false);" class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-full card-white text-xs font-extrabold cursor-pointer">
             ← All Athletes (${activeTotal})
           </button>
           <div class="flex flex-wrap items-center gap-2">
+            <button onclick="openCheckInMessageModal('${sel.id}')" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer hover:border-[#010101]">Check In</button>
             <button onclick="openEditAthleteModal('${sel.id}')" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5 hover:border-[#010101]">${uiIcon('edit')} Edit Info</button>
             <button onclick="openAddSessionForAthleteModal('${sel.id}')" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer">+ Add Session</button>
             <button onclick="openSessionRecapModal('${sel.id}', null)" class="px-3.5 py-2 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm">${uiIcon('note')} New Notes</button>
@@ -4986,7 +5496,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          <!-- Left: Athlete Card + Safety + Scheduled Sessions -->
+          <!-- Left: Athlete Card + Pinned Focus + Scheduled Sessions -->
           <div class="lg:col-span-5 space-y-4">
             <div class="card-mist rounded-[28px] p-6 space-y-4">
               <div class="flex items-center justify-between gap-2">
@@ -4995,6 +5505,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                     ? `<span class="px-3 py-1 rounded-full bg-white text-[#010101] text-xs font-extrabold">${[sel.ageGroup, sel.gradYear ? `Class of ${sel.gradYear}` : ''].filter(Boolean).join(' • ')}</span>`
                     : `<span class="px-3 py-1 rounded-full bg-white/70 text-[#010101] text-xs font-extrabold">Athlete Profile</span>`
                   }
+                  <span class="px-2.5 py-1 rounded-full text-[11px] font-bold ${seenInfo.isAtRisk ? 'bg-amber-400/25 text-amber-900 dark:text-amber-200' : 'bg-white/70 dark:bg-white/10 text-[var(--text-muted)]'}">Last seen: ${seenInfo.label}</span>
+                  ${unpaidInfo.total > 0 ? `<button type="button" onclick="state.paymentFilterUnpaid=true; setTab('payments');" class="px-2.5 py-1 rounded-full bg-amber-400/25 text-amber-900 dark:text-amber-200 text-[11px] font-extrabold cursor-pointer">$${unpaidInfo.total} due</button>` : ''}
                   ${sel.archived ? `<span class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold">ARCHIVED</span>` : ''}
                 </div>
                 <button onclick="openEditAthleteModal('${sel.id}')" title="Edit Athlete Info" class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold cursor-pointer inline-flex items-center gap-1">${uiIcon('edit')} Edit</button>
@@ -5006,6 +5518,24 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                   : `<div class="text-xs text-[var(--text-muted)] mt-0.5">No profile details added yet — tap Edit to add.</div>`
                 }
               </div>
+
+              <!-- Pinned Current Focus / Season Goal -->
+              <div class="card-white rounded-2xl p-3.5 space-y-1">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">Pinned Current Focus</span>
+                  <button type="button" onclick="openEditCurrentFocusModal('${sel.id}')" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">${sel.currentFocus ? 'Edit' : '+ Set Focus'}</button>
+                </div>
+                <p class="text-xs ${sel.currentFocus ? 'font-semibold leading-relaxed' : 'text-[var(--text-muted)]'}">
+                  ${sel.currentFocus ? esc(sel.currentFocus) : 'Pin a season goal or key mechanical cue so it appears right on Today’s session card.'}
+                </p>
+              </div>
+
+              ${attendanceFlags.length ? `
+                <div class="text-xs px-3 py-2 rounded-2xl bg-amber-400/15 text-amber-900 dark:text-amber-200 font-semibold">
+                  Attendance note: ${attendanceFlags.filter(s => s.status === 'No-Show').length} No-Show · ${attendanceFlags.filter(s => s.status === 'Late Cancel').length} Late Cancel
+                </div>
+              ` : ''}
+
               ${(sel.parentName || sel.parentPhone || sel.parentEmail || sel.emergencyContact || sel.medicalNotes || sel.coachBio) ? `
                 <div class="text-xs space-y-1">
                   ${sel.parentName || sel.parentPhone ? `<div><span class="text-[var(--text-muted)]">Parent:</span> <strong>${[sel.parentName, sel.parentPhone].filter(Boolean).join(' • ')}</strong></div>` : ''}
@@ -5051,7 +5581,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                 ${athSessions.length ? athSessions.map(s => `
                   <div class="surface-soft rounded-2xl p-3 flex items-center justify-between gap-2 ${s.status === 'Canceled' ? 'opacity-60' : ''}">
                     <div class="min-w-0">
-                      <div class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${s.day} • ${s.time} • ${s.duration}${s.status === 'Canceled' ? ' • Canceled' : ''}</div>
+                      <div class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${s.day} • ${s.time} • ${s.duration}${s.status === 'Canceled' || s.status === 'No-Show' || s.status === 'Late Cancel' ? ` • ${s.status}` : ''}</div>
                       <div class="text-xs font-extrabold truncate ${s.status === 'Canceled' ? 'line-through' : ''}">${s.lessonTitle || s.focus}</div>
                       <div class="text-[11px] text-[var(--text-muted)]">${s.payment}</div>
                     </div>
@@ -5084,16 +5614,23 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             </div>
           </div>
 
-          <!-- Right: Session Notes & Video History (Replaces Apple Notes + Manual Texting!) -->
+          <!-- Right: Session Notes & Video History -->
           <div class="lg:col-span-7 card-white rounded-[28px] p-5 space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h2 class="text-base font-extrabold tracking-tight">Session Notes &amp; Videos</h2>
-                <p class="text-xs text-[var(--text-muted)]">Replaces Apple Notes — log notes + attach video &amp; send straight to ${sel.parentName}</p>
+                <p class="text-xs text-[var(--text-muted)]">Log notes + attach clips &amp; send straight to ${sel.parentName || 'parent'}</p>
               </div>
-              <button onclick="openSessionRecapModal('${sel.id}', null)" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm">
-                ${uiIcon('note')} New Recap &amp; Send
-              </button>
+              <div class="flex flex-wrap items-center gap-2">
+                ${allClips.length >= 2 ? `
+                  <button onclick="openCompareClipsModal('${sel.id}')" class="px-3.5 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer shadow-sm">
+                    Compare Clips (${allClips.length})
+                  </button>
+                ` : ''}
+                <button onclick="openSessionRecapModal('${sel.id}', null)" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm">
+                  ${uiIcon('note')} New Recap &amp; Send
+                </button>
+              </div>
             </div>
 
             <div class="space-y-3">
@@ -5565,6 +6102,10 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       }
       _recapActiveAthId = ath.id;
       const ses = _recapActiveSesId ? state.sessions.find(s => s.id === _recapActiveSesId) : null;
+      const groupAthletes = (ses && Array.isArray(ses.athleteIds) && ses.athleteIds.length > 1)
+        ? ses.athleteIds.map(id => state.athletes.find(a => a.id === id)).filter(Boolean)
+        : [];
+      const defaultPrice = Number(ses?.price) || getCashPrice(state.cal.eventTypes[0] || { price: 60 }) || 60;
       const saved = loadSavedRecapDraft(ath.id);
       const d = saved || {
         includeWarmup: true,
@@ -5577,11 +6118,12 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       };
       const prevRecap = getSortedRecapsForAthlete(ath.id, false)[0];
       const allTags = ['Barrel Control', 'Variability', 'Approach', 'Exit Velo', 'Timing', 'Slapping', 'Footwork', 'Pop Time'];
-      const teeQuick = ['Extensions 3/3/3', 'Swing 3/3/3'];
-      const ftQuick = ['Shorty baseballs', 'Baseball bat baseballs', 'Regular bat softballs'];
-      const machQuick = ['Middle-in timing', 'Outside corner tracking', 'Changeup recognition'];
-      const hwQuick = ['Extensions in mid out', 'Step back drill to stay in legs', 'Outside pitches'];
+      const teeQuick = ['Extensions 3/3/3', 'Swing 3/3/3', ...getCustomCues('tee')];
+      const ftQuick = ['Shorty baseballs', 'Baseball bat baseballs', 'Regular bat softballs', ...getCustomCues('ft')];
+      const machQuick = ['Middle-in timing', 'Outside corner tracking', 'Changeup recognition', ...getCustomCues('machine')];
+      const hwQuick = ['Extensions in mid out', 'Step back drill to stay in legs', 'Outside pitches', ...getCustomCues('homework')];
       const micSvg = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path stroke-linecap="round" d="M5 11a7 7 0 0014 0M12 18v3m-3 0h6"/></svg>`;
+      const escAttr = (v) => String(v ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
       return `
         <form oninput="autoSaveRecapDraft(); updateStationDots();" onchange="autoSaveRecapDraft(true); updateStationDots();" onsubmit="submitSessionRecap(event, '${ath.id}', '${ses ? ses.id : ''}')" class="max-w-2xl mx-auto space-y-4">
@@ -5604,17 +6146,17 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               <div class="flex items-center gap-3 min-w-0">
                 <div class="w-12 h-12 rounded-2xl bg-[#010101] text-[#D5FF5F] font-extrabold text-sm flex items-center justify-center shrink-0">${ath.initials}</div>
                 <div class="min-w-0">
-                  <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Session Notes Studio</div>
-                  <h1 class="text-xl font-extrabold tracking-tight truncate">${ath.name} <span class="text-sm font-bold text-[var(--text-muted)]">(${ath.ageGroup})</span></h1>
+                  <div class="text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6]">Session Notes Studio</div>
+                  <h1 class="text-xl font-extrabold tracking-tight truncate">${ath.name} ${ath.ageGroup ? `<span class="text-sm font-bold text-[var(--text-muted)]">(${ath.ageGroup})</span>` : ''}</h1>
                 </div>
               </div>
               <select aria-label="Switch athlete" onchange="switchRecapAthlete(this.value)" class="px-3 py-2 rounded-xl card-white text-xs font-extrabold cursor-pointer shrink-0">
-                ${state.athletes.map(a => `<option value="${a.id}" ${a.id === ath.id ? 'selected' : ''}>${a.name.split(' ')[0]} (${a.ageGroup})</option>`).join('')}
+                ${state.athletes.filter(a => !a.archived).map(a => `<option value="${a.id}" ${a.id === ath.id ? 'selected' : ''}>${a.name.split(' ')[0]}${a.ageGroup ? ` (${a.ageGroup})` : ''}</option>`).join('')}
               </select>
             </div>
 
             ${prevRecap ? `
-              <!-- Collapsible Last Session Memory Pill -->
+              <!-- Collapsible Last Session Memory Pill + 1-Tap Copy Forward -->
               <div class="rounded-2xl card-white overflow-hidden">
                 <button type="button" onclick="document.getElementById('recap-prev-detail').classList.toggle('hidden')" class="w-full px-3.5 py-2.5 flex items-center justify-between gap-2 text-left cursor-pointer">
                   <div class="min-w-0 flex items-center gap-2">
@@ -5623,10 +6165,13 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                   </div>
                   <span class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] shrink-0">Peek ▾</span>
                 </button>
-                <div id="recap-prev-detail" class="hidden px-3.5 pb-3 pt-1.5 border-t border-[var(--border-subtle)] text-xs space-y-1.5">
+                <div id="recap-prev-detail" class="hidden px-3.5 pb-3 pt-1.5 border-t border-[var(--border-subtle)] text-xs space-y-2">
                   <div><span class="font-extrabold">Focus:</span> <span class="text-[var(--text-muted)] whitespace-pre-line">${prevRecap.focus || prevRecap.note}</span></div>
                   ${prevRecap.ft ? `<div><span class="font-extrabold">FT:</span> <span class="text-[var(--text-muted)]">${prevRecap.ft.replace(/\n/g, ' • ')}</span></div>` : ''}
                   ${prevRecap.homework ? `<div><span class="font-extrabold">HW:</span> <span class="text-[var(--text-muted)]">${prevRecap.homework.replace(/\n/g, ' ')}</span></div>` : ''}
+                  <button type="button" onclick="copyLastRecapIntoDraft('${ath.id}')" class="px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer">
+                    Copy Last Focus &amp; HW into Today’s Note
+                  </button>
                 </div>
               </div>
             ` : ''}
@@ -5673,7 +6218,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             <div id="recap-panel-tee" class="space-y-2.5 ${_recapActiveStation === 'tee' ? '' : 'hidden'}">
               <div class="flex items-center justify-between gap-2">
                 <div class="flex flex-wrap gap-1.5">
-                  ${teeQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-tee-input','${q}')" class="px-3 py-1.5 rounded-full surface-soft text-xs font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+                  ${teeQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-tee-input','${escAttr(q)}')" class="px-3 py-1.5 rounded-full surface-soft text-xs font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+                  <button type="button" onclick="addCustomCuePrompt('tee')" class="px-2.5 py-1.5 rounded-full border border-dashed border-[var(--border-subtle)] text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ Cue</button>
                 </div>
                 <button type="button" onclick="startRecapDictation('recap-tee-input', this)" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full surface-soft text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0">${micSvg}</button>
               </div>
@@ -5684,7 +6230,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             <div id="recap-panel-ft" class="space-y-2.5 ${_recapActiveStation === 'ft' ? '' : 'hidden'}">
               <div class="flex items-center justify-between gap-2">
                 <div class="flex flex-wrap gap-1.5">
-                  ${ftQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-ft-input','${q}')" class="px-3 py-1.5 rounded-full surface-soft text-xs font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+                  ${ftQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-ft-input','${escAttr(q)}')" class="px-3 py-1.5 rounded-full surface-soft text-xs font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+                  <button type="button" onclick="addCustomCuePrompt('ft')" class="px-2.5 py-1.5 rounded-full border border-dashed border-[var(--border-subtle)] text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ Cue</button>
                 </div>
                 <button type="button" onclick="startRecapDictation('recap-ft-input', this)" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full surface-soft text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0">${micSvg}</button>
               </div>
@@ -5695,7 +6242,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             <div id="recap-panel-machine" class="space-y-2.5 ${_recapActiveStation === 'machine' ? '' : 'hidden'}">
               <div class="flex items-center justify-between gap-2">
                 <div class="flex flex-wrap gap-1.5">
-                  ${machQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-machine-input','${q}')" class="px-3 py-1.5 rounded-full surface-soft text-xs font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+                  ${machQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-machine-input','${escAttr(q)}')" class="px-3 py-1.5 rounded-full surface-soft text-xs font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+                  <button type="button" onclick="addCustomCuePrompt('machine')" class="px-2.5 py-1.5 rounded-full border border-dashed border-[var(--border-subtle)] text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ Cue</button>
                 </div>
                 <button type="button" onclick="startRecapDictation('recap-machine-input', this)" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full surface-soft text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0">${micSvg}</button>
               </div>
@@ -5707,10 +6255,10 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           <div class="card-white rounded-[28px] p-5 space-y-2.5">
             <div class="flex items-center justify-between gap-2">
               <label for="recap-homework-input" class="text-sm font-extrabold tracking-tight">Homework</label>
-              <span class="text-xs font-semibold text-[var(--text-muted)]">Tap to add drills</span>
+              <button type="button" onclick="addCustomCuePrompt('homework')" class="text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ Save Cue</button>
             </div>
             <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-              ${hwQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-homework-input','${q}')" class="px-3 py-1.5 rounded-full surface-soft text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+              ${hwQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-homework-input','${escAttr(q)}')" class="px-3 py-1.5 rounded-full surface-soft text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
             </div>
             <textarea id="recap-homework-input" name="homework" rows="3" class="w-full px-4 py-3 rounded-2xl surface-soft text-[16px] leading-snug font-medium resize-none">${d.homework}</textarea>
           </div>
@@ -5732,7 +6280,75 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             </div>
           </div>
 
-          <!-- 5. Clips & Send Action Card -->
+          <!-- 5. Post-Lesson Wrap-Up (Payment, Rebook +7d & Group Share) -->
+          <div class="card-white rounded-[28px] p-5 space-y-3 text-xs">
+            <div class="font-extrabold text-sm tracking-tight">Lesson Wrap-Up</div>
+
+            <!-- Inline Payment Logging -->
+            <div class="surface-soft rounded-2xl p-3.5 space-y-2.5">
+              <label class="flex items-center justify-between gap-3 cursor-pointer">
+                <div>
+                  <div class="font-extrabold">Log Payment with Note</div>
+                  <div class="text-[11px] text-[var(--text-muted)]">Automatically records this lesson in Payments</div>
+                </div>
+                <input type="checkbox" name="wrapLogPayment" onchange="document.getElementById('wrap-pay-fields')?.classList.toggle('hidden', !this.checked)" class="w-5 h-5 accent-[#010101]" />
+              </label>
+              <div id="wrap-pay-fields" class="hidden grid grid-cols-3 gap-2 pt-1">
+                <div>
+                  <label class="block text-[11px] font-bold text-[var(--text-muted)] mb-1">Amount ($)</label>
+                  <input type="number" name="wrapPayAmount" value="${defaultPrice}" min="0" class="w-full px-2.5 py-2 rounded-xl card-white font-extrabold text-xs" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-[var(--text-muted)] mb-1">Method</label>
+                  <select name="wrapPayMethod" class="w-full px-2 py-2 rounded-xl card-white font-bold text-xs">
+                    <option value="Cash">Cash</option>
+                    <option value="Venmo / Zelle">Venmo / Zelle</option>
+                    <option value="Clover • Card">Clover</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-[var(--text-muted)] mb-1">Status</label>
+                  <select name="wrapPayStatus" class="w-full px-2 py-2 rounded-xl card-white font-bold text-xs">
+                    <option value="Paid">Paid ✓</option>
+                    <option value="Unpaid">Unpaid</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            ${ses ? `
+              <label class="flex items-center justify-between gap-3 p-3.5 rounded-2xl surface-soft cursor-pointer">
+                <div>
+                  <div class="font-extrabold">Rebook Same Time Next Week (+7d)</div>
+                  <div class="text-[11px] text-[var(--text-muted)]">Books ${ses.time} next week automatically if open</div>
+                </div>
+                <input type="checkbox" name="wrapRebookNextWeek" class="w-5 h-5 accent-[#010101]" />
+              </label>
+            ` : ''}
+
+            ${groupAthletes.length > 1 ? `
+              <div class="surface-soft rounded-2xl p-3.5 space-y-2.5">
+                <label class="flex items-center justify-between gap-3 cursor-pointer">
+                  <div>
+                    <div class="font-extrabold">Share Group Note to All ${groupAthletes.length} Athletes</div>
+                    <div class="text-[11px] text-[var(--text-muted)]">${groupAthletes.map(a => a.name.split(' ')[0]).join(', ')}</div>
+                  </div>
+                  <input type="checkbox" name="wrapShareGroup" checked onchange="document.getElementById('wrap-group-cues')?.classList.toggle('hidden', !this.checked)" class="w-5 h-5 accent-[#010101]" />
+                </label>
+                <div id="wrap-group-cues" class="space-y-1.5 pt-1">
+                  <div class="text-[11px] font-bold text-[var(--text-muted)]">Optional 1-line personal cue per athlete:</div>
+                  ${groupAthletes.map(ga => `
+                    <div class="flex items-center gap-2">
+                      <span class="text-[11px] font-extrabold w-20 truncate shrink-0">${ga.name.split(' ')[0]}:</span>
+                      <input type="text" name="groupCue_${ga.id}" class="flex-1 px-3 py-1.5 rounded-xl card-white text-xs" placeholder="Personal cue for ${ga.name.split(' ')[0]}..." />
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- 6. Clips & Send Action Card -->
           <div class="card-mist rounded-[28px] p-5 space-y-3.5">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <label class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl card-white text-xs font-extrabold cursor-pointer hover:border-[#010101]">
@@ -5741,12 +6357,12 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                 <input type="file" accept="video/*,image/*" multiple onchange="handleRecapVideoFile(this)" class="hidden" />
               </label>
               <label class="inline-flex items-center gap-2 text-xs font-extrabold cursor-pointer">
-                <span>Text ${ath.parentName.split(' ')[0]}</span>
+                <span>Text ${(ath.parentName || 'Parent').split(' ')[0]}</span>
                 <input type="checkbox" name="sendNow" checked class="w-5 h-5 accent-[#010101]" />
               </label>
             </div>
             <button type="submit" class="w-full py-4 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
-              Send Recap to ${ath.name.split(' ')[0]} &amp; ${ath.parentName.split(' ')[0]} →
+              ${groupAthletes.length > 1 ? `Send Group Recap (${groupAthletes.length} Athletes) →` : `Send Recap to ${ath.name.split(' ')[0]} & ${(ath.parentName || 'Parent').split(' ')[0]} →`}
             </button>
           </div>
         </form>
@@ -5758,75 +6374,122 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       clearTimeout(_recapAutoSaveTimer);
       const ath = state.athletes.find(a => a.id === athId) || state.athletes[0];
       const ses = sessionId ? state.sessions.find(s => s.id === sessionId) : null;
-      const includeWarmup = e.target.includeWarmup.checked;
-      const warmup = includeWarmup ? e.target.warmup.value.trim() : '';
-      const focus = e.target.focus.value.trim();
-      const tee = e.target.tee.value.trim();
-      const ft = e.target.ft.value.trim();
-      const machine = e.target.machine.value.trim();
-      const homework = e.target.homework.value.trim() || GINA_HOMEWORK_DEFAULT;
-      const sendNow = e.target.sendNow.checked;
-      const vidTitle = _recapDraftVideoName || `${ath.name.split(' ')[0]} Session Clip — Today (0:14)`;
-      const vidImg = getAthleteCoverImg(ath);
-      const clips = _recapDraftClips.length ? _recapDraftClips.map(c => ({ ...c, img: vidImg })) : [{ title: vidTitle, img: vidImg, url: _recapDraftVideoUrl }];
+      const f = e.target;
+      const includeWarmup = f.includeWarmup.checked;
+      const warmup = includeWarmup ? f.warmup.value.trim() : '';
+      const baseFocus = f.focus.value.trim();
+      const tee = f.tee.value.trim();
+      const ft = f.ft.value.trim();
+      const machine = f.machine.value.trim();
+      const homework = f.homework.value.trim() || GINA_HOMEWORK_DEFAULT;
+      const sendNow = f.sendNow.checked;
 
-      const newRecap = {
-        id: 'rec-' + Date.now(),
-        isDraft: false,
-        athleteId: ath.id,
-        date: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }),
-        sessionTitle: ses ? ses.focus : '1-on-1 Training Session',
-        tags: [..._recapDraftTags],
-        warmup,
-        focus,
-        tee,
-        ft,
-        machine,
-        homework,
-        note: focus,
-        videoTitle: vidTitle,
-        videoImg: vidImg,
-        videoUrl: _recapDraftVideoUrl,
-        clips,
-        sentTo: sendNow ? `${ath.parentName} (SMS + App)` : 'Saved Private',
-        sentAt: 'Just now',
-        createdAt: Date.now()
-      };
+      // Determine target athletes (single or all athletes in a Small Group session)
+      const shareGroup = Boolean(f.wrapShareGroup?.checked && ses && Array.isArray(ses.athleteIds) && ses.athleteIds.length > 1);
+      const targets = shareGroup
+        ? ses.athleteIds.map(id => state.athletes.find(a => a.id === id)).filter(Boolean)
+        : [ath];
 
-      // 1. Replace any auto-saved draft with the finalized recap & clear localStorage draft
-      state.sessionRecaps = state.sessionRecaps.filter(r => r.id !== `draft-${ath.id}`);
-      state.sessionRecaps.unshift(newRecap);
-      try { localStorage.removeItem(getRecapDraftStorageKey(ath.id)); } catch (_) {}
+      const todayLabel = new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' });
+      const todayShort = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const todayIso = getTodayIsoEst();
+
+      targets.forEach((targetAth, idx) => {
+        const personalCue = shareGroup ? (f[`groupCue_${targetAth.id}`]?.value || '').trim() : '';
+        const focus = personalCue ? `${baseFocus}\nPersonal cue: ${personalCue}` : baseFocus;
+        const vidTitle = _recapDraftVideoName || `${targetAth.name.split(' ')[0]} Session Clip — Today (0:14)`;
+        const vidImg = getAthleteCoverImg(targetAth);
+        const clips = _recapDraftClips.length ? _recapDraftClips.map(c => ({ ...c, img: vidImg })) : [{ title: vidTitle, img: vidImg, url: _recapDraftVideoUrl }];
+
+        const newRecap = {
+          id: 'rec-' + (Date.now() + idx),
+          isDraft: false,
+          athleteId: targetAth.id,
+          date: todayLabel,
+          sessionTitle: ses ? (ses.lessonTitle || ses.focus) : '1-on-1 Training Session',
+          tags: [..._recapDraftTags],
+          warmup,
+          focus,
+          tee,
+          ft,
+          machine,
+          homework,
+          note: focus,
+          videoTitle: vidTitle,
+          videoImg: vidImg,
+          videoUrl: _recapDraftVideoUrl,
+          clips,
+          sentTo: sendNow ? `${targetAth.parentName || targetAth.name} (SMS + App)` : 'Saved Private',
+          sentAt: 'Just now',
+          createdAt: Date.now() + idx,
+          _modifiedAt: Date.now() + idx
+        };
+
+        state.sessionRecaps = state.sessionRecaps.filter(r => r.id !== `draft-${targetAth.id}`);
+        state.sessionRecaps.unshift(newRecap);
+        try { localStorage.removeItem(getRecapDraftStorageKey(targetAth.id)); } catch (_) {}
+
+        targetAth.notes.unshift({ date: 'Today', text: focus });
+        const firstDrillLine = (tee || ft || machine).split('\n').map(l => l.trim().replace(/^[•\-*]\s*/, '')).find(Boolean);
+        if (firstDrillLine) {
+          targetAth.drills.unshift({ id: 'd-' + (Date.now() + idx), title: firstDrillLine, reps: '1 bucket • 2-3x/wk', focus: _recapDraftTags[0] || 'Session Focus', done: false, img: vidImg });
+        }
+
+        if (sendNow) {
+          const parentKey = targetAth.parentName || targetAth.name;
+          let thread = state.threads.find(t => t.parent === parentKey);
+          if (!thread) {
+            thread = { id: 'msg-' + (Date.now() + idx), parent: parentKey, athletes: targetAth.name, unread: 0, messages: [] };
+            state.threads.unshift(thread);
+          }
+          thread.messages.push({
+            from: 'coach',
+            time: 'Just now',
+            text: `Session Notes for ${targetAth.name.split(' ')[0]}:\n${formatRecapPlainText(newRecap)}\nVideo attached: ${vidTitle}`
+          });
+        }
+
+        // Optional inline payment logging
+        if (f.wrapLogPayment?.checked) {
+          const amt = Number(f.wrapPayAmount?.value) || 0;
+          const method = f.wrapPayMethod?.value || 'Cash';
+          const status = f.wrapPayStatus?.value || 'Paid';
+          state.payments.unshift({
+            id: 'pay-' + (Date.now() + idx * 10),
+            date: todayShort,
+            dateIso: todayIso,
+            athleteId: targetAth.id,
+            sessionId: ses ? ses.id : null,
+            family: `${(targetAth.parentName || targetAth.name).split(' ').slice(-1)[0]} Family`,
+            item: `${ses?.lessonTitle || 'Training Session'} (${targetAth.name.split(' ')[0]})`,
+            amount: amt,
+            method: status === 'Paid' ? `${method} (Collected ✓)` : method,
+            status: status === 'Paid' ? 'Paid' : 'Unpaid',
+            _modifiedAt: Date.now() + idx
+          });
+        }
+      });
+
       _recapActiveAthId = null;
       _recapActiveSesId = null;
 
-      // 2. Also update athlete notes & sync first Tee/FT drill to weekly checklist
-      ath.notes.unshift({ date: 'Today', text: focus });
-      const firstDrillLine = (tee || ft || machine).split('\n').map(l => l.trim().replace(/^[•\-*]\s*/, '')).find(Boolean);
-      if (firstDrillLine) {
-        ath.drills.unshift({ id: 'd-' + Date.now(), title: firstDrillLine, reps: '1 bucket • 2-3x/wk', focus: _recapDraftTags[0] || 'Session Focus', done: false, img: vidImg });
-      }
-
-      // 3. Mark session completed if launched from a session
-      if (ses) ses.status = 'Completed';
-
-      // 4. Automatically message the parent thread with the formatted template + video!
-      if (sendNow) {
-        let thread = state.threads.find(t => t.parent === ath.parentName);
-        if (!thread) {
-          thread = { id: 'msg-' + Date.now(), parent: ath.parentName, athletes: ath.name, unread: 0, messages: [] };
-          state.threads.unshift(thread);
+      // Mark session completed & optionally rebook same time next week
+      let rebookedMsg = '';
+      if (ses) {
+        ses.status = 'Completed';
+        ses._modifiedAt = Date.now();
+        if (f.wrapRebookNextWeek?.checked) {
+          const rebooked = rebookSessionNextWeek(ses.id, true);
+          rebookedMsg = rebooked ? ` + rebooked ${rebooked.day}` : ' (next week slot had a conflict)';
         }
-        thread.messages.push({
-          from: 'coach',
-          time: 'Just now',
-          text: `Session Notes for ${ath.name.split(' ')[0]}:\n${formatRecapPlainText(newRecap)}\nVideo attached: ${vidTitle}`
-        });
       }
 
+      const payMsg = f.wrapLogPayment?.checked ? ' + payment logged' : '';
       state.coachTab = _recapReturnTab || 'athletes';
       render();
-      showToast(sendNow ? `Session notes + clips sent to ${ath.parentName}!` : 'Session notes saved to athlete history!');
+      showToast(targets.length > 1
+        ? `Group recap sent to ${targets.length} athletes${payMsg}${rebookedMsg}!`
+        : `Session notes saved for ${ath.name.split(' ')[0]}${payMsg}${rebookedMsg}!`);
     }
 
     function openRecapViewerModal(recapId, clipIdx = 0) {
@@ -5915,34 +6578,94 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
     function renderCoachPayments() {
       const isUnpaid = (p) => p.status === 'Pending Cash' || p.status === 'Unpaid';
-      const collected = state.payments.filter(p => !isUnpaid(p)).reduce((s, p) => s + Number(p.amount || 0), 0);
-      const pendingCash = state.payments.filter(p => isUnpaid(p)).reduce((s, p) => s + Number(p.amount || 0), 0);
+      const period = state.paymentFilterPeriod || 'all';
+      const unpaidOnly = Boolean(state.paymentFilterUnpaid);
+      const q = (state.paymentSearch || '').trim().toLowerCase();
+      const todayIso = getTodayIsoEst();
+      const todayMs = new Date(todayIso + 'T12:00:00').getTime();
+      const monthPrefix = todayIso.slice(0, 7);
+
+      const matchesPeriod = (p) => {
+        if (period === 'all') return true;
+        const iso = p.dateIso || parseFlexibleDateToIso(p.date);
+        if (!iso) return false;
+        if (period === 'month') return iso.startsWith(monthPrefix);
+        if (period === 'week') {
+          const ms = new Date(iso + 'T12:00:00').getTime();
+          return (todayMs - ms) <= 7 * 86400000 && (todayMs - ms) >= -7 * 86400000;
+        }
+        return true;
+      };
+
+      const periodFiltered = state.payments.filter(matchesPeriod);
+      const visiblePayments = periodFiltered.filter(p => {
+        if (unpaidOnly && !isUnpaid(p)) return false;
+        if (q) {
+          const hay = `${p.family || ''} ${p.item || ''} ${p.method || ''} ${p.date || ''}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      const collected = periodFiltered.filter(p => !isUnpaid(p)).reduce((s, p) => s + Number(p.amount || 0), 0);
+      const pendingCash = periodFiltered.filter(p => isUnpaid(p)).reduce((s, p) => s + Number(p.amount || 0), 0);
+      const periodLabel = period === 'week' ? 'This Week' : period === 'month' ? 'This Month' : 'All Time';
+
       return `
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 class="text-2xl sm:text-3xl font-extrabold">Payments</h1>
             <p class="text-[13px] text-[var(--text-muted)] mt-0.5">Clover Checkout, Cash, Venmo &amp; Zelle tracking</p>
           </div>
-          <button onclick="openLogPaymentModal()" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-[13px] font-extrabold cursor-pointer shadow-sm hover:brightness-95">+ Log Payment</button>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="exportPaymentsCsv()" class="px-3.5 py-2.5 rounded-2xl card-white text-[13px] font-extrabold cursor-pointer hover:border-[#010101]">Export CSV</button>
+            <button onclick="openLogPaymentModal()" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-[13px] font-extrabold cursor-pointer shadow-sm hover:brightness-95">+ Log Payment</button>
+          </div>
+        </div>
+
+        <!-- Period & Unpaid Filters + Search -->
+        <div class="card-mist rounded-[26px] p-3.5 space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+              ${[
+                { id: 'all', label: 'All Time' },
+                { id: 'month', label: 'This Month' },
+                { id: 'week', label: 'This Week' }
+              ].map(tab => `
+                <button type="button" onclick="state.paymentFilterPeriod='${tab.id}'; render(false);" class="px-3 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap cursor-pointer transition ${period === tab.id ? 'bg-[#010101] text-[#D5FF5F]' : 'card-white text-[var(--text-muted)]'}">${tab.label}</button>
+              `).join('')}
+              <button type="button" onclick="state.paymentFilterUnpaid=!state.paymentFilterUnpaid; render(false);" class="px-3 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap cursor-pointer transition ${unpaidOnly ? 'bg-amber-400 text-[#010101]' : 'card-white text-[var(--text-muted)]'}">Unpaid Only</button>
+            </div>
+            <input
+              type="search"
+              value="${(state.paymentSearch || '').replace(/"/g, '&quot;')}"
+              oninput="state.paymentSearch=this.value; render(false);"
+              placeholder="Search family or athlete…"
+              class="w-full sm:w-56 px-3.5 py-1.5 rounded-xl card-white text-xs font-semibold"
+            />
+          </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div class="space-y-3">
             <div class="card-mist rounded-[24px] p-5 space-y-1.5">
-              <div class="text-[13px] font-bold text-[var(--text-muted)]">Collected (Clover &amp; Cash)</div>
+              <div class="text-[13px] font-bold text-[var(--text-muted)]">Collected (${periodLabel})</div>
               <div class="text-3xl font-extrabold tabular-nums">$${collected.toLocaleString()}</div>
               <div class="text-xs text-[var(--text-muted)]">Card, Apple Pay, Cash, Venmo &amp; Zelle</div>
             </div>
             <div class="card-white rounded-[24px] p-5 space-y-1.5">
-              <div class="text-[13px] font-bold text-[var(--text-muted)]">Unpaid / Pending due</div>
+              <div class="text-[13px] font-bold text-[var(--text-muted)]">Unpaid / Pending (${periodLabel})</div>
               <div class="text-2xl font-extrabold tabular-nums">$${pendingCash.toLocaleString()}</div>
-              <div class="text-xs text-[var(--text-muted)]">${pendingCash > 0 ? 'Toggle Paid / Unpaid or swipe any entry' : 'No unpaid sessions right now'}</div>
+              <div class="text-xs text-[var(--text-muted)]">${pendingCash > 0 ? 'Tap Remind to copy text, or swipe to mark Paid' : 'No unpaid sessions in this period'}</div>
             </div>
           </div>
 
           <div class="lg:col-span-2 card-white rounded-[28px] p-5 space-y-3">
-            <div class="flex justify-between items-center"><h2 class="text-base font-extrabold">Recent Transactions</h2><span class="text-[13px] font-semibold text-[var(--text-muted)] tabular-nums">${state.payments.length} ${state.payments.length === 1 ? 'entry' : 'entries'}</span></div>
-            ${state.payments.length ? state.payments.map(p => {
+            <div class="flex justify-between items-center">
+              <h2 class="text-base font-extrabold">${unpaidOnly ? 'Unpaid Transactions' : 'Transactions'}</h2>
+              <span class="text-[13px] font-semibold text-[var(--text-muted)] tabular-nums">${visiblePayments.length} ${visiblePayments.length === 1 ? 'entry' : 'entries'}</span>
+            </div>
+            ${visiblePayments.length ? visiblePayments.map(p => {
               const unpaid = isUnpaid(p);
               return `
                 <div class="swipe-row relative overflow-hidden rounded-2xl" data-swipe-type="payment" data-swipe-id="${p.id}" data-unpaid="${unpaid ? '1' : '0'}">
@@ -5956,6 +6679,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                       <div class="text-[var(--text-muted)]">${p.date} • ${p.method}</div>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
+                      ${unpaid ? `<button type="button" onclick="copyPaymentReminder('${p.id}')" class="px-2.5 py-1 rounded-lg card-white text-[10px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:border-[#010101]">Remind</button>` : ''}
                       <div class="inline-flex items-center rounded-xl p-0.5 card-white">
                         <button type="button" onclick="setPaymentPaidStatus('${p.id}', true)" class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold cursor-pointer transition ${!unpaid ? 'bg-[#D5FF5F] text-[#010101]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}">
                           Paid ✓
@@ -5970,7 +6694,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                   </div>
                 </div>
               `;
-            }).join('') : `<div class="surface-soft rounded-2xl p-6 text-center text-xs text-[var(--text-muted)]">No payments logged yet.</div>`}
+            }).join('') : `<div class="surface-soft rounded-2xl p-6 text-center text-xs text-[var(--text-muted)]">No transactions match this filter.</div>`}
           </div>
         </div>
       `;
@@ -6098,11 +6822,12 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const durations = [15, 30, 45, 60, 75, 90, 120, 180];
       const activeAthletes = state.athletes.filter(a => !a.archived);
       const hasAthletes = activeAthletes.length > 0;
+      const isGroupLesson = defaultLesson && (defaultLesson.type === 'Small Group' || defaultLesson.type === 'Camp / Clinic');
       openModal(`
         <div class="flex items-start justify-between gap-2">
           <div>
-            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Schedule a Timed Session</div>
-            <h3 class="font-extrabold text-base mt-0.5">+ Schedule Session</h3>
+            <h3 class="font-extrabold text-base">+ Schedule Session</h3>
+            <p class="text-xs text-[var(--text-muted)] mt-0.5">Single, recurring standing slot, or small group</p>
           </div>
           <button type="button" onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
         </div>
@@ -6135,16 +6860,40 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             </div>
           </div>
 
+          <div>
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Repeat (Standing Slot)</label>
+            <select name="repeatMode" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
+              <option value="none">Does not repeat (single session)</option>
+              <option value="weekly-4">Weekly for 4 weeks</option>
+              <option value="weekly-8">Weekly for 8 weeks</option>
+              <option value="biweekly-4">Every 2 weeks (4 sessions)</option>
+            </select>
+          </div>
+
           ${hasAthletes ? `
-            <div>
-              <div class="flex items-center justify-between mb-1">
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
                 <label class="font-bold text-[var(--text-muted)]">Athlete (or Open Group Session)</label>
-                <button type="button" onclick="closeModal(); openAddAthleteModal(null);" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">+ New Athlete</button>
+                <div class="flex items-center gap-2">
+                  <button type="button" onclick="document.getElementById('group-multi-athletes')?.classList.toggle('hidden')" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">+ Group (${activeAthletes.length})</button>
+                  <button type="button" onclick="closeModal(); openAddAthleteModal(null);" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">+ New</button>
+                </div>
               </div>
               <select name="athleteId" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
                 <option value="">Open Session (TBD / Group Sign-ups)</option>
                 ${activeAthletes.map(a => `<option value="${a.id}">${a.name}${a.ageGroup ? ` (${a.ageGroup})` : ''}</option>`).join('')}
               </select>
+              <div id="group-multi-athletes" class="${isGroupLesson ? '' : 'hidden'} surface-soft rounded-2xl p-3 space-y-1.5 max-h-36 overflow-y-auto">
+                <div class="text-[11px] font-extrabold text-[var(--text-muted)]">Select additional athletes for Small Group:</div>
+                <div class="grid grid-cols-2 gap-1.5">
+                  ${activeAthletes.map(a => `
+                    <label class="flex items-center gap-2 px-2 py-1.5 rounded-xl card-white cursor-pointer text-[11px] font-bold">
+                      <input type="checkbox" name="extraAthleteIds" value="${a.id}" class="w-4 h-4 accent-[#010101]" />
+                      <span class="truncate">${a.name}</span>
+                    </label>
+                  `).join('')}
+                </div>
+              </div>
             </div>
           ` : `
             <div>
@@ -6187,6 +6936,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       e.preventDefault();
       const f = e.target;
       let athId = f.athleteId ? (f.athleteId.value || null) : null;
+      const extraIds = Array.from(f.querySelectorAll('input[name="extraAthleteIds"]:checked')).map(el => el.value);
       if (!athId && f.newAthleteName && f.newAthleteName.value.trim()) {
         const name = f.newAthleteName.value.trim();
         const parts = name.split(/\s+/);
@@ -6220,7 +6970,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         if (!state.selectedAthleteId) state.selectedAthleteId = athId;
         if (!state.activeSiblingId) state.activeSiblingId = athId;
       }
-      submitAddSessionForAthlete(e, athId);
+      submitAddSessionForAthlete(e, athId, extraIds);
     }
 
     function copyShareableBookingLink() {
@@ -6421,9 +7171,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.2.0';
+    const APP_VERSION = 'v3.3.0';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Gemini Frontend Design polish, Mobile UX 3.0 & swipe actions';
+    const APP_RELEASE_NOTES = 'Pre-lesson brief, Wrap-Up loop, recurring & group sessions, roster health, payment filters & Before/After clip compare';
 
     function reloadLatestAppVersion() {
       try {
