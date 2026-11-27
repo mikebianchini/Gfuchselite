@@ -4995,11 +4995,6 @@
             </div>
           </div>
 
-          <div>
-            <label class="block font-bold text-[var(--text-muted)] mb-1">Medical / Allergy Notes (Optional)</label>
-            <input name="medicalNotes" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="None reported" />
-          </div>
-
           <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
             + Add Athlete to Roster
           </button>
@@ -5045,7 +5040,7 @@
         waiverSigned: false,
         waiverDate: null,
         emergencyContact: `${f.parentName.value.trim()} — ${f.parentPhone.value.trim()}`,
-        medicalNotes: f.medicalNotes.value.trim() || 'None reported',
+        medicalNotes: (f.medicalNotes?.value || '').trim(),
         primaryMetricLabel: isCatcher ? 'Pop Time PR' : isSlapper ? 'Home-to-1st' : 'Exit Velo PR',
         primaryMetricValue: isCatcher ? '1.95' : isSlapper ? '3.05' : '60.0',
         primaryMetricUnit: isCatcher || isSlapper ? 'SEC' : 'MPH',
@@ -5185,18 +5180,6 @@
             </div>
           </div>
 
-          <div class="pt-1 border-t border-[var(--border-subtle)] space-y-2.5">
-            <div class="text-[11px] font-extrabold text-[var(--text-muted)]">Safety &amp; Medical</div>
-            <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Emergency Contact</label>
-              <input name="emergencyContact" value="${esc(ath.emergencyContact || '')}" placeholder="Name — Phone" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" />
-            </div>
-            <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Medical / Allergy Notes</label>
-              <input name="medicalNotes" value="${esc(ath.medicalNotes || '')}" placeholder="None reported" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" />
-            </div>
-          </div>
-
           <div>
             <label class="block font-bold text-[var(--text-muted)] mb-1">Coach Notes (Private)</label>
             <textarea name="coachBio" rows="2" placeholder="Goals, swing cues, parent preferences..." class="w-full px-3.5 py-2.5 rounded-2xl surface-soft">${esc(ath.coachBio || '')}</textarea>
@@ -5240,8 +5223,8 @@
       ath.parentName = f.parentName.value.trim();
       ath.parentPhone = f.parentPhone.value.trim();
       ath.parentEmail = f.parentEmail.value.trim();
-      ath.emergencyContact = f.emergencyContact.value.trim();
-      ath.medicalNotes = f.medicalNotes.value.trim();
+      if (f.emergencyContact) ath.emergencyContact = f.emergencyContact.value.trim();
+      if (f.medicalNotes) ath.medicalNotes = f.medicalNotes.value.trim();
       ath.coachBio = f.coachBio.value.trim();
       ath._modifiedAt = Date.now();
 
@@ -8839,7 +8822,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.9.5';
+    const APP_VERSION = 'v3.9.6';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Redesigned Session Notes Studio (Warm Up Routine w/ Walking PVC & custom drills, Player Notes and Focus, What We Worked On Tee/Front Toss/Machine with drills & per-area video, Session Notes)';
 
