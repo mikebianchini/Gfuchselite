@@ -2777,6 +2777,177 @@
       showToast(`${name} added to ${familyId === 'fam-1' ? 'your family hub' : 'Coach Gina’s roster'}!`);
     }
 
+    function openEditAthleteModal(athId) {
+      const ath = state.athletes.find(a => a.id === athId);
+      if (!ath) return;
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const ageGroups = ['8U', '10U', '12U', '14U', '16U', '18U', 'College'];
+      const btOptions = ['R / R', 'L / R', 'L / L', 'S / R', 'S / L'];
+
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Edit Athlete Profile</div>
+            <h3 class="font-extrabold text-base mt-0.5">${esc(ath.name)}</h3>
+          </div>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+
+        <form onsubmit="submitEditAthlete(event, '${ath.id}')" class="space-y-3 text-xs">
+          <div>
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Athlete Full Name *</label>
+            <input name="name" value="${esc(ath.name)}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold text-sm" required />
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Age Group</label>
+              <select name="ageGroup" class="w-full px-3 py-2.5 rounded-2xl surface-soft font-bold">
+                ${ageGroups.map(ag => `<option value="${ag}" ${ath.ageGroup === ag ? 'selected' : ''}>${ag}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Grad Year</label>
+              <input name="gradYear" type="number" min="2024" max="2040" value="${esc(ath.gradYear || 2030)}" class="w-full px-3 py-2.5 rounded-2xl surface-soft font-bold" />
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Height</label>
+              <input name="height" value="${esc(ath.height || '')}" placeholder="e.g., 5'5&quot;" class="w-full px-3 py-2.5 rounded-2xl surface-soft font-semibold" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Primary Position</label>
+              <input name="position" list="gf-position-list" value="${esc(ath.position || '')}" placeholder="e.g., SS / 3B" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" />
+              <datalist id="gf-position-list">
+                <option value="SS / 3B">
+                <option value="Catcher / 3B">
+                <option value="OF / Slapper">
+                <option value="1B / Hitter">
+                <option value="2B / Utility">
+                <option value="OF / Hitter">
+                <option value="Hitter / Utility">
+              </datalist>
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Bats / Throws</label>
+              <select name="batsThrows" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold">
+                ${btOptions.map(bt => `<option value="${bt}" ${ath.batsThrows === bt ? 'selected' : ''}>${bt}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Travel / School Team</label>
+            <input name="team" value="${esc(ath.team || '')}" placeholder="e.g., Pittsburgh Passion 14U" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" />
+          </div>
+
+          <div class="pt-1 border-t border-[var(--border-subtle)]">
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)] mb-2">Parent / Guardian Contact</div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block font-bold text-[var(--text-muted)] mb-1">Parent Name</label>
+                <input name="parentName" value="${esc(ath.parentName || '')}" placeholder="e.g., Amanda Morgan" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" />
+              </div>
+              <div>
+                <label class="block font-bold text-[var(--text-muted)] mb-1">Parent Phone</label>
+                <input name="parentPhone" value="${esc(ath.parentPhone || '')}" placeholder="(412) 555-0199" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" />
+              </div>
+            </div>
+            <div class="mt-2.5">
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Parent Email (Optional)</label>
+              <input name="parentEmail" type="email" value="${esc(ath.parentEmail || '')}" placeholder="parent@email.com" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" />
+            </div>
+          </div>
+
+          <div class="pt-1 border-t border-[var(--border-subtle)] space-y-2.5">
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Safety, Medical &amp; Waiver</div>
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Emergency Contact</label>
+              <input name="emergencyContact" value="${esc(ath.emergencyContact || '')}" placeholder="Name — Phone" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" />
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--text-muted)] mb-1">Medical / Allergy Notes</label>
+              <input name="medicalNotes" value="${esc(ath.medicalNotes || '')}" placeholder="None reported" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" />
+            </div>
+            <label class="flex items-center justify-between gap-3 p-3 rounded-2xl card-mist cursor-pointer">
+              <div>
+                <div class="font-extrabold">Facility Waiver Signed</div>
+                <div class="text-[11px] text-[var(--text-muted)]">${ath.waiverDate ? `Signed: ${esc(ath.waiverDate)}` : 'Toggle to mark signed or pending'}</div>
+              </div>
+              <input type="checkbox" name="waiverSigned" ${ath.waiverSigned ? 'checked' : ''} class="w-5 h-5 accent-[#010101]" />
+            </label>
+          </div>
+
+          <div>
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Coach Notes (Private)</label>
+            <textarea name="coachBio" rows="2" placeholder="Goals, swing cues, parent preferences..." class="w-full px-3.5 py-2.5 rounded-2xl surface-soft">${esc(ath.coachBio || '')}</textarea>
+          </div>
+
+          <div class="flex items-center gap-2 pt-1">
+            <button type="button" onclick="closeModal()" class="px-4 py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Cancel</button>
+            <button type="submit" class="flex-1 py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
+              Save Athlete Changes
+            </button>
+          </div>
+        </form>
+      `);
+    }
+
+    function submitEditAthlete(e, athId) {
+      e.preventDefault();
+      const ath = state.athletes.find(a => a.id === athId);
+      if (!ath) return;
+      const f = e.target;
+      const oldName = ath.name;
+      const newName = f.name.value.trim();
+      if (!newName) return;
+
+      const parts = newName.split(/\s+/).filter(Boolean);
+      ath.name = newName;
+      ath.initials = ((parts[0]?.[0] || 'A') + (parts[1]?.[0] || parts[0]?.[1] || 'F')).toUpperCase();
+      ath.ageGroup = f.ageGroup.value;
+      ath.gradYear = Number(f.gradYear.value) || ath.gradYear || 2030;
+      ath.height = f.height.value.trim();
+      ath.position = f.position.value.trim() || 'Hitter / Utility';
+      ath.batsThrows = f.batsThrows.value;
+      ath.team = f.team.value.trim();
+      ath.parentName = f.parentName.value.trim() || 'Parent / Guardian';
+      ath.parentPhone = f.parentPhone.value.trim();
+      ath.parentEmail = f.parentEmail.value.trim();
+      ath.emergencyContact = f.emergencyContact.value.trim() || `${ath.parentName}${ath.parentPhone ? ' — ' + ath.parentPhone : ''}`;
+      ath.medicalNotes = f.medicalNotes.value.trim() || 'None reported';
+      ath.coachBio = f.coachBio.value.trim();
+
+      const wasSigned = !!ath.waiverSigned;
+      ath.waiverSigned = f.waiverSigned.checked;
+      if (ath.waiverSigned && !wasSigned) {
+        ath.waiverDate = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+      } else if (!ath.waiverSigned) {
+        ath.waiverDate = null;
+      }
+
+      // Cascade renamed athlete name across sessions, recaps & videos
+      if (oldName !== newName) {
+        state.sessions.forEach(s => {
+          if (s.athleteId === ath.id && Array.isArray(s.athletes)) {
+            s.athletes = s.athletes.map(n => n === oldName ? newName : n);
+          }
+        });
+        state.sessionRecaps.forEach(r => {
+          if (r.athleteId === ath.id) r.athleteName = newName;
+        });
+        state.videos.forEach(v => {
+          if (v.athleteId === ath.id) v.athleteName = newName;
+        });
+      }
+
+      closeModal();
+      render();
+      showToast(`Updated ${ath.name}’s profile!`);
+    }
+
     function openRemoveAthleteModal(athId) {
       const ath = state.athletes.find(a => a.id === athId);
       if (!ath) return;
@@ -3082,6 +3253,7 @@
                       </td>
                       <td class="py-3 pl-2 pr-4 text-right whitespace-nowrap" onclick="event.stopPropagation()">
                         <div class="inline-flex items-center gap-1.5">
+                          <button onclick="openEditAthleteModal('${a.id}')" title="Edit Athlete Info" aria-label="Edit ${a.name}" class="w-8 h-8 rounded-xl surface-soft text-xs font-extrabold inline-flex items-center justify-center cursor-pointer hover:border-[#010101]">${uiIcon('edit')}</button>
                           <button onclick="openSessionRecapModal('${a.id}', null)" title="Session Notes" class="px-2.5 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer">Notes</button>
                           <button onclick="openAddSessionForAthleteModal('${a.id}')" title="Add Session" aria-label="Add session for ${a.name}" class="w-8 h-8 rounded-xl surface-soft text-xs font-extrabold inline-flex items-center justify-center cursor-pointer">+</button>
                         </div>
@@ -3555,7 +3727,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           <button onclick="state.rosterView='list'; render();" class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-full card-white text-xs font-extrabold cursor-pointer">
             ← All Athletes (${state.athletes.length})
           </button>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="openEditAthleteModal('${sel.id}')" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5 hover:border-[#010101]">${uiIcon('edit')} Edit Info</button>
             <button onclick="openAddSessionForAthleteModal('${sel.id}')" class="px-3.5 py-2 rounded-full card-white text-xs font-extrabold cursor-pointer">+ Add Session</button>
             <button onclick="openSessionRecapModal('${sel.id}', null)" class="px-3.5 py-2 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm">${uiIcon('note')} New Notes</button>
           </div>
@@ -3565,13 +3738,16 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           <!-- Left: Athlete Card + Safety + Scheduled Sessions -->
           <div class="lg:col-span-5 space-y-4">
             <div class="card-mist rounded-[28px] p-6 space-y-4">
-              <div class="flex items-center justify-between">
+              <div class="flex items-center justify-between gap-2">
                 <span class="px-3 py-1 rounded-full bg-white text-[#010101] text-xs font-extrabold">${sel.ageGroup} • Class of ${sel.gradYear}</span>
-                <span class="text-xs font-extrabold">${sel.waiverSigned ? 'Waiver ✓' : 'Waiver Pending'}</span>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-extrabold">${sel.waiverSigned ? 'Waiver ✓' : 'Waiver Pending'}</span>
+                  <button onclick="openEditAthleteModal('${sel.id}')" title="Edit Athlete Info" class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold cursor-pointer inline-flex items-center gap-1">${uiIcon('edit')} Edit</button>
+                </div>
               </div>
               <div>
                 <div class="text-2xl font-extrabold">${sel.name}</div>
-                <div class="text-xs text-[var(--text-muted)]">${sel.position} • B/T: ${sel.batsThrows} • Parent: ${sel.parentName}</div>
+                <div class="text-xs text-[var(--text-muted)] mt-0.5">${sel.position} • B/T: ${sel.batsThrows}${sel.height ? ` • ${sel.height}` : ''}${sel.team ? ` • ${sel.team}` : ''}</div>
               </div>
               <div class="grid grid-cols-2 gap-2.5">
                 <div class="p-3.5 rounded-2xl bg-white dark:bg-[#15191E]">
@@ -3584,8 +3760,11 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                 </div>
               </div>
               <div class="text-xs space-y-1">
+                <div><span class="text-[var(--text-muted)]">Parent:</span> <strong>${sel.parentName}${sel.parentPhone ? ` • ${sel.parentPhone}` : ''}</strong></div>
+                ${sel.parentEmail ? `<div><span class="text-[var(--text-muted)]">Email:</span> <strong>${sel.parentEmail}</strong></div>` : ''}
                 <div><span class="text-[var(--text-muted)]">Emergency:</span> <strong>${sel.emergencyContact}</strong></div>
                 <div><span class="text-[var(--text-muted)]">Medical:</span> <strong>${sel.medicalNotes}</strong></div>
+                ${sel.coachBio ? `<div class="pt-1"><span class="text-[var(--text-muted)]">Coach Notes:</span> <strong>${sel.coachBio}</strong></div>` : ''}
               </div>
               <div class="pt-2 border-t border-[#010101]/10 flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-1.5">
@@ -3596,11 +3775,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                     ${uiIcon('eye')} View Page
                   </button>
                 </div>
-                ${true ? `
-                  <button onclick="openRemoveAthleteModal('${sel.id}')" class="px-3 py-1.5 rounded-xl text-[11px] font-extrabold text-red-600 dark:text-red-400 hover:bg-red-500/10 cursor-pointer transition">
-                    Remove
-                  </button>
-                ` : ''}
+                <button onclick="openRemoveAthleteModal('${sel.id}')" class="px-3 py-1.5 rounded-xl text-[11px] font-extrabold text-red-600 dark:text-red-400 hover:bg-red-500/10 cursor-pointer transition">
+                  Remove
+                </button>
               </div>
             </div>
 
