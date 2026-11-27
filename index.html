@@ -2397,6 +2397,7 @@
         showToast('Keep at least one class type active.');
         return;
       }
+      if (typeof _pendingDeletedIds !== 'undefined') _pendingDeletedIds.eventTypes.add(id);
       state.cal.eventTypes = state.cal.eventTypes.filter(x => x.id !== id);
       if (state.cal.eventTypeId === id) state.cal.eventTypeId = state.cal.eventTypes[0].id;
       render();
@@ -3210,6 +3211,7 @@
       
       const ath = state.athletes.find(a => a.id === athId);
       if (!ath) return;
+      if (typeof _pendingDeletedIds !== 'undefined') _pendingDeletedIds.athletes.add(athId);
       state.athletes = state.athletes.filter(a => a.id !== athId);
       state.cal.cart = state.cal.cart.filter(item => item.athleteId !== athId);
 
@@ -5377,6 +5379,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
     function deleteLocation(id) {
       if (!Array.isArray(state.cal.locations)) return;
+      if (typeof _pendingDeletedIds !== 'undefined') _pendingDeletedIds.locations.add(id);
       state.cal.locations = state.cal.locations.filter(l => l.id !== id);
       render();
       showToast('Facility location removed.');
@@ -5815,6 +5818,84 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       if (lbl) lbl.textContent = labelText || (connected ? 'Synced' : 'Cloud Sync');
     }
 
+    const _pendingDeletedIds = {
+      athletes: new Set(),
+      sessions: new Set(),
+      sessionRecaps: new Set(),
+      videos: new Set(),
+      payments: new Set(),
+      threads: new Set(),
+      waitlist: new Set(),
+      locations: new Set(),
+      eventTypes: new Set()
+    };
+
+    function mergeArraysById(localArr, cloudArr, deletedSet) {
+      const map = new Map();
+      (Array.isArray(cloudArr) ? cloudArr : []).forEach(item => {
+        if (!item || !item.id) return;
+        if (deletedSet && deletedSet.has(item.id)) return;
+        map.set(item.id, item);
+      });
+      (Array.isArray(localArr) ? localArr : []).forEach(item => {
+        if (!item || !item.id) return;
+        if (deletedSet && deletedSet.has(item.id)) return;
+        map.set(item.id, item);
+      });
+      return Array.from(map.values());
+    }
+
+    function mergeCloudIntoLocal(cloudData) {
+      if (!cloudData || typeof cloudData !== 'object') return false;
+      const beforeSig = getDataSignature();
+      _sbHydrating = true;
+
+      state.athletes = mergeArraysById(state.athletes, cloudData.athletes, _pendingDeletedIds.athletes);
+      state.sessions = mergeArraysById(state.sessions, cloudData.sessions, _pendingDeletedIds.sessions);
+      const localDrafts = state.sessionRecaps.filter(r => r.isDraft);
+      const localNonDrafts = state.sessionRecaps.filter(r => !r.isDraft);
+      const mergedRecaps = mergeArraysById(localNonDrafts, cloudData.sessionRecaps, _pendingDeletedIds.sessionRecaps);
+      state.sessionRecaps = [...localDrafts, ...mergedRecaps];
+      state.videos = mergeArraysById(state.videos, cloudData.videos, _pendingDeletedIds.videos);
+      state.payments = mergeArraysById(state.payments, cloudData.payments, _pendingDeletedIds.payments);
+      state.threads = mergeArraysById(state.threads, cloudData.threads, _pendingDeletedIds.threads);
+      state.waitlist = mergeArraysById(state.waitlist, cloudData.waitlist, _pendingDeletedIds.waitlist);
+
+      if (cloudData.cal) {
+        state.cal.bookedSlots = Array.from(new Set([...(cloudData.cal.bookedSlots || []), ...(state.cal.bookedSlots || [])]));
+        if (cloudData.cal.locations) {
+          state.cal.locations = mergeArraysById(state.cal.locations, cloudData.cal.locations, _pendingDeletedIds.locations);
+        }
+        if (cloudData.cal.eventTypes) {
+          state.cal.eventTypes = mergeArraysById(state.cal.eventTypes, cloudData.cal.eventTypes, _pendingDeletedIds.eventTypes);
+        }
+        if (cloudData.cal.availability?.dateOverrides) {
+          state.cal.availability.dateOverrides = {
+            ...cloudData.cal.availability.dateOverrides,
+            ...(state.cal.availability.dateOverrides || {})
+          };
+        }
+      }
+      if (!state.selectedAthleteId && state.athletes.length) state.selectedAthleteId = state.athletes[0].id;
+      if (!state.activeSiblingId && state.athletes.length) state.activeSiblingId = state.athletes[0].id;
+      _sbHydrating = false;
+      return getDataSignature() !== beforeSig;
+    }
+
+    async function refreshFromSupabase() {
+      if (!_sbClient || window._importingInProgress) return;
+      try {
+        const { data, error } = await _sbClient.from('gfuchs_state').select('data').eq('id', 'main').maybeSingle();
+        if (error || !data?.data) return;
+        const incoming = data.data;
+        if (incoming._updatedAt && _lastCloudUpdatedAt && incoming._updatedAt <= _lastCloudUpdatedAt) return;
+        applySyncedState(incoming);
+        saveLocalState();
+        updateSyncIndicators(true, 'Synced');
+        render(false);
+      } catch (_) {}
+    }
+
     async function pushStateToSupabase(immediate = false) {
       if (!_sbClient || _sbHydrating) return;
       const curSig = getDataSignature();
@@ -5825,6 +5906,16 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           const runSig = getDataSignature();
           if (!immediate && runSig === _lastSyncedDataSig) return;
           updateSyncIndicators(true, 'Syncing…');
+
+          // Fetch-before-write smart merge: NEVER overwrite another device's athletes/notes/videos!
+          let pulledNewFromCloud = false;
+          try {
+            const { data: latestRow } = await _sbClient.from('gfuchs_state').select('data').eq('id', 'main').maybeSingle();
+            if (latestRow?.data && latestRow.data._clientId !== CLIENT_SESSION_ID) {
+              pulledNewFromCloud = mergeCloudIntoLocal(latestRow.data);
+            }
+          } catch (_) {}
+
           const payload = serializeSyncedState();
           const { error } = await _sbClient
             .from('gfuchs_state')
@@ -5833,9 +5924,12 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             console.warn('Supabase upsert error:', error.message);
             updateSyncIndicators(false, 'Sync Error');
           } else {
-            _lastSyncedDataSig = runSig;
+            Object.values(_pendingDeletedIds).forEach(s => s.clear());
+            _lastSyncedDataSig = getDataSignature();
             _lastCloudUpdatedAt = payload._updatedAt;
+            saveLocalState();
             updateSyncIndicators(true, 'Synced');
+            if (pulledNewFromCloud) render(false);
             publishLiveCalendarFeed(false);
           }
         } catch (err) {
@@ -5845,6 +5939,16 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       };
       if (immediate) await run();
       else _sbPushTimer = setTimeout(run, 450);
+    }
+
+    // Auto-refresh whenever user switches back to tab or unlocks phone (iOS Safari wakes up)
+    if (typeof document !== 'undefined' && document.addEventListener) {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refreshFromSupabase();
+      });
+    }
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('focus', () => refreshFromSupabase());
     }
 
     async function initSupabaseSync() {
