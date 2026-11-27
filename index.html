@@ -7031,21 +7031,64 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       render();
       showToast(isCash ? `Reserved ${c}-Pack ($${p} cash due at facility)!` : `Paid $${p} via Clover — added ${c} credits!`);
     }
-    function setPaymentPaidStatus(payId, isPaid) {
+    function openMarkPaidMethodModal(payId) {
+      const p = state.payments.find(x => x.id === payId);
+      if (!p) return;
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const methods = [
+        { label: 'Cash', value: 'Cash (Collected ✓)', icon: 'cash', primary: true },
+        { label: 'Venmo', value: 'Venmo', icon: 'dollar' },
+        { label: 'Zelle', value: 'Zelle', icon: 'dollar' },
+        { label: 'Clover / Card', value: 'Clover • Card', icon: 'card' },
+        { label: 'Check / Other', value: 'Check / Other', icon: 'checkCircle' }
+      ];
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="inline-flex items-center gap-1.5 text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('cash', 'w-3.5 h-3.5')} Mark Paid</div>
+            <h3 class="font-extrabold text-base mt-0.5">$${p.amount} — ${esc(p.family)}</h3>
+            <p class="text-[11px] text-[var(--text-muted)]">${esc(p.item)} • ${esc(p.date)}</p>
+          </div>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-9 h-9 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+
+        <div class="space-y-2 text-xs">
+          <div class="font-bold text-[var(--text-muted)]">How was this paid?</div>
+          <div class="grid grid-cols-2 gap-2">
+            ${methods.map((m, idx) => `
+              <button type="button" onclick="setPaymentPaidStatus('${p.id}', true, '${m.value.replace(/'/g, "\\'")}')" class="${idx === methods.length - 1 ? 'col-span-2' : ''} py-3 px-3.5 rounded-2xl ${m.primary ? 'bg-[#D5FF5F] text-[#010101] shadow-sm' : 'surface-soft hover:border-[#010101]'} font-extrabold cursor-pointer inline-flex items-center justify-center gap-2 transition">
+                ${uiIcon(m.icon, 'w-4 h-4')}
+                <span>${m.label}</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `);
+    }
+
+    function setPaymentPaidStatus(payId, isPaid, selectedMethod = null) {
       const p = state.payments.find(x => x.id === payId);
       if (!p) return;
       const wasPaid = p.status !== 'Pending Cash' && p.status !== 'Unpaid';
-      if (wasPaid === Boolean(isPaid)) return;
+      if (wasPaid === Boolean(isPaid) && !selectedMethod) return;
+
+      // When marking Paid without a chosen method, prompt Coach Gina to pick Cash / Venmo / Zelle / Clover
+      if (isPaid && !selectedMethod) {
+        openMarkPaidMethodModal(payId);
+        return;
+      }
+
       p.status = isPaid ? 'Paid' : 'Pending Cash';
-      if (isPaid && /cash/i.test(p.method || '')) {
-        p.method = 'Cash (Collected ✓)';
+      if (isPaid && selectedMethod) {
+        p.method = selectedMethod;
       } else if (!isPaid && /cash/i.test(p.method || '')) {
         p.method = 'Cash at Session';
       }
       p._modifiedAt = Date.now();
+      if (selectedMethod) closeModal();
       render();
       showToast(isPaid
-        ? `Marked $${p.amount} as Paid ✓ (${p.family})`
+        ? `Marked $${p.amount} Paid via ${p.method} ✓ (${p.family})`
         : `Marked $${p.amount} as Unpaid (${p.family})`);
     }
     function markCashPaid(payId) {
@@ -7430,7 +7473,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.5.1';
+    const APP_VERSION = 'v3.5.2';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Optimized for Coach Gina’s daily flow: Today-first schedule, per-session plans, 1-tap previous session review & live camera video recording';
 
