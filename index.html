@@ -73,9 +73,139 @@
       --bg-canvas: var(--bg-page);
     }
 
+    /* =====================================================================
+       UNIFIED MODAL DESIGN SYSTEM (Solid Surface + 44px Uniform Controls)
+       ===================================================================== */
+    .modal-backdrop {
+      background: rgba(15, 23, 42, 0.46);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    html.dark .modal-backdrop {
+      background: rgba(2, 6, 12, 0.74);
+    }
+    #modal-root > .modal-surface,
+    #modal-root > .card-white {
+      background: #FFFFFF;
+      border: 1px solid rgba(15, 23, 42, 0.09);
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24), 0 4px 16px rgba(15, 23, 42, 0.08);
+      color: #0F172A;
+    }
+    html.dark #modal-root > .modal-surface,
     html.dark #modal-root > .card-white {
-      background: rgba(17, 22, 30, 0.97);
-      border-color: rgba(255, 255, 255, 0.18);
+      background: #131820;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 28px 68px rgba(0, 0, 0, 0.72);
+      color: #F8FAFC;
+    }
+    .modal-sheet-shell {
+      display: flex;
+      flex-direction: column;
+      max-height: 90dvh;
+      overflow: hidden;
+    }
+    .modal-sticky-header {
+      flex-shrink: 0;
+      padding: 16px 20px 14px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+      background: #FFFFFF;
+    }
+    html.dark .modal-sticky-header {
+      border-bottom-color: rgba(255, 255, 255, 0.10);
+      background: #131820;
+    }
+    .modal-scroll-body {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding: 16px 20px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .modal-sticky-footer {
+      flex-shrink: 0;
+      padding: 12px 20px calc(env(safe-area-inset-bottom, 0px) + 16px);
+      border-top: 1px solid rgba(15, 23, 42, 0.08);
+      background: #FFFFFF;
+    }
+    html.dark .modal-sticky-footer {
+      border-top-color: rgba(255, 255, 255, 0.10);
+      background: #131820;
+    }
+    #modal-root label {
+      color: #334155;
+    }
+    html.dark #modal-root label {
+      color: #CBD5E1;
+    }
+    #modal-root input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not(.modal-bare-input),
+    #modal-root select:not(.modal-bare-input) {
+      min-height: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background-color: #F4F6F9;
+      border: 1px solid #D8E0EA;
+      color: #0F172A;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.25;
+      padding-top: 0;
+      padding-bottom: 0;
+      box-sizing: border-box;
+      transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+    }
+    #modal-root textarea:not(.modal-bare-input) {
+      border-radius: 12px;
+      background-color: #F4F6F9;
+      border: 1px solid #D8E0EA;
+      color: #0F172A;
+      font-size: 14px;
+      font-weight: 500;
+      transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+    }
+    #modal-root select:not(.modal-bare-input) {
+      -webkit-appearance: none;
+      appearance: none;
+      padding-right: 34px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 15px 15px;
+    }
+    #modal-root input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not(.modal-bare-input):focus,
+    #modal-root select:not(.modal-bare-input):focus,
+    #modal-root textarea:not(.modal-bare-input):focus {
+      background-color: #FFFFFF;
+      border-color: #0F172A;
+      box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
+      outline: none;
+    }
+    html.dark #modal-root input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not(.modal-bare-input),
+    html.dark #modal-root select:not(.modal-bare-input),
+    html.dark #modal-root textarea:not(.modal-bare-input) {
+      background-color: #1C232E;
+      border-color: rgba(255, 255, 255, 0.14);
+      color: #F8FAFC;
+    }
+    html.dark #modal-root select:not(.modal-bare-input) {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    }
+    html.dark #modal-root input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not(.modal-bare-input):focus,
+    html.dark #modal-root select:not(.modal-bare-input):focus,
+    html.dark #modal-root textarea:not(.modal-bare-input):focus {
+      background-color: #222B38;
+      border-color: #D5FF5F;
+      box-shadow: 0 0 0 3px rgba(213, 255, 95, 0.16);
+      outline: none;
+    }
+    #modal-root input::placeholder,
+    #modal-root textarea::placeholder {
+      color: #64748B;
+      opacity: 1;
+      font-weight: 500;
+    }
+    html.dark #modal-root input::placeholder,
+    html.dark #modal-root textarea::placeholder {
+      color: #94A3B8;
+      opacity: 1;
     }
     html.dark input, html.dark select, html.dark textarea {
       color: #F8FAFC;
@@ -86,11 +216,8 @@
       opacity: 1;
     }
     html.dark option {
-      background-color: #11161E;
+      background-color: #131820;
       color: #F8FAFC;
-    }
-    html.dark .modal-backdrop {
-      background: rgba(3, 6, 10, 0.72);
     }
 
     body {
@@ -961,8 +1088,40 @@
 
     function openModal(html, noPad = false) {
       const m = document.getElementById('modal-root');
-      const handle = noPad ? '' : '<div class="sm:hidden w-10 h-1 rounded-full bg-[var(--text-muted)]/30 mx-auto -mt-1 mb-1"></div>';
-      m.innerHTML = `<div class="modal-sheet-enter card-white rounded-t-[32px] sm:rounded-[30px] max-w-md w-full ${noPad ? 'overflow-hidden' : 'p-5 sm:p-6 pb-8 sm:pb-6 space-y-4'} shadow-2xl max-h-[90dvh] overflow-y-auto">${handle}${html}</div>`;
+      const handle = noPad ? '' : '<div class="sm:hidden w-10 h-1 rounded-full bg-slate-300 dark:bg-white/20 mx-auto -mt-1 mb-1"></div>';
+      m.innerHTML = `<div class="modal-sheet-enter modal-surface rounded-t-[28px] sm:rounded-[26px] max-w-md w-full ${noPad ? 'overflow-hidden' : 'p-5 sm:p-6 pb-8 sm:pb-6 space-y-4'} max-h-[90dvh] overflow-y-auto">${handle}${html}</div>`;
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+      m.onclick = (e) => { if (e.target === m) closeModal(); };
+    }
+
+    function openSheetModal({ eyebrow = '', title = '', subtitle = '', bodyHtml = '', footerHtml = '', formOnsubmit = '', maxWidth = 'max-w-md' } = {}) {
+      const m = document.getElementById('modal-root');
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const headerHtml = `
+        <div class="modal-sticky-header">
+          <div class="sm:hidden w-10 h-1 rounded-full bg-slate-300 dark:bg-white/20 mx-auto -mt-1.5 mb-2.5"></div>
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              ${eyebrow ? `<div class="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-[#9AC0D6] mb-0.5">${esc(eyebrow)}</div>` : ''}
+              <h3 class="font-extrabold text-[17px] leading-snug text-slate-900 dark:text-white truncate">${esc(title)}</h3>
+              ${subtitle ? `<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">${esc(subtitle)}</p>` : ''}
+            </div>
+            <button type="button" onclick="closeModal()" aria-label="Close" class="w-9 h-9 rounded-full shrink-0 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-slate-200 flex items-center justify-center text-sm font-bold cursor-pointer transition">✕</button>
+          </div>
+        </div>
+      `;
+      const inner = `
+        ${headerHtml}
+        <div class="modal-scroll-body space-y-4 text-xs">
+          ${bodyHtml}
+        </div>
+        ${footerHtml ? `<div class="modal-sticky-footer">${footerHtml}</div>` : ''}
+      `;
+      const content = formOnsubmit
+        ? `<form onsubmit="${formOnsubmit}" class="modal-sheet-shell">${inner}</form>`
+        : `<div class="modal-sheet-shell">${inner}</div>`;
+      m.innerHTML = `<div class="modal-sheet-enter modal-surface rounded-t-[28px] sm:rounded-[26px] ${maxWidth} w-full overflow-hidden">${content}</div>`;
       m.classList.remove('hidden');
       m.classList.add('flex');
       m.onclick = (e) => { if (e.target === m) closeModal(); };
@@ -3614,93 +3773,92 @@
       const matchedEvt = state.cal.eventTypes.find(t => t.id === s.lessonId || t.title === s.lessonTitle);
       const isGroupSession = isGroupLessonType(matchedEvt) || s.type === 'Small Group' || s.type === 'Camp / Clinic' || existingAthIds.length > 1;
 
-      openModal(`
-        <div class="flex items-start justify-between gap-2">
+      const bodyHtml = `
+        <div class="grid grid-cols-3 gap-2.5 items-end">
           <div>
-            <div class="text-xs font-bold ${isCanceled ? 'text-red-500' : 'text-[#4E6075] dark:text-[#9AC0D6]'}">${isCanceled ? 'Canceled session' : 'Manage session'}</div>
-            <h3 class="font-extrabold text-base mt-0.5">${esc(lessonLabel)}</h3>
-            <p class="text-[11px] text-[var(--text-muted)] mt-0.5">${esc(players)} • ${esc(s.day || iso)} at ${esc(s.time)} (${esc(s.duration)})</p>
+            <label class="block text-xs font-bold mb-1.5">Date *</label>
+            <input name="date" type="date" value="${esc(iso)}" class="w-full px-2.5" required />
           </div>
-          <button type="button" onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
+          <div>
+            <label class="block text-xs font-bold mb-1.5">Start (EST) *</label>
+            <input name="time" type="time" value="${esc(time24)}" class="w-full px-2.5" required />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1.5">Length *</label>
+            <select name="durationMin" class="w-full px-2.5">
+              ${durations.map(m => `<option value="${m}" ${durMin === m ? 'selected' : ''}>${m >= 60 && m % 60 === 0 ? `${m / 60}h` : `${m}m`}</option>`).join('')}
+            </select>
+          </div>
         </div>
 
-        <form onsubmit="submitRescheduleSession(event, '${s.id}')" class="space-y-3 text-xs">
-          <div class="text-xs font-bold text-[var(--text-muted)]">Reschedule date, time or length</div>
-          <div class="grid grid-cols-3 gap-2">
-            <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Date *</label>
-              <input name="date" type="date" value="${esc(iso)}" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs" required />
-            </div>
-            <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Start (EST) *</label>
-              <input name="time" type="time" value="${esc(time24)}" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs" required />
-            </div>
-            <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Length *</label>
-              <select name="durationMin" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs">
-                ${durations.map(m => `<option value="${m}" ${durMin === m ? 'selected' : ''}>${m >= 60 && m % 60 === 0 ? `${m / 60}h` : `${m}m`}</option>`).join('')}
-              </select>
-            </div>
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold">${isGroupSession ? 'Group Athletes' : 'Athletes'}</label>
+            ${!isGroupSession ? `<button type="button" onclick="document.getElementById('manage-ses-ath-section')?.classList.toggle('hidden')" class="text-xs font-extrabold text-slate-700 dark:text-[#9AC0D6] hover:underline cursor-pointer">+ Add / Edit Athletes</button>` : ''}
           </div>
-
-          <div class="space-y-1.5">
-            <div class="flex items-center justify-between">
-              <label class="font-bold text-[var(--text-muted)]">${isGroupSession ? 'Group Athletes' : 'Athletes'} <span class="font-normal">(A–Z by last name)</span></label>
-              ${!isGroupSession ? `<button type="button" onclick="document.getElementById('manage-ses-ath-section')?.classList.toggle('hidden')" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">+ Add / Edit Athletes</button>` : ''}
-            </div>
-            <div id="manage-ses-ath-section" class="${isGroupSession ? '' : 'hidden'}">
-              ${renderMultiAthletePicker({ id: 'manage-ses-ath', inputName: 'manageAthleteIds', selectedIds: existingAthIds, placeholder: 'Type first or last name to add/remove athletes…' })}
-            </div>
+          <div id="manage-ses-ath-section" class="${isGroupSession ? '' : 'hidden'}">
+            ${renderMultiAthletePicker({ id: 'manage-ses-ath', inputName: 'manageAthleteIds', selectedIds: existingAthIds, placeholder: 'Search by last or first name to add/remove…' })}
           </div>
+        </div>
 
-          <div>
-            <label class="block font-bold text-[var(--text-muted)] mb-1">Session Notes / Focus</label>
-            <input name="focus" value="${esc(s.focus || '')}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm" placeholder="e.g., Slapping Footwork & Timing" />
-          </div>
+        <div>
+          <label class="block text-xs font-bold mb-1.5">Session Notes / Focus</label>
+          <input name="focus" value="${esc(s.focus || '')}" class="w-full px-3.5" placeholder="e.g., Slapping Footwork & Timing" />
+        </div>
 
-          ${(s.athleteId || existingAthIds.length) ? `
-            <label class="flex items-center justify-between gap-3 p-3 rounded-2xl card-mist cursor-pointer">
-              <div>
-                <div class="font-extrabold">Log Update in Coach Messages</div>
-                <div class="text-[11px] text-[var(--text-muted)]">Records the updated details in each selected family’s thread</div>
-              </div>
-              <input type="checkbox" name="notify" checked class="w-5 h-5 accent-[#010101]" />
-            </label>
-          ` : ''}
+        ${(s.athleteId || existingAthIds.length) ? `
+          <label class="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/[0.05] border border-slate-200 dark:border-white/10 cursor-pointer">
+            <div>
+              <div class="text-xs font-extrabold text-slate-900 dark:text-white">Log Update in Coach Messages</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">Records the updated details in each selected family’s thread</div>
+            </div>
+            <input type="checkbox" name="notify" checked class="w-5 h-5 accent-[#010101]" />
+          </label>
+        ` : ''}
 
-          <button type="submit" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
-            ${isCanceled ? 'Reschedule & Restore Session' : 'Save Session Changes'}
-          </button>
-        </form>
-
-        <div class="pt-3 border-t border-[var(--border-subtle)] space-y-2">
+        <div class="pt-3 border-t border-slate-200 dark:border-white/10 space-y-2">
           ${!isCanceled ? `
-            <button type="button" onclick="rebookSessionNextWeek('${s.id}')" class="w-full py-2.5 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101] transition">
+            <button type="button" onclick="rebookSessionNextWeek('${s.id}')" class="w-full h-11 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-900 dark:text-white text-xs font-extrabold cursor-pointer transition">
               + Rebook Same Time Next Week (+7d)
             </button>
             <div class="grid grid-cols-2 gap-2">
-              <button type="button" onclick="setSessionAttendanceStatus('${s.id}', 'No-Show')" class="py-2 rounded-2xl surface-soft text-xs font-extrabold text-amber-700 dark:text-amber-300 cursor-pointer hover:border-amber-500 transition">
+              <button type="button" onclick="setSessionAttendanceStatus('${s.id}', 'No-Show')" class="h-10 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/15 dark:hover:bg-amber-500/25 border border-amber-200 dark:border-amber-400/20 text-xs font-extrabold text-amber-800 dark:text-amber-300 cursor-pointer transition">
                 Mark No-Show
               </button>
-              <button type="button" onclick="setSessionAttendanceStatus('${s.id}', 'Late Cancel')" class="py-2 rounded-2xl surface-soft text-xs font-extrabold text-amber-700 dark:text-amber-300 cursor-pointer hover:border-amber-500 transition">
+              <button type="button" onclick="setSessionAttendanceStatus('${s.id}', 'Late Cancel')" class="h-10 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/15 dark:hover:bg-amber-500/25 border border-amber-200 dark:border-amber-400/20 text-xs font-extrabold text-amber-800 dark:text-amber-300 cursor-pointer transition">
                 Mark Late Cancel
               </button>
             </div>
-            <button type="button" onclick="cancelSessionCoach('${s.id}')" class="w-full py-2.5 rounded-2xl bg-red-600/10 text-red-600 dark:text-red-400 text-xs font-extrabold cursor-pointer hover:bg-red-600/20 transition">
+            <button type="button" onclick="cancelSessionCoach('${s.id}')" class="w-full h-10 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-500/15 dark:hover:bg-red-500/25 text-red-600 dark:text-red-400 text-xs font-extrabold cursor-pointer transition">
               Cancel Session (Opens Slot on Calendar)
             </button>
           ` : `
             <div class="grid grid-cols-2 gap-2">
-              <button type="button" onclick="restoreSessionCoach('${s.id}')" class="py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer hover:opacity-90 transition">
+              <button type="button" onclick="restoreSessionCoach('${s.id}')" class="h-11 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer hover:opacity-90 transition">
                 Restore Session
               </button>
-              <button type="button" onclick="deleteSessionCoach('${s.id}')" class="py-2.5 rounded-2xl bg-red-600 text-white text-xs font-extrabold cursor-pointer hover:bg-red-700 transition">
+              <button type="button" onclick="deleteSessionCoach('${s.id}')" class="h-11 rounded-xl bg-red-600 text-white text-xs font-extrabold cursor-pointer hover:bg-red-700 transition">
                 Delete Permanently
               </button>
             </div>
           `}
         </div>
-      `);
+      `;
+
+      const footerHtml = `
+        <button type="submit" class="w-full h-12 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-md hover:brightness-95 transition">
+          ${isCanceled ? 'Reschedule & Restore Session' : 'Save Session Changes'}
+        </button>
+      `;
+
+      openSheetModal({
+        eyebrow: isCanceled ? 'Canceled Session' : 'Manage Session',
+        title: lessonLabel,
+        subtitle: `${players} • ${s.day || iso} at ${s.time} (${s.duration})`,
+        formOnsubmit: `submitRescheduleSession(event, '${s.id}')`,
+        bodyHtml,
+        footerHtml
+      });
     }
 
     function submitRescheduleSession(e, sessionId) {
@@ -4379,7 +4537,7 @@
       const selectedId = opts.selectedId || '';
       const allowOpenSession = Boolean(opts.allowOpenSession);
       const required = Boolean(opts.required);
-      const placeholder = opts.placeholder || 'Type athlete first or last name…';
+      const placeholder = opts.placeholder || 'Search by last or first name…';
       const onSelectFn = opts.onSelectFn || '';
       const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -4388,10 +4546,10 @@
       const selAth = selectedId ? sorted.find(a => a.id === selectedId) : null;
 
       return `
-        <div id="${pickerId}-wrap" class="space-y-1.5">
+        <div id="${pickerId}-wrap" class="rounded-2xl border border-slate-200 dark:border-white/15 bg-white dark:bg-[#1A212C] overflow-hidden shadow-xs">
           <input id="${pickerId}-hidden" type="hidden" name="${inputName}" value="${esc(selectedId)}" ${required ? 'required' : ''} />
-          <div class="relative">
-            <svg class="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M20 20l-3.5-3.5"/></svg>
+          <div class="relative border-b border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-white/[0.04]">
+            <svg class="w-4 h-4 text-slate-400 dark:text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M20 20l-3.5-3.5"/></svg>
             <input
               id="${pickerId}-search"
               type="search"
@@ -4400,11 +4558,11 @@
               onfocus="filterAthletePicker('${pickerId}', this.value, true)"
               oninput="filterAthletePicker('${pickerId}', this.value, true)"
               placeholder="${esc(placeholder)}"
-              class="w-full pl-9 pr-8 py-2.5 rounded-2xl surface-soft font-semibold text-sm"
+              class="modal-bare-input w-full h-11 pl-10 pr-9 bg-transparent text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
             />
-            <button id="${pickerId}-clear" type="button" onclick="clearAthletePicker('${pickerId}')" aria-label="Clear selection" class="${selAth ? '' : 'hidden'} absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full card-white text-[10px] font-extrabold text-[var(--text-muted)] hover:text-[var(--text-main)] flex items-center justify-center cursor-pointer">✕</button>
+            <button id="${pickerId}-clear" type="button" onclick="clearAthletePicker('${pickerId}')" aria-label="Clear selection" class="${selAth ? '' : 'hidden'} absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200 dark:bg-white/15 text-[10px] font-extrabold text-slate-700 dark:text-white flex items-center justify-center cursor-pointer">✕</button>
           </div>
-          <div id="${pickerId}-list" class="max-h-44 overflow-y-auto rounded-2xl surface-soft p-1.5 space-y-1">
+          <div id="${pickerId}-list" class="max-h-44 overflow-y-auto divide-y divide-slate-100 dark:divide-white/[0.06] p-1">
             ${renderAthletePickerOptionsHtml(pickerId, '', selectedId)}
           </div>
         </div>
@@ -4429,9 +4587,9 @@
       if (meta.allowOpenSession && (!q || 'open session tbd group'.includes(q))) {
         const isSel = !selectedId;
         rows += `
-          <button type="button" onclick="selectAthletePickerItem('${pickerId}', '', '')" class="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between gap-2 cursor-pointer transition ${isSel ? 'bg-[#010101] text-[#D5FF5F]' : 'hover:bg-white/60 dark:hover:bg-white/10'}">
-            <span>Open Session (TBD / Group Sign-ups)</span>
-            ${isSel ? '<span class="text-[10px] font-extrabold">Selected ✓</span>' : ''}
+          <button type="button" onclick="selectAthletePickerItem('${pickerId}', '', '')" class="w-full text-left px-3 py-2.5 rounded-xl text-[13px] font-bold flex items-center justify-between gap-2 cursor-pointer transition ${isSel ? 'bg-slate-900 text-[#D5FF5F] dark:bg-[#D5FF5F] dark:text-[#010101]' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10'}">
+            <span>Open Session (TBD)</span>
+            ${isSel ? '<span class="text-[11px] font-extrabold">Selected ✓</span>' : ''}
           </button>
         `;
       }
@@ -4442,17 +4600,17 @@
           const label = formatAthleteLastFirst(a);
           const sub = [a.ageGroup, a.parentName].filter(Boolean).join(' • ');
           return `
-            <button type="button" onclick="selectAthletePickerItem('${pickerId}', '${a.id}', '${escJs(label)}')" class="w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between gap-2 cursor-pointer transition ${isSel ? 'bg-[#D5FF5F] text-[#010101] font-extrabold' : 'hover:bg-white/60 dark:hover:bg-white/10'}">
+            <button type="button" onclick="selectAthletePickerItem('${pickerId}', '${a.id}', '${escJs(label)}')" class="w-full text-left px-3 py-2.5 rounded-xl text-[13px] flex items-center justify-between gap-2 cursor-pointer transition ${isSel ? 'bg-[#D5FF5F]/35 dark:bg-[#D5FF5F]/20 text-slate-950 dark:text-white font-extrabold' : 'text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/10'}">
               <span class="min-w-0 truncate">
-                <strong class="font-extrabold">${esc(label)}</strong>
-                ${sub ? `<span class="text-[11px] ${isSel ? 'text-[#010101]/75' : 'text-[var(--text-muted)]'}"> • ${esc(sub)}</span>` : ''}
+                <strong class="font-bold">${esc(label)}</strong>
+                ${sub ? `<span class="text-xs font-medium text-slate-500 dark:text-slate-400"> · ${esc(sub)}</span>` : ''}
               </span>
-              ${isSel ? '<span class="text-[10px] font-extrabold shrink-0">✓</span>' : ''}
+              ${isSel ? '<span class="w-5 h-5 rounded-full bg-[#010101] text-[#D5FF5F] flex items-center justify-center text-[11px] font-black shrink-0">✓</span>' : ''}
             </button>
           `;
         }).join('');
       } else {
-        rows += `<div class="px-3 py-3 text-center text-[11px] text-[var(--text-muted)]">No athletes match "${esc(query)}".</div>`;
+        rows += `<div class="px-3 py-4 text-center text-xs text-slate-500 dark:text-slate-400">No athletes match "${esc(query)}".</div>`;
       }
       return rows;
     }
@@ -4517,17 +4675,15 @@
       if (!st) return '';
       const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const ids = Array.from(st.selectedIds);
-      if (!ids.length) {
-        return `<span class="text-[11px] text-[var(--text-muted)]">No athletes selected yet — tap below to add multiple athletes (or leave empty for Open Group).</span>`;
-      }
+      if (!ids.length) return '';
       return ids.map(id => {
         const a = state.athletes.find(x => x.id === id);
         if (!a) return '';
         const locked = st.lockedIds.has(id);
         return `
-          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold">
+          <span class="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full bg-slate-900 text-[#D5FF5F] dark:bg-[#D5FF5F] dark:text-[#010101] text-xs font-bold">
             <span>${esc(formatAthleteLastFirst(a))}</span>
-            ${locked ? '' : `<button type="button" onclick="toggleMultiAthletePickerItem('${pickerId}', '${id}')" aria-label="Remove ${esc(a.name)}" class="w-4 h-4 rounded-full bg-[#010101]/15 hover:bg-[#010101]/25 flex items-center justify-center text-[9px] font-black cursor-pointer">✕</button>`}
+            ${locked ? '' : `<button type="button" onclick="toggleMultiAthletePickerItem('${pickerId}', '${id}')" aria-label="Remove ${esc(a.name)}" class="w-4 h-4 rounded-full bg-white/15 dark:bg-black/15 hover:bg-white/25 flex items-center justify-center text-[10px] font-black cursor-pointer">✕</button>`}
           </span>
         `;
       }).join('');
@@ -4557,7 +4713,7 @@
         : sorted;
 
       if (!matches.length) {
-        return `<div class="px-3 py-3 text-center text-[11px] text-[var(--text-muted)]">No athletes match "${esc(query)}".</div>`;
+        return `<div class="px-3 py-4 text-center text-xs text-slate-500 dark:text-slate-400">No athletes match "${esc(query)}".</div>`;
       }
 
       return matches.map(a => {
@@ -4566,15 +4722,15 @@
         const label = formatAthleteLastFirst(a);
         const sub = [a.ageGroup, a.parentName].filter(Boolean).join(' • ');
         return `
-          <button type="button" onclick="toggleMultiAthletePickerItem('${pickerId}', '${a.id}')" class="w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between gap-2 cursor-pointer transition ${isSel ? 'bg-[#D5FF5F] text-[#010101] font-extrabold' : 'hover:bg-white/60 dark:hover:bg-white/10'}">
-            <span class="flex items-center gap-2 min-w-0">
-              <span class="w-4 h-4 rounded-md border flex items-center justify-center text-[10px] font-black shrink-0 ${isSel ? 'bg-[#010101] border-[#010101] text-[#D5FF5F]' : 'border-[var(--border-subtle)] bg-white/70 dark:bg-white/10'}">${isSel ? '✓' : ''}</span>
+          <button type="button" onclick="toggleMultiAthletePickerItem('${pickerId}', '${a.id}')" class="w-full text-left px-3 py-2.5 rounded-xl text-[13px] flex items-center justify-between gap-2.5 cursor-pointer transition ${isSel ? 'bg-[#D5FF5F]/30 dark:bg-[#D5FF5F]/15 text-slate-950 dark:text-white' : 'text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/10'}">
+            <span class="flex items-center gap-2.5 min-w-0">
+              <span class="w-5 h-5 rounded-md border-[1.5px] flex items-center justify-center text-[11px] font-black shrink-0 transition ${isSel ? 'bg-[#010101] border-[#010101] text-[#D5FF5F] dark:bg-[#D5FF5F] dark:border-[#D5FF5F] dark:text-[#010101]' : 'border-slate-400 dark:border-slate-500 bg-white dark:bg-[#131820]'}">${isSel ? '✓' : ''}</span>
               <span class="min-w-0 truncate">
-                <strong class="font-extrabold">${esc(label)}</strong>
-                ${sub ? `<span class="text-[11px] ${isSel ? 'text-[#010101]/75' : 'text-[var(--text-muted)]'}"> • ${esc(sub)}</span>` : ''}
+                <strong class="font-bold">${esc(label)}</strong>
+                ${sub ? `<span class="text-xs font-medium text-slate-500 dark:text-slate-400"> · ${esc(sub)}</span>` : ''}
               </span>
             </span>
-            ${locked ? '<span class="text-[10px] font-extrabold opacity-75 shrink-0">Primary</span>' : ''}
+            ${locked ? '<span class="text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-200 dark:bg-white/15 text-slate-700 dark:text-slate-200 shrink-0">Primary</span>' : ''}
           </button>
         `;
       }).join('');
@@ -4583,7 +4739,7 @@
     function renderMultiAthletePicker(opts = {}) {
       const pickerId = opts.id || ('map-' + Date.now());
       const inputName = opts.inputName || 'groupAthleteIds';
-      const placeholder = opts.placeholder || 'Type first or last name to add athletes…';
+      const placeholder = opts.placeholder || 'Search by last or first name…';
       const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const selectedIds = new Set((opts.selectedIds || []).filter(Boolean));
       const lockedIds = new Set((opts.lockedIds || []).filter(Boolean));
@@ -4593,25 +4749,27 @@
       return `
         <div id="${pickerId}-wrap" class="space-y-2">
           <div class="flex items-center justify-between gap-2">
-            <span id="${pickerId}-count" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${selectedIds.size} ${selectedIds.size === 1 ? 'athlete' : 'athletes'} selected</span>
-            <button id="${pickerId}-clearall" type="button" onclick="clearMultiAthletePicker('${pickerId}')" class="${selectedIds.size > lockedIds.size ? '' : 'hidden'} text-[11px] font-bold text-[var(--text-muted)] hover:underline cursor-pointer">Clear all</button>
+            <span id="${pickerId}-count" class="text-xs font-bold text-slate-600 dark:text-[#9AC0D6]">${selectedIds.size} ${selectedIds.size === 1 ? 'athlete' : 'athletes'} selected</span>
+            <button id="${pickerId}-clearall" type="button" onclick="clearMultiAthletePicker('${pickerId}')" class="${selectedIds.size > lockedIds.size ? '' : 'hidden'} text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer">Clear all</button>
           </div>
-          <div id="${pickerId}-chips" class="flex flex-wrap gap-1.5 p-2 rounded-2xl surface-soft min-h-[38px] items-center">
+          <div id="${pickerId}-chips" class="${selectedIds.size ? 'flex' : 'hidden'} flex-wrap gap-1.5 items-center">
             ${renderMultiAthleteChipsHtml(pickerId)}
           </div>
-          <div class="relative">
-            <svg class="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M20 20l-3.5-3.5"/></svg>
-            <input
-              id="${pickerId}-search"
-              type="search"
-              autocomplete="off"
-              oninput="filterMultiAthletePicker('${pickerId}', this.value)"
-              placeholder="${esc(placeholder)}"
-              class="w-full pl-9 pr-3 py-2.5 rounded-2xl surface-soft font-semibold text-sm"
-            />
-          </div>
-          <div id="${pickerId}-list" class="max-h-44 overflow-y-auto rounded-2xl surface-soft p-1.5 space-y-1">
-            ${renderMultiAthleteOptionsHtml(pickerId, '')}
+          <div class="rounded-2xl border border-slate-200 dark:border-white/15 bg-white dark:bg-[#1A212C] overflow-hidden shadow-xs">
+            <div class="relative border-b border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-white/[0.04]">
+              <svg class="w-4 h-4 text-slate-400 dark:text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M20 20l-3.5-3.5"/></svg>
+              <input
+                id="${pickerId}-search"
+                type="search"
+                autocomplete="off"
+                oninput="filterMultiAthletePicker('${pickerId}', this.value)"
+                placeholder="${esc(placeholder)}"
+                class="modal-bare-input w-full h-11 pl-10 pr-3 bg-transparent text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
+              />
+            </div>
+            <div id="${pickerId}-list" class="max-h-44 overflow-y-auto divide-y divide-slate-100 dark:divide-white/[0.06] p-1">
+              ${renderMultiAthleteOptionsHtml(pickerId, '')}
+            </div>
           </div>
           <div id="${pickerId}-inputs">${renderMultiAthleteHiddenInputsHtml(pickerId)}</div>
         </div>
@@ -4632,7 +4790,11 @@
       const clearBtn = document.getElementById(`${pickerId}-clearall`);
       const listEl = document.getElementById(`${pickerId}-list`);
       const searchEl = document.getElementById(`${pickerId}-search`);
-      if (chipsEl) chipsEl.innerHTML = renderMultiAthleteChipsHtml(pickerId);
+      if (chipsEl) {
+        chipsEl.innerHTML = renderMultiAthleteChipsHtml(pickerId);
+        chipsEl.classList.toggle('hidden', st.selectedIds.size === 0);
+        chipsEl.classList.toggle('flex', st.selectedIds.size > 0);
+      }
       if (inputsEl) inputsEl.innerHTML = renderMultiAthleteHiddenInputsHtml(pickerId);
       if (countEl) countEl.textContent = `${st.selectedIds.size} ${st.selectedIds.size === 1 ? 'athlete' : 'athletes'} selected`;
       if (clearBtn) clearBtn.classList.toggle('hidden', st.selectedIds.size <= st.lockedIds.size);
@@ -5065,20 +5227,9 @@
       if (form.durationMin && evt?.duration) form.durationMin.value = String(evt.duration);
       const isGroup = isGroupLessonType(evt);
 
-      // In Schedule Session modal: swap single picker <-> multi-athlete group picker automatically
-      const singleWrap = document.getElementById('sched-single-ath-wrap');
-      const groupWrap = document.getElementById('sched-group-ath-wrap');
-      if (singleWrap && groupWrap) {
-        singleWrap.classList.toggle('hidden', isGroup);
-        groupWrap.classList.toggle('hidden', !isGroup);
-        const modeInput = form.querySelector('input[name="athleteSelectionMode"]');
-        if (modeInput) modeInput.value = isGroup ? 'group' : 'single';
-        if (isGroup) {
-          const singleId = document.getElementById('sched-ath-hidden')?.value;
-          if (singleId && _multiAthletePickerState['sched-group-ath'] && !_multiAthletePickerState['sched-group-ath'].selectedIds.has(singleId)) {
-            toggleMultiAthletePickerItem('sched-group-ath', singleId);
-          }
-        }
+      // In Schedule Session modal: swap single picker <-> multi-athlete group picker + segmented toggle
+      if (document.getElementById('sched-single-ath-wrap') && document.getElementById('sched-group-ath-wrap')) {
+        toggleScheduleAthleteMode(isGroup ? 'group' : 'single');
       }
 
       // In Athlete-Profile Schedule modal: reveal multi-athlete group section automatically
@@ -5096,73 +5247,74 @@
       const defaultDur = Number(defaultLesson?.duration) || 60;
       const durations = [15, 30, 45, 60, 75, 90, 120, 180];
       const isGroupLesson = isGroupLessonType(defaultLesson);
-      openModal(`
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Schedule Session</div>
-            <h3 class="font-extrabold text-base mt-0.5">+ Schedule Session — ${ath.name}</h3>
-          </div>
-          <button type="button" onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
+
+      const bodyHtml = `
+        <div>
+          <label class="block text-xs font-bold mb-1.5">Lesson *</label>
+          <select name="eventTypeId" onchange="syncSessionDurationFromLesson(this)" class="w-full px-3.5">
+            ${state.cal.eventTypes.map(t => `<option value="${t.id}" ${defaultLesson?.id === t.id ? 'selected' : ''}>${t.title} (${t.durationLabel} • ${formatDualPrice(t)})</option>`).join('')}
+          </select>
         </div>
 
-        <form onsubmit="submitAddSessionForAthlete(event, '${ath.id}')" class="space-y-3 text-xs">
+        <div class="grid grid-cols-3 gap-2.5 items-end">
           <div>
-            <label class="block font-bold text-[var(--text-muted)] mb-1">Lesson *</label>
-            <select name="eventTypeId" onchange="syncSessionDurationFromLesson(this)" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
-              ${state.cal.eventTypes.map(t => `<option value="${t.id}" ${defaultLesson?.id === t.id ? 'selected' : ''}>${t.title} (${t.durationLabel} • ${formatDualPrice(t)})</option>`).join('')}
+            <label class="block text-xs font-bold mb-1.5">Date *</label>
+            <input name="date" type="date" value="${defaultDate}" class="w-full px-2.5" required />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1.5">Start (EST) *</label>
+            <input name="time" type="time" value="16:00" class="w-full px-2.5" required />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1.5">Length *</label>
+            <select name="durationMin" class="w-full px-2.5">
+              ${durations.map(m => `<option value="${m}" ${defaultDur === m ? 'selected' : ''}>${m >= 60 && m % 60 === 0 ? `${m / 60}h` : `${m}m`}</option>`).join('')}
             </select>
           </div>
+        </div>
 
-          <div class="grid grid-cols-3 gap-2">
-            <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Date *</label>
-              <input name="date" type="date" value="${defaultDate}" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs" required />
-            </div>
-            <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Start (EST) *</label>
-              <input name="time" type="time" value="16:00" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs" required />
-            </div>
-            <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Length *</label>
-              <select name="durationMin" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs">
-                ${durations.map(m => `<option value="${m}" ${defaultDur === m ? 'selected' : ''}>${m >= 60 && m % 60 === 0 ? `${m / 60}h` : `${m}m`}</option>`).join('')}
-              </select>
-            </div>
-          </div>
+        <div id="ath-sched-group-wrap" class="${isGroupLesson ? '' : 'hidden'} space-y-2">
+          <label class="block text-xs font-bold">Group Athletes <span class="font-normal text-slate-500">(select multiple)</span></label>
+          ${renderMultiAthletePicker({ id: 'ath-sched-group', inputName: 'extraAthleteIds', selectedIds: [ath.id], lockedIds: [ath.id], placeholder: 'Search by last or first name to add teammates…' })}
+        </div>
 
-          <div id="ath-sched-group-wrap" class="${isGroupLesson ? '' : 'hidden'} space-y-1.5 pt-1">
-            <label class="block font-bold text-[var(--text-muted)]">Group Athletes <span class="font-normal">(A–Z by last name — select multiple)</span></label>
-            ${renderMultiAthletePicker({ id: 'ath-sched-group', inputName: 'extraAthleteIds', selectedIds: [ath.id], lockedIds: [ath.id], placeholder: 'Type first or last name to add teammates…' })}
-          </div>
+        <div>
+          <label class="block text-xs font-bold mb-1.5">Session Notes / Focus <span class="font-normal text-slate-500">(optional)</span></label>
+          <input name="focus" class="w-full px-3.5" placeholder="e.g., Footwork, Bunting & Live Pitch Slapping" />
+        </div>
 
+        <div>
+          <label class="block text-xs font-bold mb-1.5">Payment Status</label>
+          <select name="paymentMode" class="w-full px-3.5">
+            <option value="cash-pending">Cash at Session (Pending — Cash Price)</option>
+            <option value="cash-paid">Cash Collected ✓ (Cash Price)</option>
+            <option value="clover-paid">Clover Card Paid ✓ (Card Price)</option>
+            <option value="venmo-paid">Venmo / Zelle Logged ✓ (Cash Price)</option>
+          </select>
+        </div>
+
+        <label class="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/[0.05] border border-slate-200 dark:border-white/10 cursor-pointer">
           <div>
-            <label class="block font-bold text-[var(--text-muted)] mb-1">Session Notes / Focus (Optional)</label>
-            <input name="focus" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm" placeholder="e.g., Footwork, Bunting & Live Pitch Slapping" />
+            <div class="text-xs font-extrabold text-slate-900 dark:text-white">Notify ${ath.parentName || ath.name}</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400">Logs session confirmation${ath.parentPhone ? ` for ${ath.parentPhone}` : ' in Coach Messages'}</div>
           </div>
+          <input type="checkbox" name="notify" checked class="w-5 h-5 accent-[#010101]" />
+        </label>
+      `;
 
-          <div>
-            <label class="block font-bold text-[var(--text-muted)] mb-1">Payment Status</label>
-            <select name="paymentMode" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
-              <option value="cash-pending">Cash at Session (Pending — Cash Price)</option>
-              <option value="cash-paid">Cash Collected ✓ (Cash Price)</option>
-              <option value="clover-paid">Clover Card Paid ✓ (Card Price)</option>
-              <option value="venmo-paid">Venmo / Zelle Logged ✓ (Cash Price)</option>
-            </select>
-          </div>
+      const footerHtml = `
+        <button type="submit" class="w-full h-12 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-md hover:brightness-95 transition">
+          + Schedule Session for ${ath.name.split(' ')[0]}
+        </button>
+      `;
 
-          <label class="flex items-center justify-between gap-3 p-3 rounded-2xl card-mist cursor-pointer">
-            <div>
-              <div class="font-extrabold">Notify ${ath.parentName || ath.name}</div>
-              <div class="text-[11px] text-[var(--text-muted)]">Logs session confirmation${ath.parentPhone ? ` for ${ath.parentPhone}` : ' in Coach Messages'}</div>
-            </div>
-            <input type="checkbox" name="notify" checked class="w-5 h-5 accent-[#010101]" />
-          </label>
-
-          <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
-            + Schedule Session for ${ath.name.split(' ')[0]}
-          </button>
-        </form>
-      `);
+      openSheetModal({
+        eyebrow: 'Schedule Session',
+        title: ath.name,
+        formOnsubmit: `submitAddSessionForAthlete(event, '${ath.id}')`,
+        bodyHtml,
+        footerHtml
+      });
     }
 
     function submitAddSessionForAthlete(e, athId, extraAthleteIds = []) {
@@ -7665,32 +7817,29 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     }
 
     function openNewMessageModal() {
-      const activeAthletes = state.athletes.filter(a => !a.archived);
-      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      openModal(`
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <div class="inline-flex items-center gap-1.5 text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('send', 'w-3.5 h-3.5')} New Message</div>
-            <h3 class="font-extrabold text-base mt-0.5">Message an Athlete / Family</h3>
-          </div>
-          <button type="button" onclick="closeModal()" aria-label="Close" class="w-9 h-9 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+      const bodyHtml = `
+        <div>
+          <label class="block text-xs font-bold mb-1.5">Athlete / Family * <span class="font-normal text-slate-500">(A–Z by last name)</span></label>
+          ${renderSearchableAthletePicker({ id: 'newmsg-ath', inputName: 'athleteId', required: true, placeholder: 'Search by last or first name…' })}
         </div>
-
-        <form onsubmit="submitNewMessage(event)" class="space-y-3 text-xs">
-          <div>
-            <label class="block font-bold text-[var(--text-muted)] mb-1">Select Athlete / Family * <span class="font-normal">(A–Z by last name)</span></label>
-            ${renderSearchableAthletePicker({ id: 'newmsg-ath', inputName: 'athleteId', required: true, placeholder: 'Type first or last name…' })}
+        <div class="space-y-2">
+          <label class="block text-xs font-bold">Quick Templates</label>
+          <div class="flex flex-wrap gap-1.5">
+            ${COACH_QUICK_REPLIES.map(q => `<button type="button" onclick="const el=document.getElementById('new-msg-body'); if(el){el.value='${q.replace(/'/g, "\\'")}'; el.focus();}" class="px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-[#D5FF5F] dark:bg-white/10 dark:hover:bg-[#D5FF5F] text-slate-800 dark:text-slate-200 hover:text-[#010101] text-[11px] font-bold cursor-pointer transition">${q.slice(0, 32)}…</button>`).join('')}
           </div>
-          <div class="space-y-1.5">
-            <label class="block font-bold text-[var(--text-muted)]">Quick Templates (Tap to fill)</label>
-            <div class="flex flex-wrap gap-1.5">
-              ${COACH_QUICK_REPLIES.map(q => `<button type="button" onclick="const el=document.getElementById('new-msg-body'); if(el){el.value='${q.replace(/'/g, "\\'")}'; el.focus();}" class="px-2.5 py-1 rounded-full surface-soft text-[11px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">${q.slice(0, 32)}…</button>`).join('')}
-            </div>
-            <textarea id="new-msg-body" name="text" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm leading-snug" placeholder="Write your message..." required></textarea>
-          </div>
-          <button type="submit" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-sm hover:brightness-95 inline-flex items-center justify-center gap-2">${uiIcon('send', 'w-4 h-4')} Send Message</button>
-        </form>
-      `);
+          <textarea id="new-msg-body" name="text" rows="3" class="w-full px-3.5 py-2.5 leading-snug" placeholder="Write your message..." required></textarea>
+        </div>
+      `;
+      const footerHtml = `
+        <button type="submit" class="w-full h-12 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-md hover:brightness-95 inline-flex items-center justify-center gap-2 transition">${uiIcon('send', 'w-4 h-4')} Send Message</button>
+      `;
+      openSheetModal({
+        eyebrow: 'New Message',
+        title: 'Message an Athlete / Family',
+        formOnsubmit: 'submitNewMessage(event)',
+        bodyHtml,
+        footerHtml
+      });
     }
 
     function submitNewMessage(e) {
@@ -7726,34 +7875,33 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         'Weather / facility update: lessons are still ON as scheduled today.',
         'I have an open cage slot today! Reply if you want to grab it.'
       ];
-      openModal(`
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <div class="inline-flex items-center gap-1.5 text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('bell', 'w-3.5 h-3.5')} Group Broadcast</div>
-            <h3 class="font-extrabold text-base mt-0.5">Send Update to Multiple Families</h3>
-          </div>
-          <button type="button" onclick="closeModal()" aria-label="Close" class="w-9 h-9 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+      const bodyHtml = `
+        <div>
+          <label class="block text-xs font-bold mb-1.5">Recipients</label>
+          <select name="audience" class="w-full px-3.5">
+            <option value="today">Today’s Booked Families (${todayAthIds.size})</option>
+            <option value="week">This Week’s Booked Families (${weekAthIds.size})</option>
+            <option value="all">All Active Families (${activeCount})</option>
+          </select>
         </div>
-
-        <form onsubmit="submitBroadcastMessage(event)" class="space-y-3 text-xs">
-          <div>
-            <label class="block font-bold text-[var(--text-muted)] mb-1">Recipients</label>
-            <select name="audience" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
-              <option value="today">Today’s Booked Families (${todayAthIds.size})</option>
-              <option value="week">This Week’s Booked Families (${weekAthIds.size})</option>
-              <option value="all">All Active Families (${activeCount})</option>
-            </select>
+        <div class="space-y-2">
+          <label class="block text-xs font-bold">Quick Presets</label>
+          <div class="flex flex-wrap gap-1.5">
+            ${presets.map(p => `<button type="button" onclick="const el=document.getElementById('broadcast-body'); if(el){el.value='${p.replace(/'/g, "\\'")}'; el.focus();}" class="px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-[#D5FF5F] dark:bg-white/10 dark:hover:bg-[#D5FF5F] text-slate-800 dark:text-slate-200 hover:text-[#010101] text-[11px] font-bold cursor-pointer transition">${p.slice(0, 34)}…</button>`).join('')}
           </div>
-          <div class="space-y-1.5">
-            <label class="block font-bold text-[var(--text-muted)]">Quick Presets</label>
-            <div class="flex flex-wrap gap-1.5">
-              ${presets.map(p => `<button type="button" onclick="const el=document.getElementById('broadcast-body'); if(el){el.value='${p.replace(/'/g, "\\'")}'; el.focus();}" class="px-2.5 py-1 rounded-full surface-soft text-[11px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">${p.slice(0, 34)}…</button>`).join('')}
-            </div>
-            <textarea id="broadcast-body" name="text" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm leading-snug" placeholder="Write your announcement..." required></textarea>
-          </div>
-          <button type="submit" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-sm hover:brightness-95 inline-flex items-center justify-center gap-2">${uiIcon('bell', 'w-4 h-4')} Send Broadcast</button>
-        </form>
-      `);
+          <textarea id="broadcast-body" name="text" rows="3" class="w-full px-3.5 py-2.5 leading-snug" placeholder="Write your announcement..." required></textarea>
+        </div>
+      `;
+      const footerHtml = `
+        <button type="submit" class="w-full h-12 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-md hover:brightness-95 inline-flex items-center justify-center gap-2 transition">${uiIcon('bell', 'w-4 h-4')} Send Broadcast</button>
+      `;
+      openSheetModal({
+        eyebrow: 'Group Broadcast',
+        title: 'Send Update to Multiple Families',
+        formOnsubmit: 'submitBroadcastMessage(event)',
+        bodyHtml,
+        footerHtml
+      });
     }
 
     function submitBroadcastMessage(e) {
@@ -8179,6 +8327,19 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     }
     function uploadParentVideo(e, athId) { e.preventDefault(); const ath = state.athletes.find(a => a.id === athId); state.videos.unshift({ id: 'v' + Date.now(), athleteId: ath.id, athleteName: ath.name, title: e.target.title.value, uploadedAt: 'Just now', status: 'Needs Review', img: 'assets/images/fastpitch-fielding.jpg', cues: [] }); render(); showToast('Clip uploaded!'); }
     function saveParentProfile(e, athId) { e.preventDefault(); const ath = state.athletes.find(a => a.id === athId); ath.emergencyContact = e.target.emergency.value; ath.medicalNotes = e.target.medical.value; ath.waiverSigned = true; ath.waiverDate = 'Today'; render(); showToast('Profile & waiver saved!'); }
+    function updateScheduleOptionsSummary(form) {
+      const f = form || document.querySelector('#modal-root form');
+      const el = document.getElementById('sched-options-summary');
+      if (!f || !el) return;
+      const repMap = { none: 'One-time', 'weekly-4': 'Weekly × 4', 'weekly-8': 'Weekly × 8', 'biweekly-4': 'Bi-weekly × 4' };
+      const payMap = { 'cash-pending': 'Cash at Session', 'cash-paid': 'Cash Paid', 'clover-paid': 'Clover Paid', 'venmo-paid': 'Venmo / Zelle' };
+      const rep = repMap[f.repeatMode?.value] || 'One-time';
+      const pay = payMap[f.paymentMode?.value] || 'Cash at Session';
+      const notify = f.notify?.checked ? 'Notify ✓' : 'No alert';
+      const hasNotes = Boolean((f.focus?.value || '').trim());
+      el.textContent = [rep, pay, hasNotes ? 'Notes added' : null, notify].filter(Boolean).join(' • ');
+    }
+
     function openAddSessionModal(presetDate = null, presetLessonId = null) {
       const defaultDate = presetDate || getTodayIsoEst();
       const defaultLesson = state.cal.eventTypes.find(t => t.id === presetLessonId) || state.cal.eventTypes[0];
@@ -8187,111 +8348,123 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const activeAthletes = state.athletes.filter(a => !a.archived);
       const hasAthletes = activeAthletes.length > 0;
       const isGroupLesson = isGroupLessonType(defaultLesson);
-      openModal(`
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <h3 class="font-extrabold text-base">+ Schedule Session</h3>
-            <p class="text-xs text-[var(--text-muted)] mt-0.5">Single, recurring standing slot, or small group</p>
+
+      const bodyHtml = `
+        <input type="hidden" name="athleteSelectionMode" value="${isGroupLesson ? 'group' : 'single'}" />
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-xs font-bold">Lesson *</label>
+            <button type="button" onclick="closeModal(); openClassTypeModal(null);" class="text-xs font-extrabold text-slate-700 dark:text-[#9AC0D6] hover:underline cursor-pointer">+ New Lesson</button>
           </div>
-          <button type="button" onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
+          <select name="eventTypeId" onchange="syncSessionDurationFromLesson(this)" class="w-full px-3.5">
+            ${state.cal.eventTypes.map(t => `<option value="${t.id}" ${defaultLesson?.id === t.id ? 'selected' : ''}>${t.title} (${t.durationLabel} • ${formatDualPrice(t)})</option>`).join('')}
+          </select>
         </div>
 
-        <form onsubmit="submitQuickAddSession(event)" class="space-y-3 text-xs">
-          <input type="hidden" name="athleteSelectionMode" value="${isGroupLesson ? 'group' : 'single'}" />
+        <div class="grid grid-cols-3 gap-2.5 items-end">
           <div>
-            <div class="flex items-center justify-between mb-1">
-              <label class="font-bold text-[var(--text-muted)]">Lesson *</label>
-              <button type="button" onclick="closeModal(); openClassTypeModal(null);" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">+ New Lesson</button>
-            </div>
-            <select name="eventTypeId" onchange="syncSessionDurationFromLesson(this)" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
-              ${state.cal.eventTypes.map(t => `<option value="${t.id}" ${defaultLesson?.id === t.id ? 'selected' : ''}>${t.title} (${t.durationLabel} • ${formatDualPrice(t)})</option>`).join('')}
+            <label class="block text-xs font-bold mb-1.5">Date *</label>
+            <input name="date" type="date" value="${defaultDate}" class="w-full px-2.5" required />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1.5">Start (EST) *</label>
+            <input name="time" type="time" value="16:00" class="w-full px-2.5" required />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1.5">Length *</label>
+            <select name="durationMin" class="w-full px-2.5">
+              ${durations.map(m => `<option value="${m}" ${defaultDur === m ? 'selected' : ''}>${m >= 60 && m % 60 === 0 ? `${m / 60}h` : `${m}m`}</option>`).join('')}
             </select>
           </div>
+        </div>
 
-          <div class="grid grid-cols-3 gap-2">
-            <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Date *</label>
-              <input name="date" type="date" value="${defaultDate}" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs" required />
+        ${hasAthletes ? `
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <label class="text-xs font-bold">Athletes</label>
+                <div class="inline-flex p-0.5 rounded-lg bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10">
+                  <button id="sched-mode-btn-single" type="button" onclick="toggleScheduleAthleteMode('single')" class="px-2.5 py-1 rounded-md text-[11px] font-extrabold cursor-pointer transition ${!isGroupLesson ? 'bg-white dark:bg-[#D5FF5F] text-slate-900 dark:text-[#010101] shadow-xs' : 'text-slate-600 dark:text-slate-300'}">Single</button>
+                  <button id="sched-mode-btn-group" type="button" onclick="toggleScheduleAthleteMode('group')" class="px-2.5 py-1 rounded-md text-[11px] font-extrabold cursor-pointer transition ${isGroupLesson ? 'bg-white dark:bg-[#D5FF5F] text-slate-900 dark:text-[#010101] shadow-xs' : 'text-slate-600 dark:text-slate-300'}">Group</button>
+                </div>
+              </div>
+              <button type="button" onclick="closeModal(); openAddAthleteModal(null);" class="text-xs font-extrabold text-slate-700 dark:text-[#9AC0D6] hover:underline cursor-pointer">+ New Athlete</button>
             </div>
-            <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Start (EST) *</label>
-              <input name="time" type="time" value="16:00" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs" required />
+
+            <div id="sched-single-ath-wrap" class="${isGroupLesson ? 'hidden' : ''}">
+              ${renderSearchableAthletePicker({ id: 'sched-ath', inputName: 'athleteId', allowOpenSession: true, placeholder: 'Search by last or first name…' })}
             </div>
+
+            <div id="sched-group-ath-wrap" class="${isGroupLesson ? '' : 'hidden'}">
+              ${renderMultiAthletePicker({ id: 'sched-group-ath', inputName: 'groupAthleteIds', placeholder: 'Search by last or first name to add…' })}
+            </div>
+          </div>
+        ` : `
+          <div>
+            <label class="block text-xs font-bold mb-1.5">Athlete Name <span class="font-normal text-slate-500">(optional)</span></label>
+            <input name="newAthleteName" class="w-full px-3.5" placeholder="e.g., Kylie Morgan" />
+          </div>
+        `}
+
+        <details class="rounded-2xl border border-slate-200 dark:border-white/15 bg-slate-50/70 dark:bg-white/[0.03] overflow-hidden">
+          <summary class="px-3.5 py-3 flex items-center justify-between gap-2 cursor-pointer select-none list-none">
+            <div class="min-w-0">
+              <div class="text-xs font-extrabold text-slate-900 dark:text-white">Session Options</div>
+              <div id="sched-options-summary" class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">One-time • Cash at Session • Notify ✓</div>
+            </div>
+            <span class="text-xs font-bold text-slate-500 dark:text-slate-400 shrink-0">Edit ▾</span>
+          </summary>
+          <div class="px-3.5 pb-3.5 pt-2 border-t border-slate-200 dark:border-white/10 space-y-3">
             <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Length *</label>
-              <select name="durationMin" class="w-full px-2.5 py-2.5 rounded-2xl surface-soft font-bold text-xs">
-                ${durations.map(m => `<option value="${m}" ${defaultDur === m ? 'selected' : ''}>${m >= 60 && m % 60 === 0 ? `${m / 60}h` : `${m}m`}</option>`).join('')}
+              <label class="block text-xs font-bold mb-1.5">Repeat (Standing Slot)</label>
+              <select name="repeatMode" onchange="updateScheduleOptionsSummary(this.form)" class="w-full px-3.5">
+                <option value="none">Does not repeat (single session)</option>
+                <option value="weekly-4">Weekly for 4 weeks</option>
+                <option value="weekly-8">Weekly for 8 weeks</option>
+                <option value="biweekly-4">Every 2 weeks (4 sessions)</option>
               </select>
             </div>
-          </div>
 
-          <div>
-            <label class="block font-bold text-[var(--text-muted)] mb-1">Repeat (Standing Slot)</label>
-            <select name="repeatMode" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
-              <option value="none">Does not repeat (single session)</option>
-              <option value="weekly-4">Weekly for 4 weeks</option>
-              <option value="weekly-8">Weekly for 8 weeks</option>
-              <option value="biweekly-4">Every 2 weeks (4 sessions)</option>
-            </select>
-          </div>
-
-          ${hasAthletes ? `
-            <div id="sched-single-ath-wrap" class="${isGroupLesson ? 'hidden' : ''} space-y-2">
-              <div class="flex items-center justify-between">
-                <label class="font-bold text-[var(--text-muted)]">Athlete <span class="font-normal">(A–Z by last name)</span></label>
-                <div class="flex items-center gap-2">
-                  <button type="button" onclick="toggleScheduleAthleteMode('group')" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">+ Multiple Athletes</button>
-                  <button type="button" onclick="closeModal(); openAddAthleteModal(null);" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">+ New</button>
-                </div>
-              </div>
-              ${renderSearchableAthletePicker({ id: 'sched-ath', inputName: 'athleteId', allowOpenSession: true, placeholder: 'Type first or last name (or leave blank for Open)…' })}
-            </div>
-
-            <div id="sched-group-ath-wrap" class="${isGroupLesson ? '' : 'hidden'} space-y-2">
-              <div class="flex items-center justify-between">
-                <label class="font-bold text-[var(--text-muted)]">Group Athletes <span class="font-normal">(A–Z by last name — select multiple)</span></label>
-                <div class="flex items-center gap-2">
-                  <button type="button" onclick="toggleScheduleAthleteMode('single')" class="text-[11px] font-bold text-[var(--text-muted)] hover:underline cursor-pointer">Single</button>
-                  <button type="button" onclick="closeModal(); openAddAthleteModal(null);" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">+ New</button>
-                </div>
-              </div>
-              ${renderMultiAthletePicker({ id: 'sched-group-ath', inputName: 'groupAthleteIds', placeholder: 'Type first or last name to add athletes to group…' })}
-            </div>
-          ` : `
             <div>
-              <label class="block font-bold text-[var(--text-muted)] mb-1">Athlete Name <span class="font-normal">(optional — leave blank for Open Session)</span></label>
-              <input name="newAthleteName" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold text-sm" placeholder="e.g., Kylie Morgan" />
+              <label class="block text-xs font-bold mb-1.5">Session Notes / Focus</label>
+              <input name="focus" oninput="updateScheduleOptionsSummary(this.form)" class="w-full px-3.5" placeholder="e.g., Slapping Footwork & Live Pitch Timing" />
             </div>
-          `}
 
-          <div>
-            <label class="block font-bold text-[var(--text-muted)] mb-1">Session Notes / Focus (Optional)</label>
-            <input name="focus" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm" placeholder="e.g., Slapping Footwork & Live Pitch Timing" />
-          </div>
-
-          <div>
-            <label class="block font-bold text-[var(--text-muted)] mb-1">Payment Status</label>
-            <select name="paymentMode" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
-              <option value="cash-pending">Cash at Session (Pending — Cash Price)</option>
-              <option value="cash-paid">Cash Collected ✓ (Cash Price)</option>
-              <option value="clover-paid">Clover Card Paid ✓ (Card Price)</option>
-              <option value="venmo-paid">Venmo / Zelle Logged ✓ (Cash Price)</option>
-            </select>
-          </div>
-
-          <label class="flex items-center justify-between gap-3 p-3 rounded-2xl card-mist cursor-pointer">
             <div>
-              <div class="font-extrabold">Send Parent Confirmation</div>
-              <div class="text-[11px] text-[var(--text-muted)]">Logs session date &amp; time in Coach Messages (for each selected athlete)</div>
+              <label class="block text-xs font-bold mb-1.5">Payment Status</label>
+              <select name="paymentMode" onchange="updateScheduleOptionsSummary(this.form)" class="w-full px-3.5">
+                <option value="cash-pending">Cash at Session (Pending — Cash Price)</option>
+                <option value="cash-paid">Cash Collected ✓ (Cash Price)</option>
+                <option value="clover-paid">Clover Card Paid ✓ (Card Price)</option>
+                <option value="venmo-paid">Venmo / Zelle Logged ✓ (Cash Price)</option>
+              </select>
             </div>
-            <input type="checkbox" name="notify" checked class="w-5 h-5 accent-[#010101]" />
-          </label>
 
-          <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
-            Save Session to Schedule
-          </button>
-        </form>
-      `);
+            <label class="flex items-center justify-between gap-3 p-3 rounded-xl bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 cursor-pointer">
+              <div>
+                <div class="text-xs font-extrabold text-slate-900 dark:text-white">Send Parent Confirmation</div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400">Logs session date &amp; time in Coach Messages</div>
+              </div>
+              <input type="checkbox" name="notify" checked onchange="updateScheduleOptionsSummary(this.form)" class="w-5 h-5 accent-[#010101]" />
+            </label>
+          </div>
+        </details>
+      `;
+
+      const footerHtml = `
+        <button type="submit" class="w-full h-12 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-md hover:brightness-95 transition">
+          Save Session to Schedule
+        </button>
+      `;
+
+      openSheetModal({
+        title: 'Schedule Session',
+        subtitle: 'Single, recurring standing slot, or small group',
+        formOnsubmit: 'submitQuickAddSession(event)',
+        bodyHtml,
+        footerHtml
+      });
     }
 
     function toggleScheduleAthleteMode(mode) {
@@ -8299,9 +8472,17 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const singleWrap = document.getElementById('sched-single-ath-wrap');
       const groupWrap = document.getElementById('sched-group-ath-wrap');
       const modeInput = document.querySelector('input[name="athleteSelectionMode"]');
+      const btnSingle = document.getElementById('sched-mode-btn-single');
+      const btnGroup = document.getElementById('sched-mode-btn-group');
       if (singleWrap) singleWrap.classList.toggle('hidden', isGroup);
       if (groupWrap) groupWrap.classList.toggle('hidden', !isGroup);
       if (modeInput) modeInput.value = isGroup ? 'group' : 'single';
+      const activeCls = ['bg-white', 'dark:bg-[#D5FF5F]', 'text-slate-900', 'dark:text-[#010101]', 'shadow-xs'];
+      const idleCls = ['text-slate-600', 'dark:text-slate-300'];
+      if (btnSingle && btnGroup) {
+        activeCls.forEach(c => { btnSingle.classList.toggle(c, !isGroup); btnGroup.classList.toggle(c, isGroup); });
+        idleCls.forEach(c => { btnSingle.classList.toggle(c, isGroup); btnGroup.classList.toggle(c, !isGroup); });
+      }
       if (isGroup) {
         const singleId = document.getElementById('sched-ath-hidden')?.value;
         if (singleId && _multiAthletePickerState['sched-group-ath'] && !_multiAthletePickerState['sched-group-ath'].selectedIds.has(singleId)) {
@@ -8564,9 +8745,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.7.2';
+    const APP_VERSION = 'v3.8.0';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Coach Messaging Hub (New Message, Broadcast, quick replies, mobile inbox), Transactions table, First/Last name & Dark Mode fix';
+    const APP_RELEASE_NOTES = 'Unified Modal Design System (solid high-contrast sheets, 44px aligned inputs/selects, sticky header & CTA footer, streamlined multi-athlete group picker)';
 
     function reloadLatestAppVersion() {
       try {
@@ -8850,17 +9031,23 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     }
 
     function openLogPaymentModal() {
-      openModal(`
-        <div class="flex justify-between items-center"><h3 class="font-extrabold text-sm">Log Cash / Clover / Manual Payment</h3><button type="button" onclick="closeModal()" class="text-xs font-bold cursor-pointer">✕</button></div>
-        <form onsubmit="submitLogPayment(event)" class="space-y-3 text-xs">
+      const bodyHtml = `
+        <div>
+          <label class="block text-xs font-bold mb-1.5">Athlete / Family <span class="font-normal text-slate-500">(A–Z by last name)</span></label>
+          ${renderSearchableAthletePicker({ id: 'logpay-ath', inputName: 'athleteId', placeholder: 'Search by last or first name (or custom)…' })}
+        </div>
+        <div>
+          <label class="block text-xs font-bold mb-1.5">Lesson / Item *</label>
+          <input name="item" value="1-on-1 Hitting Lesson" class="w-full px-3.5" placeholder="Lesson / Item" required />
+        </div>
+        <div class="grid grid-cols-2 gap-2.5 items-end">
           <div>
-            <label class="block font-bold text-[var(--text-muted)] mb-1">Athlete / Family (A–Z by Last Name)</label>
-            ${renderSearchableAthletePicker({ id: 'logpay-ath', inputName: 'athleteId', placeholder: 'Type last or first name (or custom family)…' })}
+            <label class="block text-xs font-bold mb-1.5">Amount ($) *</label>
+            <input name="amt" type="number" value="60" class="w-full px-3.5" required />
           </div>
-          <input name="item" value="1-on-1 Hitting Lesson" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" placeholder="Lesson / Item" required />
-          <div class="grid grid-cols-2 gap-2">
-            <input name="amt" type="number" value="60" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-semibold" required />
-            <select name="m" class="w-full px-3 py-2.5 rounded-2xl surface-soft font-semibold">
+          <div>
+            <label class="block text-xs font-bold mb-1.5">Method</label>
+            <select name="m" class="w-full px-3">
               <option>Cash (Collected ✓)</option>
               <option>Cash at Session</option>
               <option>Clover • Terminal Tap</option>
@@ -8868,21 +9055,34 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               <option>Zelle (Logged)</option>
             </select>
           </div>
-          <select name="st" class="w-full px-3 py-2.5 rounded-2xl surface-soft font-semibold">
+        </div>
+        <div>
+          <label class="block text-xs font-bold mb-1.5">Status</label>
+          <select name="st" class="w-full px-3.5">
             <option value="Paid">Paid ✓</option>
             <option value="Pending Cash">Unpaid / Pending</option>
           </select>
-          <div>
-            <label class="block font-bold text-[var(--text-muted)] mb-1">External Note <span class="font-normal">(Visible to Parent / Receipt)</span></label>
-            <input name="extNote" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., Thanks! Includes cage warm-up" />
-          </div>
-          <div>
-            <label class="block font-bold text-[var(--text-muted)] mb-1">Internal Note <span class="font-normal">(Coach Only — Private)</span></label>
-            <input name="intNote" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft" placeholder="e.g., Paid half Venmo / half cash" />
-          </div>
-          <button type="submit" class="w-full py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] font-extrabold cursor-pointer">Record Payment</button>
-        </form>
-      `);
+        </div>
+        <div>
+          <label class="block text-xs font-bold mb-1.5">External Note <span class="font-normal text-slate-500">(Visible to Parent / Receipt)</span></label>
+          <input name="extNote" class="w-full px-3.5" placeholder="e.g., Thanks! Includes cage warm-up" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold mb-1.5">Internal Note <span class="font-normal text-slate-500">(Coach Only — Private)</span></label>
+          <input name="intNote" class="w-full px-3.5" placeholder="e.g., Paid half Venmo / half cash" />
+        </div>
+      `;
+      const footerHtml = `
+        <button type="submit" class="w-full h-12 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-md hover:brightness-95 transition">Record Payment</button>
+      `;
+      openSheetModal({
+        eyebrow: 'Payments',
+        title: 'Log Manual Payment',
+        subtitle: 'Cash, Clover, Venmo, or Zelle',
+        formOnsubmit: 'submitLogPayment(event)',
+        bodyHtml,
+        footerHtml
+      });
     }
 
     // =========================================================================
