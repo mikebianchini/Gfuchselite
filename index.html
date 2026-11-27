@@ -2781,8 +2781,8 @@
       const ath = state.athletes.find(a => a.id === athId);
       if (!ath) return;
       const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      const ageGroups = ['8U', '10U', '12U', '14U', '16U', '18U', 'College'];
-      const btOptions = ['R / R', 'L / R', 'L / L', 'S / R', 'S / L'];
+      const ageGroups = ['', '8U', '10U', '12U', '14U', '16U', '18U', 'College'];
+      const btOptions = ['', 'R / R', 'L / R', 'L / L', 'S / R', 'S / L'];
 
       openModal(`
         <div class="flex items-start justify-between gap-2">
@@ -2803,12 +2803,12 @@
             <div>
               <label class="block font-bold text-[var(--text-muted)] mb-1">Age Group</label>
               <select name="ageGroup" class="w-full px-3 py-2.5 rounded-2xl surface-soft font-bold">
-                ${ageGroups.map(ag => `<option value="${ag}" ${ath.ageGroup === ag ? 'selected' : ''}>${ag}</option>`).join('')}
+                ${ageGroups.map(ag => `<option value="${ag}" ${(ath.ageGroup || '') === ag ? 'selected' : ''}>${ag || '—'}</option>`).join('')}
               </select>
             </div>
             <div>
               <label class="block font-bold text-[var(--text-muted)] mb-1">Grad Year</label>
-              <input name="gradYear" type="number" min="2024" max="2040" value="${esc(ath.gradYear || 2030)}" class="w-full px-3 py-2.5 rounded-2xl surface-soft font-bold" />
+              <input name="gradYear" type="number" min="2024" max="2040" value="${esc(ath.gradYear || '')}" placeholder="2030" class="w-full px-3 py-2.5 rounded-2xl surface-soft font-bold" />
             </div>
             <div>
               <label class="block font-bold text-[var(--text-muted)] mb-1">Height</label>
@@ -2833,7 +2833,7 @@
             <div>
               <label class="block font-bold text-[var(--text-muted)] mb-1">Bats / Throws</label>
               <select name="batsThrows" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold">
-                ${btOptions.map(bt => `<option value="${bt}" ${ath.batsThrows === bt ? 'selected' : ''}>${bt}</option>`).join('')}
+                ${btOptions.map(bt => `<option value="${bt}" ${(ath.batsThrows || '') === bt ? 'selected' : ''}>${bt || '—'}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -2908,16 +2908,16 @@
       ath.name = newName;
       ath.initials = ((parts[0]?.[0] || 'A') + (parts[1]?.[0] || parts[0]?.[1] || 'F')).toUpperCase();
       ath.ageGroup = f.ageGroup.value;
-      ath.gradYear = Number(f.gradYear.value) || ath.gradYear || 2030;
+      ath.gradYear = f.gradYear.value ? Number(f.gradYear.value) : '';
       ath.height = f.height.value.trim();
-      ath.position = f.position.value.trim() || 'Hitter / Utility';
+      ath.position = f.position.value.trim();
       ath.batsThrows = f.batsThrows.value;
       ath.team = f.team.value.trim();
-      ath.parentName = f.parentName.value.trim() || 'Parent / Guardian';
+      ath.parentName = f.parentName.value.trim();
       ath.parentPhone = f.parentPhone.value.trim();
       ath.parentEmail = f.parentEmail.value.trim();
-      ath.emergencyContact = f.emergencyContact.value.trim() || `${ath.parentName}${ath.parentPhone ? ' — ' + ath.parentPhone : ''}`;
-      ath.medicalNotes = f.medicalNotes.value.trim() || 'None reported';
+      ath.emergencyContact = f.emergencyContact.value.trim();
+      ath.medicalNotes = f.medicalNotes.value.trim();
       ath.coachBio = f.coachBio.value.trim();
 
       const wasSigned = !!ath.waiverSigned;
@@ -3231,20 +3231,24 @@
                               <span class="font-extrabold text-[13px] truncate">${a.name}</span>
                               ${hasDraft ? `<span class="px-1.5 py-0.5 rounded bg-[#D5FF5F] text-[#010101] text-[9px] font-extrabold shrink-0">DRAFT</span>` : ''}
                             </div>
-                            <div class="md:hidden text-[11px] text-[var(--text-muted)] truncate">${a.position}</div>
+                            <div class="md:hidden text-[11px] text-[var(--text-muted)] truncate">${a.position || ''}</div>
                           </div>
                         </div>
                       </td>
                       <td class="py-3 px-2 whitespace-nowrap">
-                        <span class="px-2 py-0.5 rounded-full surface-soft text-[11px] font-extrabold">${a.ageGroup}</span>
+                        ${a.ageGroup ? `<span class="px-2 py-0.5 rounded-full surface-soft text-[11px] font-extrabold">${a.ageGroup}</span>` : `<span class="text-[var(--text-muted)]">—</span>`}
                       </td>
                       <td class="py-3 px-2 hidden md:table-cell">
-                        <div class="font-bold truncate max-w-[190px]">${a.position}</div>
-                        <div class="text-[11px] text-[var(--text-muted)] truncate max-w-[190px]">${a.team || 'Elite Fastpitch'}</div>
+                        ${a.position || a.team ? `
+                          <div class="font-bold truncate max-w-[190px]">${a.position || '—'}</div>
+                          ${a.team ? `<div class="text-[11px] text-[var(--text-muted)] truncate max-w-[190px]">${a.team}</div>` : ''}
+                        ` : `<span class="text-[var(--text-muted)]">—</span>`}
                       </td>
                       <td class="py-3 px-2 hidden sm:table-cell">
-                        <div class="font-semibold truncate max-w-[140px]">${a.parentName}</div>
-                        <div class="text-[11px] text-[var(--text-muted)] tabular-nums">${a.parentPhone}</div>
+                        ${a.parentName || a.parentPhone ? `
+                          <div class="font-semibold truncate max-w-[140px]">${a.parentName || '—'}</div>
+                          ${a.parentPhone ? `<div class="text-[11px] text-[var(--text-muted)] tabular-nums">${a.parentPhone}</div>` : ''}
+                        ` : `<span class="text-[var(--text-muted)]">—</span>`}
                       </td>
                       <td class="py-3 px-2 hidden lg:table-cell whitespace-nowrap">
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${a.waiverSigned ? 'bg-[#D5FF5F]/35 text-[#010101] dark:text-[#D5FF5F]' : 'bg-red-500/15 text-red-600 dark:text-red-400'}">
@@ -3608,24 +3612,26 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             initials,
             name: cleanName,
             familyId: `fam-imp-${Date.now()}-${idx}`,
-            parentName: `${parts[1] || cleanName} Family`,
-            parentPhone: '(412) 555-0100',
-            ageGroup: entry.ageGroup || '14U',
-            gradYear: 2029,
-            position: 'Hitter / Utility',
-            batsThrows: 'R / R',
-            team: 'Gina Fuchs Elite Fastpitch',
-            height: '5\'5"',
-            streakDays: 1,
+            parentName: '',
+            parentPhone: '',
+            parentEmail: '',
+            ageGroup: '',
+            gradYear: '',
+            position: '',
+            batsThrows: '',
+            team: '',
+            height: '',
+            streakDays: 0,
             weeklyReps: 0,
-            weeklyDuration: '0:00 hours',
-            waiverSigned: true,
-            waiverDate: 'Imported',
-            emergencyContact: 'Update in profile',
-            medicalNotes: 'None reported',
+            weeklyDuration: '',
+            waiverSigned: false,
+            waiverDate: null,
+            emergencyContact: '',
+            medicalNotes: '',
+            coachBio: '',
             pitches: [],
             notes: [],
-            drills: [{ id: `d-imp-${Date.now()}-${idx}`, title: 'Hitter’s Warmup: PVC Swings & 4lb Med Ball', reps: '5 each', focus: 'Pre-session routine', done: false, img: 'assets/images/fastpitch-hitter.jpg' }]
+            drills: []
           };
           state.athletes.push(ath);
           addedAthletes++;
@@ -3912,7 +3918,10 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           <div class="lg:col-span-5 space-y-4">
             <div class="card-mist rounded-[28px] p-6 space-y-4">
               <div class="flex items-center justify-between gap-2">
-                <span class="px-3 py-1 rounded-full bg-white text-[#010101] text-xs font-extrabold">${sel.ageGroup} • Class of ${sel.gradYear}</span>
+                ${sel.ageGroup || sel.gradYear
+                  ? `<span class="px-3 py-1 rounded-full bg-white text-[#010101] text-xs font-extrabold">${[sel.ageGroup, sel.gradYear ? `Class of ${sel.gradYear}` : ''].filter(Boolean).join(' • ')}</span>`
+                  : `<span class="px-3 py-1 rounded-full bg-white/70 text-[#010101] text-xs font-extrabold">Athlete Profile</span>`
+                }
                 <div class="flex items-center gap-2">
                   <span class="text-xs font-extrabold">${sel.waiverSigned ? 'Waiver ✓' : 'Waiver Pending'}</span>
                   <button onclick="openEditAthleteModal('${sel.id}')" title="Edit Athlete Info" class="px-2.5 py-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold cursor-pointer inline-flex items-center gap-1">${uiIcon('edit')} Edit</button>
@@ -3920,25 +3929,20 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               </div>
               <div>
                 <div class="text-2xl font-extrabold">${sel.name}</div>
-                <div class="text-xs text-[var(--text-muted)] mt-0.5">${sel.position} • B/T: ${sel.batsThrows}${sel.height ? ` • ${sel.height}` : ''}${sel.team ? ` • ${sel.team}` : ''}</div>
+                ${[sel.position, sel.batsThrows ? `B/T: ${sel.batsThrows}` : '', sel.height, sel.team].filter(Boolean).length
+                  ? `<div class="text-xs text-[var(--text-muted)] mt-0.5">${[sel.position, sel.batsThrows ? `B/T: ${sel.batsThrows}` : '', sel.height, sel.team].filter(Boolean).join(' • ')}</div>`
+                  : `<div class="text-xs text-[var(--text-muted)] mt-0.5">No profile details added yet — tap Edit to add.</div>`
+                }
               </div>
-              <div class="grid grid-cols-2 gap-2.5">
-                <div class="p-3.5 rounded-2xl bg-white dark:bg-[#15191E]">
-                  <div class="text-[11px] text-[var(--text-muted)] font-bold">Training Streak</div>
-                  <div class="text-xl font-extrabold tabular-nums mt-0.5">${sel.streakDays} Days</div>
+              ${(sel.parentName || sel.parentPhone || sel.parentEmail || sel.emergencyContact || sel.medicalNotes || sel.coachBio) ? `
+                <div class="text-xs space-y-1">
+                  ${sel.parentName || sel.parentPhone ? `<div><span class="text-[var(--text-muted)]">Parent:</span> <strong>${[sel.parentName, sel.parentPhone].filter(Boolean).join(' • ')}</strong></div>` : ''}
+                  ${sel.parentEmail ? `<div><span class="text-[var(--text-muted)]">Email:</span> <strong>${sel.parentEmail}</strong></div>` : ''}
+                  ${sel.emergencyContact ? `<div><span class="text-[var(--text-muted)]">Emergency:</span> <strong>${sel.emergencyContact}</strong></div>` : ''}
+                  ${sel.medicalNotes ? `<div><span class="text-[var(--text-muted)]">Medical:</span> <strong>${sel.medicalNotes}</strong></div>` : ''}
+                  ${sel.coachBio ? `<div class="pt-1"><span class="text-[var(--text-muted)]">Coach Notes:</span> <strong>${sel.coachBio}</strong></div>` : ''}
                 </div>
-                <div class="p-3.5 rounded-2xl bg-white dark:bg-[#15191E]">
-                  <div class="text-[11px] text-[var(--text-muted)] font-bold">Weekly Reps</div>
-                  <div class="text-xl font-extrabold tabular-nums mt-0.5">${sel.weeklyReps}</div>
-                </div>
-              </div>
-              <div class="text-xs space-y-1">
-                <div><span class="text-[var(--text-muted)]">Parent:</span> <strong>${sel.parentName}${sel.parentPhone ? ` • ${sel.parentPhone}` : ''}</strong></div>
-                ${sel.parentEmail ? `<div><span class="text-[var(--text-muted)]">Email:</span> <strong>${sel.parentEmail}</strong></div>` : ''}
-                <div><span class="text-[var(--text-muted)]">Emergency:</span> <strong>${sel.emergencyContact}</strong></div>
-                <div><span class="text-[var(--text-muted)]">Medical:</span> <strong>${sel.medicalNotes}</strong></div>
-                ${sel.coachBio ? `<div class="pt-1"><span class="text-[var(--text-muted)]">Coach Notes:</span> <strong>${sel.coachBio}</strong></div>` : ''}
-              </div>
+              ` : ''}
               <div class="pt-2 border-t border-[#010101]/10 flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-1.5">
                   <button onclick="openAddSessionForAthleteModal('${sel.id}')" class="px-3 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold cursor-pointer transition">
