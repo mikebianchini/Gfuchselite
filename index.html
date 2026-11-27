@@ -3564,7 +3564,6 @@
               <p class="text-xs text-[var(--text-muted)] max-w-sm mx-auto">Add your first fastpitch athlete to start scheduling sessions, logging session notes, and sharing clips.</p>
               <div class="flex flex-wrap items-center justify-center gap-2 pt-2">
                 <button onclick="openAddAthleteModal(null)" class="px-5 py-3 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-md hover:brightness-95 transition">+ Add First Athlete</button>
-                <button onclick="openAppleNotesImporterModal()" class="px-5 py-3 rounded-full card-white text-xs font-extrabold cursor-pointer hover:border-[#010101] transition inline-flex items-center gap-1.5">${uiIcon('note')} Import Apple Notes</button>
               </div>
             </div>
           `;
@@ -4332,13 +4331,6 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                 <p class="text-xs text-[var(--text-muted)]"><span id="roster-match-count">${filteredCount} of ${state.athletes.length}</span> active players • Tap any row for full profile &amp; notes</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
-                <button onclick="openCloudSyncModal()" class="px-3 py-2.5 rounded-full card-white text-xs font-extrabold cursor-pointer hover:border-[#010101] transition inline-flex items-center gap-1.5">
-                  <span id="roster-sync-dot" class="w-2 h-2 rounded-full ${window._sbConnected ? 'bg-[#9ED11E]' : 'bg-amber-400'}"></span>
-                  <span id="roster-sync-label">${window._sbConnected ? 'Synced' : 'Cloud Sync'}</span>
-                </button>
-                <button onclick="openAppleNotesImporterModal('folder')" class="px-3.5 py-2.5 rounded-full card-white text-xs font-extrabold cursor-pointer hover:border-[#010101] transition inline-flex items-center gap-1.5">
-                  ${uiIcon('note')} Import Notes
-                </button>
                 <button onclick="openAddAthleteModal(null)" class="px-4 py-2.5 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition">
                   + Add Athlete
                 </button>
@@ -5683,9 +5675,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v2.4.0';
+    const APP_VERSION = 'v2.4.1';
     const APP_BUILD_DATE = 'Nov 26, 2026';
-    const APP_RELEASE_NOTES = 'Lesson → Session hierarchy & Conflict-Free Sync v2';
+    const APP_RELEASE_NOTES = 'Clean Athletes header, Lesson → Session hierarchy & Sync v2';
 
     function reloadLatestAppVersion() {
       try {
