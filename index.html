@@ -7384,11 +7384,66 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       autoSaveRecapDraft();
     }
 
+    async function shareOrSaveVideoClip(url, title = 'session-clip.mp4', btnEl = null) {
+      if (!url) {
+        showToast('No video available to save yet.');
+        return;
+      }
+      const prevHtml = btnEl ? btnEl.innerHTML : '';
+      if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.textContent = 'Preparing…';
+      }
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const urlExt = (url.split('?')[0].match(/\.(mp4|mov|m4v|webm|jpg|jpeg|png|webp|heic)$/i) || [])[1];
+        const titleExt = (String(title || '').match(/\.(mp4|mov|m4v|webm|jpg|jpeg|png|webp|heic)$/i) || [])[1];
+        const ext = (titleExt || urlExt || (blob.type.includes('quicktime') ? 'mov' : blob.type.includes('image/') ? 'jpg' : 'mp4')).toLowerCase();
+        const baseName = String(title || 'session-clip').replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 60) || 'session-clip';
+        const fileName = `${baseName}.${ext}`;
+        const mime = blob.type || (ext === 'mov' ? 'video/quicktime' : ext === 'mp4' ? 'video/mp4' : 'application/octet-stream');
+
+        // 1. Native Mobile Share Sheet (iOS "Save Video" to Photos, AirDrop, Messages, Android Share)
+        if (typeof File !== 'undefined' && navigator.share && navigator.canShare) {
+          const file = new File([blob], fileName, { type: mime });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: baseName });
+            showToast('Video shared / saved!');
+            return;
+          }
+        }
+
+        // 2. Direct File Download Fallback (Desktop & browsers without file-share)
+        const dlUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = dlUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => { try { URL.revokeObjectURL(dlUrl); } catch (_) {} }, 5000);
+        showToast('Video downloaded to your device!');
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+        console.warn('Video save/share fallback:', err);
+        try { window.open(url, '_blank', 'noopener'); } catch (_) {}
+        showToast('Opened video — use your browser menu to save.');
+      } finally {
+        if (btnEl) {
+          btnEl.disabled = false;
+          btnEl.innerHTML = prevHtml;
+        }
+      }
+    }
+
     function previewRecapDraftClip(idx) {
       const clip = _recapDraftClips[idx];
       if (!clip || !clip.url) return;
       const isImage = clip.isVideo === false || /\.(png|jpe?g|gif|webp|heic)$/i.test(clip.title || '');
       const escHtml = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const escJs = (v) => String(v ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       openModal(`
         <div class="overflow-hidden rounded-[28px] bg-[#010101]">
           <div class="relative bg-[#010101] flex items-center justify-center min-h-[220px]">
@@ -7406,8 +7461,11 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                 </div>
               </div>
               <div class="flex items-center gap-1.5 shrink-0">
-                ${clip.url && !String(clip.url).startsWith('blob:') ? `<a href="${clip.url}" target="_blank" rel="noopener" class="px-3 py-2 rounded-xl surface-soft text-xs font-extrabold">Open ↗</a>` : ''}
-                <button type="button" onclick="autoSaveRecapDraft(true); closeModal();" class="px-4 py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Done</button>
+                <button type="button" onclick="shareOrSaveVideoClip('${escJs(clip.url)}', '${escJs(clip.title || 'session-clip.mp4')}', this)" class="min-h-[40px] px-3 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 3v12m0 0l-4-4m4 4l4-4"/></svg>
+                  <span>Save / Share</span>
+                </button>
+                <button type="button" onclick="autoSaveRecapDraft(true); closeModal();" class="min-h-[40px] px-4 py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Done</button>
               </div>
             </div>
             <div class="space-y-1">
@@ -8092,6 +8150,15 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             </div>
           ` : ''}
           <div class="p-5 space-y-3 bg-[var(--bg-card)]">
+            ${activeUrl ? `
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-extrabold truncate text-[var(--text-muted)]">${activeClip?.title || 'Session Clip'}</span>
+                <button type="button" onclick="shareOrSaveVideoClip('${String(activeUrl).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', '${String(activeClip?.title || 'session-clip.mp4').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', this)" class="min-h-[40px] px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5 shrink-0 shadow-sm hover:brightness-95 transition">
+                  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 3v12m0 0l-4-4m4 4l4-4"/></svg>
+                  <span>Save / Share Video</span>
+                </button>
+              </div>
+            ` : ''}
             ${activeClip ? (isCoach ? `
               <div class="p-3 rounded-2xl surface-soft space-y-1.5">
                 <div class="flex items-center justify-between gap-2">
@@ -9286,9 +9353,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.13.2';
+    const APP_VERSION = 'v3.14.0';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Fixed cross-device video syncing for draft & saved session notes, deduplicated empty local drafts, and improved cross-browser MOV playback';
+    const APP_RELEASE_NOTES = 'Added Save / Share Video to device (native iOS/Android Share Sheet + desktop download) in Session Notes Studio and Saved Recap Viewer';
 
     function reloadLatestAppVersion() {
       try {
