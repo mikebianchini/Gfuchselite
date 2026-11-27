@@ -3098,20 +3098,26 @@
         : `Open Session (0/${s.spotsMax || 1} spots)`;
       const isCanceled = s.status === 'Canceled';
       return `
-        <div class="card-white rounded-[24px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isCanceled ? 'opacity-65' : ''}">
-          <div class="flex items-center gap-3.5 min-w-0">
-            <img src="${s.img || 'assets/images/fastpitch-hitter.jpg'}" class="w-14 h-14 rounded-2xl object-cover shrink-0 ${isCanceled ? 'grayscale' : ''}" alt="Fastpitch softball training" loading="lazy" decoding="async" />
-            <div class="min-w-0">
-              <div class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${showDate && s.day ? `${s.day} • ` : ''}${s.time} • ${s.duration} • ${s.type}</div>
-              <div class="font-extrabold text-sm truncate ${isCanceled ? 'line-through' : ''}">${lessonLabel}${customFocus ? ` — ${customFocus}` : ''}</div>
-              <div class="text-xs text-[var(--text-muted)] truncate">${athDisplay} • ${s.payment || 'Scheduled'}</div>
-            </div>
+        <div class="swipe-row relative overflow-hidden rounded-[24px]" data-swipe-type="session" data-swipe-id="${s.id}" data-athlete-id="${s.athleteId || ''}" data-canceled="${isCanceled ? '1' : '0'}">
+          <div class="lg:hidden absolute inset-0 flex items-center justify-between px-5 pointer-events-none select-none" aria-hidden="true">
+            <span class="swipe-rail-left inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold opacity-0 transition-opacity">${s.athleteId && !isCanceled ? 'Notes →' : 'Manage →'}</span>
+            <span class="swipe-rail-right inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold opacity-0 transition-opacity">← ${isCanceled ? 'Restore / Delete' : 'Reschedule / Cancel'}</span>
           </div>
-          <div class="flex flex-wrap items-center gap-2 shrink-0">
-            ${s.athleteId && !isCanceled ? `<button onclick="openSessionRecapModal('${s.athleteId}', '${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5">${uiIcon('note')} Notes</button>` : ''}
-            <button onclick="openManageSessionModal('${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101]">${isCanceled ? 'Restore / Delete' : 'Reschedule / Cancel'}</button>
-            ${isCanceled ? `<span class="px-2.5 py-1.5 rounded-xl bg-red-500/15 text-red-600 dark:text-red-400 text-[11px] font-extrabold">Canceled</span>` : ''}
-            ${s.athleteId ? `<button onclick="jumpToAthlete('${s.athleteId}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">Profile</button>` : ''}
+          <div class="swipe-card relative card-white rounded-[24px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isCanceled ? 'opacity-65' : ''}" style="touch-action: pan-y;">
+            <div class="flex items-center gap-3.5 min-w-0">
+              <img src="${s.img || 'assets/images/fastpitch-hitter.jpg'}" class="w-14 h-14 rounded-2xl object-cover shrink-0 ${isCanceled ? 'grayscale' : ''}" alt="Fastpitch softball training" loading="lazy" decoding="async" />
+              <div class="min-w-0">
+                <div class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${showDate && s.day ? `${s.day} • ` : ''}${s.time} • ${s.duration} • ${s.type}</div>
+                <div class="font-extrabold text-sm truncate ${isCanceled ? 'line-through' : ''}">${lessonLabel}${customFocus ? ` — ${customFocus}` : ''}</div>
+                <div class="text-xs text-[var(--text-muted)] truncate">${athDisplay} • ${s.payment || 'Scheduled'}</div>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 shrink-0">
+              ${s.athleteId && !isCanceled ? `<button onclick="openSessionRecapModal('${s.athleteId}', '${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5">${uiIcon('note')} Notes</button>` : ''}
+              <button onclick="openManageSessionModal('${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101]">${isCanceled ? 'Restore / Delete' : 'Reschedule / Cancel'}</button>
+              ${isCanceled ? `<span class="px-2.5 py-1.5 rounded-xl bg-red-500/15 text-red-600 dark:text-red-400 text-[11px] font-extrabold">Canceled</span>` : ''}
+              ${s.athleteId ? `<button onclick="jumpToAthlete('${s.athleteId}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">Profile</button>` : ''}
+            </div>
           </div>
         </div>
       `;
@@ -5939,22 +5945,28 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             ${state.payments.length ? state.payments.map(p => {
               const unpaid = isUnpaid(p);
               return `
-                <div class="surface-soft rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-2.5 text-xs">
-                  <div class="min-w-0">
-                    <div class="font-extrabold truncate">${p.family} — ${p.item}</div>
-                    <div class="text-[var(--text-muted)]">${p.date} • ${p.method}</div>
+                <div class="swipe-row relative overflow-hidden rounded-2xl" data-swipe-type="payment" data-swipe-id="${p.id}" data-unpaid="${unpaid ? '1' : '0'}">
+                  <div class="lg:hidden absolute inset-0 flex items-center justify-between px-4 pointer-events-none select-none" aria-hidden="true">
+                    <span class="swipe-rail-left px-2.5 py-1 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold opacity-0 transition-opacity">${unpaid ? 'Mark Paid ✓ →' : 'Mark Unpaid →'}</span>
+                    <span class="swipe-rail-right px-2.5 py-1 rounded-xl bg-red-600 text-white text-[11px] font-extrabold opacity-0 transition-opacity">← Delete</span>
                   </div>
-                  <div class="flex items-center gap-2 shrink-0">
-                    <div class="inline-flex items-center rounded-xl p-0.5 card-white">
-                      <button type="button" onclick="setPaymentPaidStatus('${p.id}', true)" class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold cursor-pointer transition ${!unpaid ? 'bg-[#D5FF5F] text-[#010101]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}">
-                        Paid ✓
-                      </button>
-                      <button type="button" onclick="setPaymentPaidStatus('${p.id}', false)" class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold cursor-pointer transition ${unpaid ? 'bg-[#010101] text-[#D5FF5F]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}">
-                        Unpaid
-                      </button>
+                  <div class="swipe-card relative surface-soft rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-2.5 text-xs" style="touch-action: pan-y;">
+                    <div class="min-w-0">
+                      <div class="font-extrabold truncate">${p.family} — ${p.item}</div>
+                      <div class="text-[var(--text-muted)]">${p.date} • ${p.method}</div>
                     </div>
-                    <div class="font-extrabold tabular-nums min-w-[48px] text-right">${unpaid ? '' : '+'}$${p.amount}</div>
-                    <button type="button" onclick="deletePayment('${p.id}')" title="Delete transaction" aria-label="Delete transaction" class="w-7 h-7 rounded-xl card-white text-[11px] font-extrabold text-red-600 dark:text-red-400 hover:bg-red-500/10 flex items-center justify-center cursor-pointer transition">✕</button>
+                    <div class="flex items-center gap-2 shrink-0">
+                      <div class="inline-flex items-center rounded-xl p-0.5 card-white">
+                        <button type="button" onclick="setPaymentPaidStatus('${p.id}', true)" class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold cursor-pointer transition ${!unpaid ? 'bg-[#D5FF5F] text-[#010101]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}">
+                          Paid ✓
+                        </button>
+                        <button type="button" onclick="setPaymentPaidStatus('${p.id}', false)" class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold cursor-pointer transition ${unpaid ? 'bg-[#010101] text-[#D5FF5F]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}">
+                          Unpaid
+                        </button>
+                      </div>
+                      <div class="font-extrabold tabular-nums min-w-[48px] text-right">${unpaid ? '' : '+'}$${p.amount}</div>
+                      <button type="button" onclick="deletePayment('${p.id}')" title="Delete transaction" aria-label="Delete transaction" class="w-7 h-7 rounded-xl card-white text-[11px] font-extrabold text-red-600 dark:text-red-400 hover:bg-red-500/10 flex items-center justify-center cursor-pointer transition">✕</button>
+                    </div>
                   </div>
                 </div>
               `;
@@ -6409,9 +6421,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.0.0';
+    const APP_VERSION = 'v3.1.0';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Mobile UX 3.0: 5-tab dock, bottom-sheet modals, Quick Find & clean header';
+    const APP_RELEASE_NOTES = 'Mobile swipe actions (Sessions, Payments, Schedule, Drawer & Modals)';
 
     function reloadLatestAppVersion() {
       try {
@@ -8173,6 +8185,179 @@ create policy "Allow media update" on storage.objects
           }, 250);
         } else {
           resetPtr();
+        }
+      }, { passive: true });
+    })();
+
+    // =========================================================================
+    // NATIVE-FEELING MOBILE SWIPE GESTURES
+    // 1. Swipe Session / Payment rows left or right for quick actions
+    // 2. Swipe Schedule Day/Week/Month/Year left/right to step dates
+    // 3. Swipe Mobile Drawer left to close
+    // 4. Swipe Bottom-Sheet Modal down to dismiss
+    // =========================================================================
+    (function initMobileSwipeGestures() {
+      const SWIPE_THRESHOLD = 72;
+      const vibrateTap = () => { try { if (navigator.vibrate) navigator.vibrate(12); } catch (_) {} };
+
+      // 1. Swipe-Action Rows (Sessions & Payments)
+      let rowCtx = null;
+      document.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        const row = e.target.closest?.('.swipe-row');
+        if (!row) return;
+        const card = row.querySelector('.swipe-card');
+        if (!card) return;
+        rowCtx = {
+          row,
+          card,
+          railL: row.querySelector('.swipe-rail-left'),
+          railR: row.querySelector('.swipe-rail-right'),
+          x0: e.touches[0].clientX,
+          y0: e.touches[0].clientY,
+          dx: 0,
+          locked: null
+        };
+      }, { passive: true });
+
+      document.addEventListener('touchmove', (e) => {
+        if (!rowCtx) return;
+        const dx = e.touches[0].clientX - rowCtx.x0;
+        const dy = e.touches[0].clientY - rowCtx.y0;
+        if (!rowCtx.locked) {
+          if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) {
+            rowCtx = null;
+            return;
+          }
+          if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 1.35) {
+            rowCtx.locked = 'x';
+            rowCtx.card.style.transition = 'none';
+          } else {
+            return;
+          }
+        }
+        // Damped horizontal translation up to 112px
+        const clamped = Math.max(-112, Math.min(112, dx * 0.78));
+        rowCtx.dx = clamped;
+        rowCtx.card.style.transform = `translateX(${Math.round(clamped)}px)`;
+        if (rowCtx.railL) rowCtx.railL.style.opacity = clamped > 18 ? String(Math.min(1, clamped / SWIPE_THRESHOLD)) : '0';
+        if (rowCtx.railR) rowCtx.railR.style.opacity = clamped < -18 ? String(Math.min(1, -clamped / SWIPE_THRESHOLD)) : '0';
+      }, { passive: true });
+
+      document.addEventListener('touchend', () => {
+        if (!rowCtx) return;
+        const { row, card, railL, railR, dx, locked } = rowCtx;
+        rowCtx = null;
+        if (locked !== 'x') return;
+        card.style.transition = 'transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)';
+        card.style.transform = 'translateX(0px)';
+        if (railL) railL.style.opacity = '0';
+        if (railR) railR.style.opacity = '0';
+
+        const type = row.dataset.swipeType;
+        const id = row.dataset.swipeId;
+        if (dx >= SWIPE_THRESHOLD) {
+          vibrateTap();
+          if (type === 'session') {
+            const athId = row.dataset.athleteId;
+            const canceled = row.dataset.canceled === '1';
+            if (athId && !canceled) openSessionRecapModal(athId, id);
+            else openManageSessionModal(id);
+          } else if (type === 'payment') {
+            const wasUnpaid = row.dataset.unpaid === '1';
+            setPaymentPaidStatus(id, wasUnpaid);
+          }
+        } else if (dx <= -SWIPE_THRESHOLD) {
+          vibrateTap();
+          if (type === 'session') openManageSessionModal(id);
+          else if (type === 'payment') deletePayment(id);
+        }
+      }, { passive: true });
+
+      // 2. Swipe-Left to Close Mobile Drawer
+      const drawer = document.getElementById('mobile-drawer');
+      if (drawer) {
+        let dCtx = null;
+        drawer.addEventListener('touchstart', (e) => {
+          if (e.touches.length !== 1) return;
+          const panel = drawer.firstElementChild;
+          if (!panel) return;
+          dCtx = { panel, x0: e.touches[0].clientX, y0: e.touches[0].clientY, dx: 0 };
+        }, { passive: true });
+        drawer.addEventListener('touchmove', (e) => {
+          if (!dCtx) return;
+          const dx = e.touches[0].clientX - dCtx.x0;
+          const dy = e.touches[0].clientY - dCtx.y0;
+          if (dx < -10 && Math.abs(dx) > Math.abs(dy)) {
+            dCtx.dx = dx;
+            dCtx.panel.style.transition = 'none';
+            dCtx.panel.style.transform = `translateX(${Math.round(dx)}px)`;
+          }
+        }, { passive: true });
+        drawer.addEventListener('touchend', () => {
+          if (!dCtx) return;
+          const { panel, dx } = dCtx;
+          dCtx = null;
+          panel.style.transition = 'transform 0.22s cubic-bezier(0.22, 1, 0.36, 1)';
+          panel.style.transform = '';
+          if (dx <= -60) {
+            vibrateTap();
+            closeMobileDrawer();
+          }
+        }, { passive: true });
+      }
+
+      // 3. Swipe-Down to Dismiss Bottom-Sheet Modals
+      const modalRoot = document.getElementById('modal-root');
+      if (modalRoot) {
+        let mCtx = null;
+        modalRoot.addEventListener('touchstart', (e) => {
+          if (e.touches.length !== 1) return;
+          const sheet = modalRoot.firstElementChild;
+          if (!sheet || sheet.scrollTop > 2) return;
+          mCtx = { sheet, x0: e.touches[0].clientX, y0: e.touches[0].clientY, dy: 0 };
+        }, { passive: true });
+        modalRoot.addEventListener('touchmove', (e) => {
+          if (!mCtx) return;
+          const dx = e.touches[0].clientX - mCtx.x0;
+          const dy = e.touches[0].clientY - mCtx.y0;
+          if (dy > 10 && dy > Math.abs(dx) * 1.25 && mCtx.sheet.scrollTop <= 2) {
+            mCtx.dy = dy;
+            mCtx.sheet.style.transition = 'none';
+            mCtx.sheet.style.transform = `translateY(${Math.round(dy * 0.72)}px)`;
+          }
+        }, { passive: true });
+        modalRoot.addEventListener('touchend', () => {
+          if (!mCtx) return;
+          const { sheet, dy } = mCtx;
+          mCtx = null;
+          sheet.style.transition = 'transform 0.22s cubic-bezier(0.22, 1, 0.36, 1)';
+          sheet.style.transform = '';
+          if (dy >= 95) {
+            vibrateTap();
+            closeModal();
+          }
+        }, { passive: true });
+      }
+
+      // 4. Swipe Left / Right on Coach Schedule to step Day / Week / Month / Year
+      let schedCtx = null;
+      document.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        if (state.role !== 'coach' || state.coachTab !== 'schedule') return;
+        const modalOpen = !document.getElementById('modal-root')?.classList.contains('hidden');
+        if (modalOpen) return;
+        if (e.target.closest?.('.swipe-row, .overflow-x-auto, input, select, textarea')) return;
+        schedCtx = { x0: e.touches[0].clientX, y0: e.touches[0].clientY };
+      }, { passive: true });
+      document.addEventListener('touchend', (e) => {
+        if (!schedCtx || !e.changedTouches?.length) return;
+        const dx = e.changedTouches[0].clientX - schedCtx.x0;
+        const dy = e.changedTouches[0].clientY - schedCtx.y0;
+        schedCtx = null;
+        if (Math.abs(dx) >= 75 && Math.abs(dx) > Math.abs(dy) * 1.6) {
+          vibrateTap();
+          scheduleStep(dx < 0 ? 1 : -1);
         }
       }, { passive: true });
     })();
