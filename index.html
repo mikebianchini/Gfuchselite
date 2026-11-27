@@ -651,7 +651,19 @@
 
       payments: [],
 
-      threads: []
+      threads: [],
+
+      deletedIds: {
+        athletes: [],
+        sessions: [],
+        sessionRecaps: [],
+        videos: [],
+        payments: [],
+        threads: [],
+        waitlist: [],
+        locations: [],
+        eventTypes: []
+      }
     };
 
     const GUEST_ATHLETE = {
@@ -1281,7 +1293,7 @@
       state.cal.month += delta;
       if (state.cal.month > 11) { state.cal.month = 0; state.cal.year += 1; }
       if (state.cal.month < 0) { state.cal.month = 11; state.cal.year -= 1; }
-      render();
+      render(false);
     }
 
     function calSelectEvent(id) {
@@ -1292,13 +1304,13 @@
       const ath = state.athletes.find(a => a.id === state.activeSiblingId);
       state.cal.payMode = (evt?.allowCredit && ath?.credits > 0) ? 'credit' : 'card';
       if (id === 'evt-clinic') state.cal.selectedDate = '2026-11-28';
-      render();
+      render(false);
     }
 
     function calSelectDate(iso) {
       state.cal.selectedDate = iso;
       state.cal.selectedTime = null;
-      render();
+      render(false);
     }
 
     function getCashPrice(evt) {
@@ -2432,10 +2444,10 @@
       };
       if (editId) {
         const idx = state.cal.eventTypes.findIndex(x => x.id === editId);
-        if (idx >= 0) state.cal.eventTypes[idx] = { ...state.cal.eventTypes[idx], ...payload };
+        if (idx >= 0) state.cal.eventTypes[idx] = { ...state.cal.eventTypes[idx], ...payload, _modifiedAt: Date.now() };
       } else {
         const slug = payload.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-        state.cal.eventTypes.push({ id: 'evt-' + Date.now(), slug, ...payload });
+        state.cal.eventTypes.push({ id: 'evt-' + Date.now(), slug, ...payload, _modifiedAt: Date.now() });
       }
       closeModal();
       render();
@@ -2447,7 +2459,7 @@
         showToast('Keep at least one class type active.');
         return;
       }
-      if (typeof _pendingDeletedIds !== 'undefined') _pendingDeletedIds.eventTypes.add(id);
+      recordDeletedId('eventTypes', id);
       state.cal.eventTypes = state.cal.eventTypes.filter(x => x.id !== id);
       if (state.cal.eventTypeId === id) state.cal.eventTypeId = state.cal.eventTypes[0].id;
       render();
@@ -3214,19 +3226,21 @@
       ath.emergencyContact = f.emergencyContact.value.trim();
       ath.medicalNotes = f.medicalNotes.value.trim();
       ath.coachBio = f.coachBio.value.trim();
+      ath._modifiedAt = Date.now();
 
       // Cascade renamed athlete name across sessions, recaps & videos
       if (oldName !== newName) {
         state.sessions.forEach(s => {
           if (s.athleteId === ath.id && Array.isArray(s.athletes)) {
             s.athletes = s.athletes.map(n => n === oldName ? newName : n);
+            s._modifiedAt = Date.now();
           }
         });
         state.sessionRecaps.forEach(r => {
-          if (r.athleteId === ath.id) r.athleteName = newName;
+          if (r.athleteId === ath.id) { r.athleteName = newName; r._modifiedAt = Date.now(); }
         });
         state.videos.forEach(v => {
-          if (v.athleteId === ath.id) v.athleteName = newName;
+          if (v.athleteId === ath.id) { v.athleteName = newName; v._modifiedAt = Date.now(); }
         });
       }
 
@@ -3261,7 +3275,7 @@
       
       const ath = state.athletes.find(a => a.id === athId);
       if (!ath) return;
-      if (typeof _pendingDeletedIds !== 'undefined') _pendingDeletedIds.athletes.add(athId);
+      recordDeletedId('athletes', athId);
       state.athletes = state.athletes.filter(a => a.id !== athId);
       state.cal.cart = state.cal.cart.filter(item => item.athleteId !== athId);
 
@@ -4040,12 +4054,18 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         closeModal();
         saveLocalState();
         render(false);
-        await pushStateToSupabase(true);
+        let syncRes = await pushStateToSupabase(true);
+        if (!syncRes?.ok) {
+          await new Promise(r => setTimeout(r, 800));
+          syncRes = await pushStateToSupabase(true);
+        }
         const totalCloud = uploadedMedia + reusedMedia;
-        if (localOnlyMedia > 0) {
+        if (!syncRes?.ok) {
+          showToast(`Imported ${addedAthletes} athletes locally, but cloud sync failed — tap Sync Now!`);
+        } else if (localOnlyMedia > 0) {
           showToast(`Imported ${addedAthletes} athletes & ${addedNotes} notes (${totalCloud} cloud videos, ${localOnlyMedia} local only).`);
         } else {
-          showToast(`Imported ${addedAthletes} athletes, ${addedNotes} notes & linked ${totalCloud} cloud videos!`);
+          showToast(`Imported ${addedAthletes} athletes, ${addedNotes} notes & linked ${totalCloud} cloud videos — synced to cloud!`);
         }
       } finally {
         window._importingInProgress = false;
@@ -5419,9 +5439,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       if (!payload.name) return;
       if (editId) {
         const idx = state.cal.locations.findIndex(l => l.id === editId);
-        if (idx >= 0) state.cal.locations[idx] = { ...state.cal.locations[idx], ...payload };
+        if (idx >= 0) state.cal.locations[idx] = { ...state.cal.locations[idx], ...payload, _modifiedAt: Date.now() };
       } else {
-        state.cal.locations.push({ id: 'loc-' + Date.now(), ...payload });
+        state.cal.locations.push({ id: 'loc-' + Date.now(), ...payload, _modifiedAt: Date.now() });
       }
       closeModal();
       render();
@@ -5430,7 +5450,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
     function deleteLocation(id) {
       if (!Array.isArray(state.cal.locations)) return;
-      if (typeof _pendingDeletedIds !== 'undefined') _pendingDeletedIds.locations.add(id);
+      recordDeletedId('locations', id);
       state.cal.locations = state.cal.locations.filter(l => l.id !== id);
       render();
       showToast('Facility location removed.');
@@ -5640,16 +5660,17 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                 </div>
                 <span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold inline-flex items-center gap-1.5 ${window._sbConnected ? 'bg-[#D5FF5F] text-[#010101]' : 'surface-soft text-[var(--text-muted)]'}">
                   <span class="w-2 h-2 rounded-full ${window._sbConnected ? 'bg-[#010101]' : 'bg-amber-400'}"></span>
-                  ${window._sbConnected ? 'Live' : 'Offline'}
+                  ${window._sbConnected ? 'Live • Sync v2' : 'Offline'}
                 </span>
               </div>
               <div class="surface-soft rounded-2xl p-3.5 text-xs space-y-1">
-                <div class="font-bold text-[var(--text-muted)]">Connected Project</div>
+                <div class="font-bold text-[var(--text-muted)]">Connected Project (Conflict-Free v2)</div>
                 <div class="font-extrabold truncate">${url || 'Not configured'}</div>
               </div>
               <div class="flex flex-wrap gap-2">
-                <button onclick="pushStateToSupabase(true); showToast('Synced to cloud!');" class="flex-1 py-2.5 px-4 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Sync Now</button>
-                <button onclick="openCloudSyncModal()" class="flex-1 py-2.5 px-4 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Configure Sync</button>
+                <button onclick="pushStateToSupabase(true).then(r => showToast(r?.ok ? 'Synced to cloud!' : 'Sync failed — check connection'));" class="flex-1 py-2.5 px-4 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Sync Now</button>
+                <button onclick="refreshFromSupabase(true).then(() => showToast('Pulled latest from cloud!'));" class="flex-1 py-2.5 px-4 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Pull Latest</button>
+                <button onclick="openCloudSyncModal()" class="py-2.5 px-4 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Configure</button>
               </div>
             </div>
 
@@ -5763,20 +5784,58 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     }
 
     // =========================================================================
-    // SUPABASE REAL-TIME CLOUD SYNC + LOCAL CACHE
+    // SUPABASE REAL-TIME CLOUD SYNC v2 (CONFLICT-FREE CRDT + ISOLATED ROW)
     // =========================================================================
     // Paste your Supabase Project URL & Publishable/Anon Key here (or configure via Cloud Sync button)
     const SUPABASE_BAKED_URL = 'https://tetrgebzdhwvgxpdzwkf.supabase.co';
     const SUPABASE_BAKED_KEY = 'sb_publishable_Ef_hInI-arV_WVDUCyUwGw_tG5CUYmq';
-    const LOCAL_STATE_KEY = 'gfuchs_elite_state_v1';
+    const CLOUD_ROW_ID = 'main_v2'; // Isolated from legacy 'main' so stale/unrefreshed old tabs can NEVER overwrite data!
+    const LEGACY_CLOUD_ROW_ID = 'main';
+    const BACKUP_ROW_ID = 'backup_athletes';
+    const LOCAL_STATE_KEY = 'gfuchs_elite_state_v2';
     const CLIENT_SESSION_ID = 'dev-' + Math.random().toString(36).slice(2, 10);
+    const SYNC_COLLECTIONS = ['athletes', 'sessions', 'sessionRecaps', 'videos', 'payments', 'threads', 'waitlist', 'locations', 'eventTypes'];
 
     let _sbClient = null;
     let _sbPushTimer = null;
     let _sbHydrating = false;
+    let _hasLocalCache = false;
     let _lastSyncedDataSig = null;
     let _lastCloudUpdatedAt = '';
+    let _lastBackupAthleteCount = 0;
     window._sbConnected = false;
+
+    function ensureDeletedIdsShape(obj) {
+      const out = {};
+      SYNC_COLLECTIONS.forEach(k => {
+        const arr = Array.isArray(obj?.[k]) ? obj[k] : [];
+        out[k] = Array.from(new Set(arr.filter(Boolean))).slice(-500);
+      });
+      return out;
+    }
+
+    function recordDeletedId(collection, id) {
+      if (!id || !SYNC_COLLECTIONS.includes(collection)) return;
+      state.deletedIds = ensureDeletedIdsShape(state.deletedIds);
+      if (!state.deletedIds[collection].includes(id)) {
+        state.deletedIds[collection].push(id);
+        if (state.deletedIds[collection].length > 500) {
+          state.deletedIds[collection] = state.deletedIds[collection].slice(-500);
+        }
+      }
+    }
+
+    function unionDeletedIds(localDel, cloudDel) {
+      const out = {};
+      SYNC_COLLECTIONS.forEach(k => {
+        const set = new Set([
+          ...(Array.isArray(localDel?.[k]) ? localDel[k] : []),
+          ...(Array.isArray(cloudDel?.[k]) ? cloudDel[k] : [])
+        ].filter(Boolean));
+        out[k] = Array.from(set).slice(-500);
+      });
+      return out;
+    }
 
     function getSupabaseCreds() {
       const url = (SUPABASE_BAKED_URL || localStorage.getItem('gfuchs_sb_url') || '').trim();
@@ -5785,6 +5844,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     }
 
     function serializeDataOnly() {
+      state.deletedIds = ensureDeletedIdsShape(state.deletedIds);
       return {
         athletes: state.athletes,
         sessions: state.sessions,
@@ -5793,6 +5853,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         payments: state.payments,
         threads: state.threads,
         waitlist: state.waitlist,
+        deletedIds: state.deletedIds,
         cal: {
           bookedSlots: state.cal.bookedSlots,
           availability: state.cal.availability,
@@ -5815,6 +5876,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     function serializeSyncedState() {
       return {
         ...serializeDataOnly(),
+        _syncVersion: 2,
         _clientId: CLIENT_SESSION_ID,
         _updatedAt: new Date().toISOString()
       };
@@ -5823,6 +5885,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     function applySyncedState(data) {
       if (!data || typeof data !== 'object') return;
       _sbHydrating = true;
+      state.deletedIds = ensureDeletedIdsShape(data.deletedIds);
       if (Array.isArray(data.athletes)) state.athletes = data.athletes;
       if (Array.isArray(data.sessions)) state.sessions = data.sessions;
       if (Array.isArray(data.sessionRecaps)) {
@@ -5851,13 +5914,19 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     function saveLocalState() {
       try {
         localStorage.setItem(LOCAL_STATE_KEY, JSON.stringify(serializeSyncedState()));
-      } catch (_) {}
+        _hasLocalCache = true;
+      } catch (err) {
+        console.warn('Local state save warning:', err);
+      }
     }
 
     function loadLocalState() {
       try {
         const raw = localStorage.getItem(LOCAL_STATE_KEY);
-        if (raw) applySyncedState(JSON.parse(raw));
+        if (raw) {
+          applySyncedState(JSON.parse(raw));
+          _hasLocalCache = true;
+        }
       } catch (_) {}
     }
 
@@ -5869,137 +5938,196 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       if (lbl) lbl.textContent = labelText || (connected ? 'Synced' : 'Cloud Sync');
     }
 
-    const _pendingDeletedIds = {
-      athletes: new Set(),
-      sessions: new Set(),
-      sessionRecaps: new Set(),
-      videos: new Set(),
-      payments: new Set(),
-      threads: new Set(),
-      waitlist: new Set(),
-      locations: new Set(),
-      eventTypes: new Set()
-    };
+    function mergeArraysById(localArr, cloudArr, deletedList, preferCloud = false) {
+      const deletedSet = new Set(Array.isArray(deletedList) ? deletedList : []);
+      const localMap = new Map();
+      const cloudMap = new Map();
+      const order = [];
+      const seen = new Set();
 
-    function mergeArraysById(localArr, cloudArr, deletedSet) {
-      const map = new Map();
       (Array.isArray(cloudArr) ? cloudArr : []).forEach(item => {
-        if (!item || !item.id) return;
-        if (deletedSet && deletedSet.has(item.id)) return;
-        map.set(item.id, item);
+        if (!item || !item.id || deletedSet.has(item.id)) return;
+        cloudMap.set(item.id, item);
+        if (!seen.has(item.id)) { seen.add(item.id); order.push(item.id); }
       });
       (Array.isArray(localArr) ? localArr : []).forEach(item => {
-        if (!item || !item.id) return;
-        if (deletedSet && deletedSet.has(item.id)) return;
-        map.set(item.id, item);
+        if (!item || !item.id || deletedSet.has(item.id)) return;
+        localMap.set(item.id, item);
+        if (!seen.has(item.id)) { seen.add(item.id); order.push(item.id); }
       });
-      return Array.from(map.values());
+
+      const merged = [];
+      order.forEach(id => {
+        const loc = localMap.get(id);
+        const cld = cloudMap.get(id);
+        if (loc && cld) {
+          const locMod = Number(loc._modifiedAt || 0);
+          const cldMod = Number(cld._modifiedAt || 0);
+          if (locMod !== cldMod) {
+            merged.push(cldMod > locMod ? cld : loc);
+          } else {
+            merged.push(preferCloud ? cld : loc);
+          }
+        } else {
+          merged.push(loc || cld);
+        }
+      });
+      return merged;
     }
 
-    function mergeCloudIntoLocal(cloudData) {
-      if (!cloudData || typeof cloudData !== 'object') return false;
+    function mergeCloudIntoLocal(cloudData, preferCloud = false) {
+      if (!cloudData || typeof cloudData !== 'object') return { changed: false, localHasUnpushed: false };
       const beforeSig = getDataSignature();
+      const cloudAthleteCount = Array.isArray(cloudData.athletes) ? cloudData.athletes.length : 0;
+      const cloudRecapCount = Array.isArray(cloudData.sessionRecaps) ? cloudData.sessionRecaps.length : 0;
       _sbHydrating = true;
 
-      state.athletes = mergeArraysById(state.athletes, cloudData.athletes, _pendingDeletedIds.athletes);
-      state.sessions = mergeArraysById(state.sessions, cloudData.sessions, _pendingDeletedIds.sessions);
+      state.deletedIds = unionDeletedIds(state.deletedIds, cloudData.deletedIds);
+      state.athletes = mergeArraysById(state.athletes, cloudData.athletes, state.deletedIds.athletes, preferCloud);
+      state.sessions = mergeArraysById(state.sessions, cloudData.sessions, state.deletedIds.sessions, preferCloud);
+
       const localDrafts = state.sessionRecaps.filter(r => r.isDraft);
       const localNonDrafts = state.sessionRecaps.filter(r => !r.isDraft);
-      const mergedRecaps = mergeArraysById(localNonDrafts, cloudData.sessionRecaps, _pendingDeletedIds.sessionRecaps);
+      const mergedRecaps = mergeArraysById(localNonDrafts, cloudData.sessionRecaps, state.deletedIds.sessionRecaps, preferCloud);
       state.sessionRecaps = [...localDrafts, ...mergedRecaps];
-      state.videos = mergeArraysById(state.videos, cloudData.videos, _pendingDeletedIds.videos);
-      state.payments = mergeArraysById(state.payments, cloudData.payments, _pendingDeletedIds.payments);
-      state.threads = mergeArraysById(state.threads, cloudData.threads, _pendingDeletedIds.threads);
-      state.waitlist = mergeArraysById(state.waitlist, cloudData.waitlist, _pendingDeletedIds.waitlist);
+
+      state.videos = mergeArraysById(state.videos, cloudData.videos, state.deletedIds.videos, preferCloud);
+      state.payments = mergeArraysById(state.payments, cloudData.payments, state.deletedIds.payments, preferCloud);
+      state.threads = mergeArraysById(state.threads, cloudData.threads, state.deletedIds.threads, preferCloud);
+      state.waitlist = mergeArraysById(state.waitlist, cloudData.waitlist, state.deletedIds.waitlist, preferCloud);
 
       if (cloudData.cal) {
         state.cal.bookedSlots = Array.from(new Set([...(cloudData.cal.bookedSlots || []), ...(state.cal.bookedSlots || [])]));
-        if (cloudData.cal.locations) {
-          state.cal.locations = mergeArraysById(state.cal.locations, cloudData.cal.locations, _pendingDeletedIds.locations);
+        if (Array.isArray(cloudData.cal.locations)) {
+          state.cal.locations = mergeArraysById(state.cal.locations, cloudData.cal.locations, state.deletedIds.locations, preferCloud);
         }
-        if (cloudData.cal.eventTypes) {
-          state.cal.eventTypes = mergeArraysById(state.cal.eventTypes, cloudData.cal.eventTypes, _pendingDeletedIds.eventTypes);
+        if (Array.isArray(cloudData.cal.eventTypes) && cloudData.cal.eventTypes.length) {
+          state.cal.eventTypes = mergeArraysById(state.cal.eventTypes, cloudData.cal.eventTypes, state.deletedIds.eventTypes, preferCloud);
         }
-        if (cloudData.cal.availability?.dateOverrides) {
-          state.cal.availability.dateOverrides = {
-            ...cloudData.cal.availability.dateOverrides,
-            ...(state.cal.availability.dateOverrides || {})
-          };
+        if (cloudData.cal.clover && preferCloud) {
+          state.cal.clover = { ...state.cal.clover, ...cloudData.cal.clover };
         }
+        if (cloudData.cal.calendarSync && preferCloud) {
+          state.cal.calendarSync = { ...state.cal.calendarSync, ...cloudData.cal.calendarSync };
+        }
+        if (cloudData.cal.availability) {
+          if (preferCloud) {
+            const mergedOverrides = {
+              ...(state.cal.availability.dateOverrides || {}),
+              ...(cloudData.cal.availability.dateOverrides || {})
+            };
+            state.cal.availability = { ...state.cal.availability, ...cloudData.cal.availability, dateOverrides: mergedOverrides };
+          } else if (cloudData.cal.availability.dateOverrides) {
+            state.cal.availability.dateOverrides = {
+              ...cloudData.cal.availability.dateOverrides,
+              ...(state.cal.availability.dateOverrides || {})
+            };
+          }
+        }
+      }
+      if (cloudData._updatedAt && (! _lastCloudUpdatedAt || cloudData._updatedAt > _lastCloudUpdatedAt)) {
+        _lastCloudUpdatedAt = cloudData._updatedAt;
       }
       if (!state.selectedAthleteId && state.athletes.length) state.selectedAthleteId = state.athletes[0].id;
       if (!state.activeSiblingId && state.athletes.length) state.activeSiblingId = state.athletes[0].id;
       _sbHydrating = false;
-      return getDataSignature() !== beforeSig;
+
+      const localHasUnpushed = state.athletes.length > cloudAthleteCount || mergedRecaps.length > cloudRecapCount;
+      return { changed: getDataSignature() !== beforeSig, localHasUnpushed };
     }
 
-    async function refreshFromSupabase() {
-      if (!_sbClient || window._importingInProgress) return;
+    async function saveSafetyBackupIfLarger(payload) {
+      if (!_sbClient || !Array.isArray(payload?.athletes) || payload.athletes.length < 2) return;
+      if (payload.athletes.length < _lastBackupAthleteCount) return;
       try {
-        const { data, error } = await _sbClient.from('gfuchs_state').select('data').eq('id', 'main').maybeSingle();
-        if (error || !data?.data) return;
-        const incoming = data.data;
-        if (incoming._updatedAt && _lastCloudUpdatedAt && incoming._updatedAt <= _lastCloudUpdatedAt) return;
-        applySyncedState(incoming);
-        saveLocalState();
-        updateSyncIndicators(true, 'Synced');
-        render(false);
+        const { data: existing } = await _sbClient.from('gfuchs_state').select('data').eq('id', BACKUP_ROW_ID).maybeSingle();
+        const existingCount = Array.isArray(existing?.data?.athletes) ? existing.data.athletes.length : 0;
+        if (payload.athletes.length >= existingCount) {
+          await _sbClient
+            .from('gfuchs_state')
+            .upsert({ id: BACKUP_ROW_ID, data: payload, updated_at: payload._updatedAt }, { onConflict: 'id' });
+          _lastBackupAthleteCount = payload.athletes.length;
+        }
       } catch (_) {}
     }
 
+    async function refreshFromSupabase(force = false) {
+      if (!_sbClient || window._importingInProgress) return false;
+      try {
+        const { data, error } = await _sbClient.from('gfuchs_state').select('data').eq('id', CLOUD_ROW_ID).maybeSingle();
+        if (error || !data?.data) return false;
+        const incoming = data.data;
+        if (!force && incoming._updatedAt && _lastCloudUpdatedAt && incoming._updatedAt <= _lastCloudUpdatedAt) return false;
+        const res = mergeCloudIntoLocal(incoming, true);
+        _lastSyncedDataSig = getDataSignature();
+        saveLocalState();
+        updateSyncIndicators(true, 'Synced');
+        if (res.changed || force) render(false);
+        if (res.localHasUnpushed) pushStateToSupabase(false);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
     async function pushStateToSupabase(immediate = false) {
-      if (!_sbClient || _sbHydrating) return;
+      if (!_sbClient || _sbHydrating) return { ok: false, error: 'not-ready' };
       const curSig = getDataSignature();
-      if (!immediate && curSig === _lastSyncedDataSig) return;
+      if (!immediate && curSig === _lastSyncedDataSig) return { ok: true, skipped: true };
       clearTimeout(_sbPushTimer);
       const run = async () => {
         try {
           const runSig = getDataSignature();
-          if (!immediate && runSig === _lastSyncedDataSig) return;
+          if (!immediate && runSig === _lastSyncedDataSig) return { ok: true, skipped: true };
           updateSyncIndicators(true, 'Syncing…');
 
-          // Fetch-before-write smart merge: NEVER overwrite another device's athletes/notes/videos!
+          // Fetch-before-write CRDT merge: NEVER drop another device's athletes/notes/videos!
           let pulledNewFromCloud = false;
           try {
-            const { data: latestRow } = await _sbClient.from('gfuchs_state').select('data').eq('id', 'main').maybeSingle();
+            const { data: latestRow } = await _sbClient.from('gfuchs_state').select('data').eq('id', CLOUD_ROW_ID).maybeSingle();
             if (latestRow?.data && latestRow.data._clientId !== CLIENT_SESSION_ID) {
-              pulledNewFromCloud = mergeCloudIntoLocal(latestRow.data);
+              const mergeRes = mergeCloudIntoLocal(latestRow.data, false);
+              pulledNewFromCloud = mergeRes.changed;
             }
           } catch (_) {}
 
           const payload = serializeSyncedState();
           const { error } = await _sbClient
             .from('gfuchs_state')
-            .upsert({ id: 'main', data: payload, updated_at: payload._updatedAt }, { onConflict: 'id' });
+            .upsert({ id: CLOUD_ROW_ID, data: payload, updated_at: payload._updatedAt }, { onConflict: 'id' });
           if (error) {
             console.warn('Supabase upsert error:', error.message);
             updateSyncIndicators(false, 'Sync Error');
+            return { ok: false, error: error.message };
           } else {
-            Object.values(_pendingDeletedIds).forEach(s => s.clear());
             _lastSyncedDataSig = getDataSignature();
             _lastCloudUpdatedAt = payload._updatedAt;
             saveLocalState();
             updateSyncIndicators(true, 'Synced');
             if (pulledNewFromCloud) render(false);
             publishLiveCalendarFeed(false);
+            saveSafetyBackupIfLarger(payload);
+            return { ok: true };
           }
         } catch (err) {
           console.warn('Supabase sync failed:', err);
           updateSyncIndicators(false, 'Offline');
+          return { ok: false, error: err?.message || 'network' };
         }
       };
-      if (immediate) await run();
-      else _sbPushTimer = setTimeout(run, 450);
+      if (immediate) return await run();
+      _sbPushTimer = setTimeout(run, 450);
+      return { ok: true, queued: true };
     }
 
     // Auto-refresh whenever user switches back to tab or unlocks phone (iOS Safari wakes up)
     if (typeof document !== 'undefined' && document.addEventListener) {
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') refreshFromSupabase();
+        if (document.visibilityState === 'visible') refreshFromSupabase(false);
       });
     }
     if (typeof window !== 'undefined' && window.addEventListener) {
-      window.addEventListener('focus', () => refreshFromSupabase());
+      window.addEventListener('focus', () => refreshFromSupabase(false));
     }
 
     async function initSupabaseSync() {
@@ -6011,35 +6139,64 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       try {
         _sbClient = window.supabase.createClient(url, key);
         window._sb = _sbClient;
-        const { data, error } = await _sbClient.from('gfuchs_state').select('data').eq('id', 'main').maybeSingle();
+
+        let { data, error } = await _sbClient.from('gfuchs_state').select('data').eq('id', CLOUD_ROW_ID).maybeSingle();
         if (error) {
           console.warn('Supabase fetch error:', error.message);
           updateSyncIndicators(false, 'Check SQL');
           return;
         }
-        if (data?.data && Array.isArray(data.data.athletes)) {
-          applySyncedState(data.data);
-          saveLocalState();
-          updateSyncIndicators(true, 'Synced');
-          render(false);
-        } else if (state.athletes.length || state.sessions.length || state.sessionRecaps.length) {
-          // Cloud row does not exist yet, push local state up
-          await pushStateToSupabase(true);
+
+        // One-time seamless migration from legacy 'main' row if 'main_v2' does not exist yet
+        if (!data?.data) {
+          const { data: legacy } = await _sbClient.from('gfuchs_state').select('data').eq('id', LEGACY_CLOUD_ROW_ID).maybeSingle();
+          if (legacy?.data && Array.isArray(legacy.data.athletes)) {
+            if (_hasLocalCache) {
+              mergeCloudIntoLocal(legacy.data, true);
+            } else {
+              applySyncedState(legacy.data);
+            }
+            saveLocalState();
+            render(false);
+            await pushStateToSupabase(true);
+          } else if (state.athletes.length || state.sessions.length || state.sessionRecaps.length) {
+            await pushStateToSupabase(true);
+          } else {
+            updateSyncIndicators(true, 'Synced');
+          }
+        } else if (Array.isArray(data.data.athletes)) {
+          if (_hasLocalCache) {
+            const res = mergeCloudIntoLocal(data.data, true);
+            _lastSyncedDataSig = getDataSignature();
+            saveLocalState();
+            updateSyncIndicators(true, 'Synced');
+            render(false);
+            if (res.localHasUnpushed) await pushStateToSupabase(true);
+          } else {
+            applySyncedState(data.data);
+            saveLocalState();
+            updateSyncIndicators(true, 'Synced');
+            render(false);
+          }
         } else {
           updateSyncIndicators(true, 'Synced');
         }
 
-        // Subscribe to real-time updates from other devices
+        // Subscribe to real-time updates on isolated 'main_v2' row (NEVER blindly overwrites local athletes!)
         _sbClient
-          .channel('gfuchs-live-sync')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'gfuchs_state', filter: 'id=eq.main' }, (payload) => {
+          .channel('gfuchs-live-sync-v2')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'gfuchs_state', filter: `id=eq.${CLOUD_ROW_ID}` }, (payload) => {
             const incoming = payload.new?.data;
             if (!incoming || incoming._clientId === CLIENT_SESSION_ID || window._importingInProgress) return;
             if (incoming._updatedAt && _lastCloudUpdatedAt && incoming._updatedAt < _lastCloudUpdatedAt) return;
-            applySyncedState(incoming);
+            const res = mergeCloudIntoLocal(incoming, true);
+            _lastSyncedDataSig = getDataSignature();
             saveLocalState();
-            render(false);
-            showToast('Synced live update from another device!');
+            if (res.changed) {
+              render(false);
+              showToast('Synced live update from another device!');
+            }
+            if (res.localHasUnpushed) pushStateToSupabase(false);
           })
           .subscribe();
       } catch (err) {
@@ -7074,12 +7231,13 @@ create policy "Allow media update" on storage.objects
           pill.style.color = '';
           text.textContent = 'Syncing live data...';
 
-          setTimeout(() => {
-            render();
+          setTimeout(async () => {
+            await refreshFromSupabase(true);
+            render(false);
             refreshing = false;
             resetPtr();
-            showToast('✓ Synced schedule, recaps & payments!');
-          }, 650);
+            showToast('✓ Pulled latest schedule, athletes & recaps!');
+          }, 450);
         } else {
           resetPtr();
         }
