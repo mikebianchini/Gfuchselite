@@ -3580,13 +3580,13 @@
 
     function setRosterFilter(f) {
       state.rosterFilter = f;
-      render();
+      render(false);
     }
 
     function openCoachAthleteDetail(id) {
       state.selectedAthleteId = id;
       state.rosterView = 'detail';
-      render();
+      render(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -3596,19 +3596,55 @@
     let _importPreviewData = []; // [{ athleteName, ageGroup, notes: [{ date, warmup, focus, tee, ft, machine, homework, tags, clips }] }]
     let _importTab = 'folder'; // 'folder' | 'json' | 'paste'
 
+    function sanitizeUnicodeText(str, maxLen = 0) {
+      if (typeof str !== 'string') return '';
+      // Remove null bytes, non-tab/newline control chars, object replacement chars, and inline base64 blobs
+      let s = str
+        .replace(/\u0000/g, '')
+        .replace(/[\u0001-\u0008\u000B\u000C\u000E-\u001F\uFFFC]/g, '')
+        .replace(/data:[a-z0-9/+.-]+;base64,[A-Za-z0-9+/=\s]{120,}/gi, '[embedded attachment]');
+      // Strip lone/unpaired UTF-16 surrogates (PostgreSQL jsonb rejects unpaired surrogates!)
+      let clean = '';
+      for (let i = 0; i < s.length; i++) {
+        const code = s.charCodeAt(i);
+        if (code >= 0xD800 && code <= 0xDBFF) {
+          const next = s.charCodeAt(i + 1);
+          if (next >= 0xDC00 && next <= 0xDFFF) {
+            clean += s[i] + s[i + 1];
+            i++;
+          }
+        } else if (code >= 0xDC00 && code <= 0xDFFF) {
+          // Drop lone low surrogate
+        } else {
+          clean += s[i];
+        }
+      }
+      if (maxLen > 0 && clean.length > maxLen) clean = clean.slice(0, maxLen) + '…';
+      return clean;
+    }
+
     function stripHtmlToText(str) {
-      if (!/<[a-z][\s\S]*>/i.test(str)) return str;
+      const raw = sanitizeUnicodeText(String(str || ''));
+      if (!/<[a-z][\s\S]*>/i.test(raw)) return raw;
+      // Strip <head>, <style>, <script>, and base64 src attributes before parsing HTML
+      const stripped = raw
+        .replace(/<head\b[\s\S]*?<\/head>/gi, '\n')
+        .replace(/<style\b[\s\S]*?<\/style>/gi, '\n')
+        .replace(/<script\b[\s\S]*?<\/script>/gi, '\n')
+        .replace(/src\s*=\s*["']data:[^"']*["']/gi, 'src=""')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, '\n');
       const div = document.createElement('div');
-      div.innerHTML = str.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li|h[1-6])>/gi, '\n');
-      return (div.textContent || div.innerText || '').replace(/\r\n/g, '\n');
+      div.innerHTML = stripped;
+      return sanitizeUnicodeText((div.textContent || div.innerText || '').replace(/\r\n/g, '\n'));
     }
 
     function parseGinaAppleNote(rawText, fallbackTitle = '') {
-      const text = stripHtmlToText(rawText || '').replace(/\uFFFC/g, '').trim();
+      const text = stripHtmlToText(rawText || '').trim();
       const lines = text.split('\n').map(l => l.trim());
 
       // Detect leading date like 11/23 or 11/9/26
-      let date = fallbackTitle.replace(/\.(md|txt|html?)$/i, '').trim() || new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' });
+      let date = sanitizeUnicodeText(fallbackTitle.replace(/\.(md|txt|html?)$/i, '').trim(), 160) || new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' });
       const dateMatch = lines[0]?.match(/^(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)$/);
       if (dateMatch) {
         date = dateMatch[1];
@@ -3928,16 +3964,17 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       try {
         for (let idx = 0; idx < _importPreviewData.length; idx++) {
           const entry = _importPreviewData[idx];
-          const cleanName = entry.athleteName.trim();
+          const cleanName = sanitizeUnicodeText(entry.athleteName.trim(), 120) || 'Imported Athlete';
           let ath = state.athletes.find(a => a.name.toLowerCase() === cleanName.toLowerCase());
+          const impNow = Date.now();
           if (!ath) {
             const parts = cleanName.split(/\s+/).filter(Boolean);
             const initials = ((parts[0]?.[0] || 'A') + (parts[1]?.[0] || parts[0]?.[1] || 'F')).toUpperCase();
             ath = {
-              id: `ath-imp-${Date.now()}-${idx}`,
+              id: `ath-imp-${impNow}-${idx}`,
               initials,
               name: cleanName,
-              familyId: `fam-imp-${Date.now()}-${idx}`,
+              familyId: `fam-imp-${impNow}-${idx}`,
               parentName: '',
               parentPhone: '',
               parentEmail: '',
@@ -3957,10 +3994,13 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               coachBio: '',
               pitches: [],
               notes: [],
-              drills: []
+              drills: [],
+              _modifiedAt: impNow
             };
             state.athletes.push(ath);
             addedAthletes++;
+          } else {
+            ath._modifiedAt = impNow;
           }
 
           // Fetch already-uploaded media in Supabase Storage for this athlete so we never re-upload!
@@ -3982,48 +4022,58 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                   localOnlyMedia++;
                 }
                 finalClips.push({
-                  title: clip.title,
+                  title: sanitizeUnicodeText(clip.title || 'Session Clip', 180),
                   url: res.url,
                   isVideo: clip.isVideo !== false,
                   img: clip.isVideo === false ? res.url : vidImg
                 });
               } else if (clip.url) {
-                finalClips.push({ title: clip.title, url: clip.url, isVideo: clip.isVideo !== false, img: clip.img || vidImg });
+                finalClips.push({ title: sanitizeUnicodeText(clip.title || 'Session Clip', 180), url: clip.url, isVideo: clip.isVideo !== false, img: clip.img || vidImg });
               }
             }
 
+            const safeDate = sanitizeUnicodeText(n.date || '', 160);
+            const safeWarmup = sanitizeUnicodeText(n.warmup || '', 4000);
+            const safeFocus = sanitizeUnicodeText(n.focus || '', 12000);
+            const safeTee = sanitizeUnicodeText(n.tee || '', 4000);
+            const safeFt = sanitizeUnicodeText(n.ft || '', 4000);
+            const safeMachine = sanitizeUnicodeText(n.machine || '', 4000);
+            const safeHomework = sanitizeUnicodeText(n.homework || '', 4000);
+
             // If this athlete already has an imported note on the same date, attach new videos to it instead of duplicating
-            const existingRecap = state.sessionRecaps.find(r => r.athleteId === ath.id && r.date === n.date && (r.focus || '').trim() === (n.focus || '').trim());
+            const existingRecap = state.sessionRecaps.find(r => r.athleteId === ath.id && r.date === safeDate && (r.focus || '').trim() === safeFocus.trim());
             if (existingRecap && finalClips.length) {
               existingRecap.clips = [...(existingRecap.clips || []), ...finalClips];
               if (!existingRecap.videoUrl) {
                 existingRecap.videoUrl = finalClips[0].url;
                 existingRecap.videoTitle = finalClips[0].title;
               }
+              existingRecap._modifiedAt = Date.now();
             } else {
               state.sessionRecaps.unshift({
                 id: `rec-imp-${Date.now()}-${idx}-${nIdx}`,
                 isDraft: false,
                 athleteId: ath.id,
                 athleteName: ath.name,
-                date: n.date,
+                date: safeDate,
                 sessionTitle: '1-on-1 Hitting Private (45m)',
-                tags: n.tags,
-                warmup: n.warmup,
-                focus: n.focus,
-                tee: n.tee,
-                ft: n.ft,
-                machine: n.machine,
-                homework: n.homework,
-                note: n.focus,
-                videoTitle: finalClips[0]?.title || `${n.date} Session Clip`,
+                tags: Array.isArray(n.tags) ? n.tags.slice(0, 3) : ['Hitting'],
+                warmup: safeWarmup,
+                focus: safeFocus,
+                tee: safeTee,
+                ft: safeFt,
+                machine: safeMachine,
+                homework: safeHomework,
+                note: '',
+                videoTitle: finalClips[0]?.title || `${safeDate} Session Clip`,
                 videoImg: finalClips[0]?.img || vidImg,
                 videoUrl: finalClips[0]?.url || null,
                 clips: finalClips,
                 sentTo: 'Imported from Apple Notes',
-                sentAt: n.date
+                sentAt: safeDate,
+                _modifiedAt: Date.now()
               });
-              ath.notes.unshift({ date: n.date, text: n.focus });
+              ath.notes.unshift({ date: safeDate, text: safeFocus.slice(0, 240) });
               addedNotes++;
             }
 
@@ -4035,11 +4085,12 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                   athleteId: ath.id,
                   athleteName: ath.name,
                   title: c.title,
-                  uploadedAt: n.date,
+                  uploadedAt: safeDate,
                   status: 'Reviewed',
                   img: c.img || vidImg,
                   videoUrl: c.url,
-                  cues: []
+                  cues: [],
+                  _modifiedAt: Date.now()
                 });
               }
             });
@@ -4056,14 +4107,14 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         render(false);
         let syncRes = await pushStateToSupabase(true);
         if (!syncRes?.ok) {
-          await new Promise(r => setTimeout(r, 800));
+          await new Promise(r => setTimeout(r, 900));
           syncRes = await pushStateToSupabase(true);
         }
         const totalCloud = uploadedMedia + reusedMedia;
         if (!syncRes?.ok) {
-          showToast(`Imported ${addedAthletes} athletes locally, but cloud sync failed — tap Sync Now!`);
+          showToast(`Imported ${addedAthletes} athletes locally, but cloud sync failed (${syncRes?.error || 'network'}) — check Settings → Sync!`);
         } else if (localOnlyMedia > 0) {
-          showToast(`Imported ${addedAthletes} athletes & ${addedNotes} notes (${totalCloud} cloud videos, ${localOnlyMedia} local only).`);
+          showToast(`Imported ${addedAthletes} athletes & ${addedNotes} notes (${totalCloud} cloud videos, ${localOnlyMedia} local only) — synced to cloud!`);
         } else {
           showToast(`Imported ${addedAthletes} athletes, ${addedNotes} notes & linked ${totalCloud} cloud videos — synced to cloud!`);
         }
@@ -5666,6 +5717,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               <div class="surface-soft rounded-2xl p-3.5 text-xs space-y-1">
                 <div class="font-bold text-[var(--text-muted)]">Connected Project (Conflict-Free v2)</div>
                 <div class="font-extrabold truncate">${url || 'Not configured'}</div>
+                <div class="text-[11px] text-[var(--text-muted)]">${state.athletes.length} athletes • ${state.sessionRecaps.filter(r => !r.isDraft).length} notes${window._lastSyncSizeKb ? ` • ${window._lastSyncSizeKb} KB synced` : ''}</div>
+                ${window._lastSyncError ? `<div class="text-[11px] font-bold text-red-600 dark:text-red-400 pt-1">Last sync error: ${window._lastSyncError}</div>` : ''}
               </div>
               <div class="flex flex-wrap gap-2">
                 <button onclick="pushStateToSupabase(true).then(r => showToast(r?.ok ? 'Synced to cloud!' : 'Sync failed — check connection'));" class="flex-1 py-2.5 px-4 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">Sync Now</button>
@@ -5873,13 +5926,31 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       }
     }
 
+    function sanitizeForPostgresJson(val) {
+      if (typeof val === 'string') return sanitizeUnicodeText(val);
+      if (val === null || val === undefined) return val;
+      if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+      if (typeof val === 'boolean') return val;
+      if (Array.isArray(val)) return val.map(sanitizeForPostgresJson);
+      if (typeof val === 'object') {
+        const out = {};
+        for (const k of Object.keys(val)) {
+          const v = val[k];
+          if (typeof v === 'function' || v === undefined) continue;
+          out[k] = sanitizeForPostgresJson(v);
+        }
+        return out;
+      }
+      return val;
+    }
+
     function serializeSyncedState() {
-      return {
+      return sanitizeForPostgresJson({
         ...serializeDataOnly(),
         _syncVersion: 2,
         _clientId: CLIENT_SESSION_ID,
         _updatedAt: new Date().toISOString()
-      };
+      });
     }
 
     function applySyncedState(data) {
@@ -6092,14 +6163,17 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           } catch (_) {}
 
           const payload = serializeSyncedState();
+          try { window._lastSyncSizeKb = Math.round(JSON.stringify(payload).length / 1024); } catch (_) {}
           const { error } = await _sbClient
             .from('gfuchs_state')
             .upsert({ id: CLOUD_ROW_ID, data: payload, updated_at: payload._updatedAt }, { onConflict: 'id' });
           if (error) {
+            window._lastSyncError = error.message || 'Upsert rejected';
             console.warn('Supabase upsert error:', error.message);
             updateSyncIndicators(false, 'Sync Error');
             return { ok: false, error: error.message };
           } else {
+            window._lastSyncError = '';
             _lastSyncedDataSig = getDataSignature();
             _lastCloudUpdatedAt = payload._updatedAt;
             saveLocalState();
@@ -6110,6 +6184,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             return { ok: true };
           }
         } catch (err) {
+          window._lastSyncError = err?.message || 'Network error';
           console.warn('Supabase sync failed:', err);
           updateSyncIndicators(false, 'Offline');
           return { ok: false, error: err?.message || 'network' };
