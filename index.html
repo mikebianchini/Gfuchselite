@@ -7480,6 +7480,26 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const ftClipCount = _recapDraftClips.filter(c => c.station === 'ft').length;
       const machineClipCount = _recapDraftClips.filter(c => c.station === 'machine').length;
 
+      const formatRecapSessionDate = (s) => {
+        if (!s) return '';
+        if (s.dateIso) {
+          const dt = new Date(`${s.dateIso}T12:00:00`);
+          if (!Number.isNaN(dt.getTime())) {
+            const label = dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            return s.dateIso === getTodayIsoEst() ? `Today • ${label}` : label;
+          }
+        }
+        return s.day || '';
+      };
+      const sesTitle = ses ? (ses.lessonTitle || ses.focus || 'Training Session') : '';
+      const sesDateLabel = formatRecapSessionDate(ses);
+      const sesTimeLabel = ses?.time || '';
+      const sesDurationLabel = ses?.duration ? `${ses.duration} min` : '';
+      const sesLocationLabel = ses?.location || '';
+      const autoSaveBadgeText = saved?.savedAt
+        ? (/^auto-created$/i.test(saved.savedAt) ? 'Auto-created' : `Auto-saved ${saved.savedAt}`)
+        : 'Auto-save on';
+
       return `
         <form oninput="autoSaveRecapDraft(); updateStationDots();" onchange="autoSaveRecapDraft(true); updateStationDots();" onsubmit="submitSessionRecap(event, '${ath.id}', '${ses ? ses.id : ''}')" class="max-w-2xl mx-auto space-y-4">
           <!-- Top Navigation Row -->
@@ -7489,21 +7509,54 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             </button>
             <div class="flex items-center gap-2">
               <span id="recap-autosave-badge" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full card-white text-[11px] font-extrabold text-[#4E6075] dark:text-[#D5FF5F]">
-                <span class="w-2 h-2 rounded-full bg-[#9ED11E]"></span>${saved?.savedAt ? `Auto-saved ${saved.savedAt}` : 'Auto-save on'}
+                <span class="w-2 h-2 rounded-full bg-[#9ED11E]"></span>${autoSaveBadgeText}
               </span>
               <button type="button" onclick="clearRecapDraft('${ath.id}','${ses ? ses.id : ''}')" class="px-3 py-2 min-h-[38px] rounded-full surface-soft text-[11px] font-extrabold text-[var(--text-muted)] cursor-pointer">Reset</button>
             </div>
           </div>
 
-          <!-- Athlete Studio Header -->
+          <!-- Athlete & Session Studio Header -->
           <div class="card-mist rounded-[28px] p-5 space-y-3.5">
             <div class="flex items-center gap-3 min-w-0">
               <div class="w-12 h-12 rounded-2xl bg-[#010101] text-[#D5FF5F] font-extrabold text-sm flex items-center justify-center shrink-0">${ath.initials}</div>
-              <div class="min-w-0">
+              <div class="min-w-0 flex-1">
                 <div class="text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6]">Session Notes Studio</div>
                 <h1 class="text-xl font-extrabold tracking-tight truncate">${ath.name} ${ath.ageGroup ? `<span class="text-sm font-bold text-[var(--text-muted)]">(${ath.ageGroup})</span>` : ''}</h1>
               </div>
             </div>
+
+            ${ses ? `
+              <div class="rounded-2xl card-white px-3.5 py-3 space-y-1.5">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div class="text-xs font-extrabold text-[var(--text-main)]">${sesTitle}</div>
+                  ${sesDurationLabel ? `<span class="px-2 py-0.5 rounded-full surface-soft text-[10px] font-extrabold text-[var(--text-muted)]">${sesDurationLabel}</span>` : ''}
+                </div>
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-[var(--text-muted)]">
+                  ${(sesDateLabel || sesTimeLabel) ? `
+                    <span class="inline-flex items-center gap-1">
+                      ${uiIcon('calendar', 'w-3.5 h-3.5 shrink-0 text-[#4E6075] dark:text-[#D5FF5F]')}
+                      <span>${[sesDateLabel, sesTimeLabel].filter(Boolean).join(' • ')}</span>
+                    </span>
+                  ` : ''}
+                  ${sesLocationLabel ? `
+                    <span class="inline-flex items-center gap-1">
+                      ${uiIcon('pin', 'w-3.5 h-3.5 shrink-0 text-[#4E6075] dark:text-[#D5FF5F]')}
+                      <span>${sesLocationLabel}</span>
+                    </span>
+                  ` : ''}
+                </div>
+                ${groupAthletes.length > 1 ? `
+                  <div class="text-[11px] font-semibold text-[var(--text-muted)] pt-0.5">
+                    <span class="font-extrabold text-[var(--text-main)]">Group (${groupAthletes.length}):</span> ${groupAthletes.map(a => a.name).join(', ')}
+                  </div>
+                ` : ''}
+              </div>
+            ` : `
+              <div class="rounded-2xl surface-soft px-3.5 py-2 text-[11px] font-bold text-[var(--text-muted)] flex items-center gap-1.5">
+                ${uiIcon('calendar', 'w-3.5 h-3.5 shrink-0 text-[#4E6075] dark:text-[#D5FF5F]')}
+                <span>General Session Note • ${new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+              </div>
+            `}
 
             ${prevRecap ? `
               <!-- Collapsible Last Session Memory Pill + 1-Tap Copy Forward -->
@@ -9026,9 +9079,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.11.2';
+    const APP_VERSION = 'v3.11.3';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Improved Live Calendar Feed sync fallback & Supabase Storage RLS policy SQL; fixed mobile bottom dock anchoring and added native swipe-back navigation';
+    const APP_RELEASE_NOTES = 'Session Notes Studio header now displays lesson title, date, time, duration, location, and group roster';
 
     function reloadLatestAppVersion() {
       try {
