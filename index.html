@@ -491,6 +491,10 @@
           allowCash: true,
           autoSendReceipt: true
         },
+        calendarSync: {
+          autoPrompt: false,
+          feedUrl: ''
+        },
         eventTypes: [
           {
             id: 'evt-field',
@@ -2608,6 +2612,7 @@
           </div>
           <div class="flex flex-wrap items-center gap-2 shrink-0">
             <button onclick="openSessionRecapModal('${s.athleteId || ''}', '${s.id}')" class="px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5">${uiIcon('note')} Notes</button>
+            <button onclick="openCalendarSyncModal('${s.id}')" title="Add lesson to Apple / Google / Outlook Calendar" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer hover:border-[#010101]">+ Cal</button>
             ${s.status !== 'Completed' && s.status !== 'Canceled'
               ? `<button onclick="completeSession('${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-xs font-bold cursor-pointer">Check In</button>`
               : `<span class="px-2.5 py-1.5 rounded-xl bg-[#D6DFE2] text-[#010101] text-[11px] font-extrabold">${s.status}</span>`
@@ -3325,6 +3330,9 @@
       closeModal();
       render();
       showToast(`Added ${focus} on ${dayNice} at ${timeNice} to ${ath.name.split(' ')[0]}’s profile!`);
+      if (state.cal?.calendarSync?.autoPrompt && state.sessions[0]?.id) {
+        openCalendarSyncModal(state.sessions[0].id);
+      }
     }
 
     function setRosterSort(col) {
@@ -5470,6 +5478,27 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               </div>
             </div>
 
+            <!-- Calendar Sync Card -->
+            <div class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <h2 class="text-base font-extrabold">Calendar Sync (Apple / Google / Outlook)</h2>
+                  <p class="text-xs text-[var(--text-muted)] mt-0.5">Sync all scheduled lessons to your personal calendar in Pittsburgh EST</p>
+                </div>
+                <span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-[#D5FF5F] text-[#010101]">
+                  ${state.sessions.length} Lesson${state.sessions.length === 1 ? '' : 's'}
+                </span>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button onclick="downloadAllLessonsIcs()" class="flex-1 py-2.5 px-4 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer hover:opacity-90 transition">
+                  Sync All (.ics)
+                </button>
+                <button onclick="openCalendarSyncModal()" class="flex-1 py-2.5 px-4 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101] transition">
+                  Google / Feed Options
+                </button>
+              </div>
+            </div>
+
             <!-- Cloud Sync Card -->
             <div class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
               <div class="flex items-start justify-between gap-3">
@@ -5635,6 +5664,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           availability: state.cal.availability,
           locations: state.cal.locations,
           clover: state.cal.clover,
+          calendarSync: state.cal.calendarSync,
           eventTypes: state.cal.eventTypes
         },
         _clientId: CLIENT_SESSION_ID,
@@ -5660,6 +5690,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         if (data.cal.availability) state.cal.availability = data.cal.availability;
         if (Array.isArray(data.cal.locations)) state.cal.locations = data.cal.locations;
         if (data.cal.clover) state.cal.clover = { ...state.cal.clover, ...data.cal.clover };
+        if (data.cal.calendarSync) state.cal.calendarSync = { ...state.cal.calendarSync, ...data.cal.calendarSync };
         if (Array.isArray(data.cal.eventTypes) && data.cal.eventTypes.length) state.cal.eventTypes = data.cal.eventTypes;
       }
       if (!state.selectedAthleteId && state.athletes.length) state.selectedAthleteId = state.athletes[0].id;
@@ -6058,6 +6089,248 @@ create policy "Allow media update" on storage.objects
       showToast('Reset day to weekly default hours.');
     }
 
+    // =========================================================================
+    // CALENDAR SYNC ENGINE (APPLE CALENDAR / GOOGLE CALENDAR / OUTLOOK .ICS)
+    // =========================================================================
+    function parseSessionDateTimeRange(s) {
+      const iso = s.dateIso || getTodayIsoEst();
+      const [y, m, d] = iso.split('-').map(Number);
+
+      // Parse time string like "4:00 PM" or "16:00"
+      let hh = 16, mm = 0;
+      const t = String(s.time || '4:00 PM').trim();
+      const m12 = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      const m24 = t.match(/^(\d{1,2}):(\d{2})$/);
+      if (m12) {
+        hh = Number(m12[1]) % 12;
+        if (m12[3].toUpperCase() === 'PM') hh += 12;
+        mm = Number(m12[2]);
+      } else if (m24) {
+        hh = Number(m24[1]);
+        mm = Number(m24[2]);
+      }
+
+      // Parse duration like "45M", "60 MIN", "3H"
+      let durMin = 45;
+      const durStr = String(s.duration || '45M').toUpperCase();
+      const dm = durStr.match(/(\d+)\s*M/);
+      const dh = durStr.match(/(\d+)\s*H/);
+      if (dm) durMin = Number(dm[1]);
+      else if (dh) durMin = Number(dh[1]) * 60;
+
+      const startDt = new Date(y, m - 1, d, hh, mm, 0);
+      const endDt = new Date(startDt.getTime() + durMin * 60000);
+      const fmtLocal = (dt) =>
+        `${dt.getFullYear()}${String(dt.getMonth() + 1).padStart(2, '0')}${String(dt.getDate()).padStart(2, '0')}T${String(dt.getHours()).padStart(2, '0')}${String(dt.getMinutes()).padStart(2, '0')}00`;
+      return { startLocal: fmtLocal(startDt), endLocal: fmtLocal(endDt), durMin };
+    }
+
+    function escapeIcsText(str) {
+      return String(str || '')
+        .replace(/\\/g, '\\\\')
+        .replace(/\r?\n/g, '\\n')
+        .replace(/;/g, '\\;')
+        .replace(/,/g, '\\,');
+    }
+
+    function buildIcsCalendar(sessionsList, calName = 'Gina Fuchs Elite Fastpitch Lessons') {
+      const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+      const defaultLoc = state.cal?.locations?.[0]?.name || 'Gina Fuchs Elite Facility';
+      const lines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Gina Fuchs Elite Fastpitch//Schedule Sync//EN',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        `X-WR-CALNAME:${escapeIcsText(calName)}`,
+        'X-WR-TIMEZONE:America/New_York'
+      ];
+
+      (sessionsList || []).forEach(s => {
+        if (s.status === 'Canceled') return;
+        const { startLocal, endLocal } = parseSessionDateTimeRange(s);
+        const players = (s.athletes || []).join(', ');
+        const summary = players ? `${players} — ${s.focus || s.type || 'Fastpitch Lesson'}` : (s.focus || 'Fastpitch Lesson');
+        const desc = [
+          `Session: ${s.focus || s.type || 'Fastpitch Lesson'}`,
+          players ? `Athlete: ${players}` : '',
+          s.type ? `Type: ${s.type}` : '',
+          s.payment ? `Payment: ${s.payment}` : ''
+        ].filter(Boolean).join('\n');
+        const loc = s.location || defaultLoc;
+        lines.push(
+          'BEGIN:VEVENT',
+          `UID:${s.id || ('ses-' + Date.now())}@gfuchselite.app`,
+          `DTSTAMP:${stamp}`,
+          `DTSTART;TZID=America/New_York:${startLocal}`,
+          `DTEND;TZID=America/New_York:${endLocal}`,
+          `SUMMARY:${escapeIcsText(summary)}`,
+          `LOCATION:${escapeIcsText(loc)}`,
+          `DESCRIPTION:${escapeIcsText(desc)}`,
+          'BEGIN:VALARM',
+          'TRIGGER:-PT30M',
+          'ACTION:DISPLAY',
+          `DESCRIPTION:${escapeIcsText(summary)} in 30 minutes`,
+          'END:VALARM',
+          'END:VEVENT'
+        );
+      });
+
+      lines.push('END:VCALENDAR');
+      return lines.join('\r\n');
+    }
+
+    function triggerIcsDownload(icsContent, filename = 'gina-fuchs-schedule.ics') {
+      try {
+        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function downloadAllLessonsIcs() {
+      const active = state.sessions.filter(s => s.status !== 'Canceled');
+      if (!active.length) {
+        showToast('No scheduled lessons to export yet — add a session first!');
+        return;
+      }
+      const ics = buildIcsCalendar(active);
+      triggerIcsDownload(ics, `gina-fuchs-schedule-${getTodayIsoEst()}.ics`);
+      showToast(`Exported ${active.length} lesson${active.length === 1 ? '' : 's'} (.ics) — open to sync with Apple / Google / Outlook Calendar!`);
+    }
+
+    function downloadSingleLessonIcs(sessionId) {
+      const s = state.sessions.find(x => x.id === sessionId);
+      if (!s) return;
+      const ics = buildIcsCalendar([s]);
+      const slug = (s.athletes?.[0] || 'lesson').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      triggerIcsDownload(ics, `lesson-${slug}-${s.dateIso || getTodayIsoEst()}.ics`);
+      showToast('Downloaded .ics — tap to add to Apple / Outlook Calendar!');
+    }
+
+    function getGoogleCalendarUrl(s) {
+      const { startLocal, endLocal } = parseSessionDateTimeRange(s);
+      const players = (s.athletes || []).join(', ');
+      const title = players ? `${players} — ${s.focus || s.type || 'Fastpitch Lesson'}` : (s.focus || 'Fastpitch Lesson');
+      const details = [
+        `Session: ${s.focus || s.type || 'Fastpitch Lesson'}`,
+        players ? `Athlete: ${players}` : '',
+        s.payment ? `Payment: ${s.payment}` : ''
+      ].filter(Boolean).join('\n');
+      const loc = s.location || state.cal?.locations?.[0]?.name || 'Gina Fuchs Elite Facility';
+      const params = new URLSearchParams({
+        action: 'TEMPLATE',
+        text: title,
+        dates: `${startLocal}/${endLocal}`,
+        ctz: 'America/New_York',
+        details,
+        location: loc
+      });
+      return `https://calendar.google.com/calendar/render?${params.toString()}`;
+    }
+
+    function saveCalendarSyncSettings(e) {
+      e.preventDefault();
+      if (!state.cal.calendarSync) state.cal.calendarSync = {};
+      state.cal.calendarSync.autoPrompt = Boolean(e.target.autoPrompt?.checked);
+      state.cal.calendarSync.feedUrl = (e.target.feedUrl?.value || '').trim();
+      closeModal();
+      render();
+      showToast('Calendar sync preferences saved!');
+    }
+
+    function openCalendarSyncModal(focusSessionId = null) {
+      const activeSessions = state.sessions.filter(s => s.status !== 'Canceled');
+      const focusSession = focusSessionId ? activeSessions.find(s => s.id === focusSessionId) : null;
+      const cs = state.cal.calendarSync || { autoPrompt: false, feedUrl: '' };
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Apple • Google • Outlook</div>
+            <h3 class="font-extrabold text-base mt-0.5">${focusSession ? 'Add Lesson to Calendar' : 'Sync Schedule with Calendar'}</h3>
+          </div>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+
+        ${focusSession ? `
+          <div class="p-3.5 rounded-2xl card-mist space-y-2.5 text-xs">
+            <div>
+              <div class="font-extrabold text-sm">${(focusSession.athletes || []).join(', ') || focusSession.focus}</div>
+              <div class="text-[var(--text-muted)] font-semibold">${focusSession.day || focusSession.dateIso || ''} • ${focusSession.time} (${focusSession.duration}) EST</div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" onclick="downloadSingleLessonIcs('${focusSession.id}')" class="py-2.5 px-3 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Apple / Outlook (.ics)</button>
+              <a href="${getGoogleCalendarUrl(focusSession)}" target="_blank" rel="noopener noreferrer" class="py-2.5 px-3 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold text-center">+ Google Calendar ↗</a>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Sync All Lessons (.ics) -->
+        <div class="p-4 rounded-2xl surface-soft space-y-2.5 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="font-extrabold">Sync All Scheduled Lessons</span>
+            <span class="px-2 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">${activeSessions.length} Total</span>
+          </div>
+          <p class="text-[11px] text-[var(--text-muted)] leading-relaxed">
+            Downloads a universal <code>.ics</code> calendar file (Pittsburgh EST + 30-min reminders). Re-importing updates existing lessons automatically without duplicates.
+          </p>
+          <button type="button" onclick="downloadAllLessonsIcs()" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition">
+            Download All Lessons (.ics)
+          </button>
+        </div>
+
+        <!-- Upcoming Lessons Quick Add to Google / Apple -->
+        ${!focusSession && activeSessions.length ? `
+          <div class="space-y-2 text-xs">
+            <div class="font-extrabold">Quick-Add Individual Lessons</div>
+            <div class="max-h-40 overflow-y-auto space-y-1.5">
+              ${activeSessions.slice(0, 8).map(s => `
+                <div class="surface-soft rounded-2xl p-2.5 flex items-center justify-between gap-2">
+                  <div class="min-w-0">
+                    <div class="font-extrabold truncate">${(s.athletes || []).join(', ') || s.focus}</div>
+                    <div class="text-[10px] text-[var(--text-muted)]">${s.day || s.dateIso || ''} • ${s.time}</div>
+                  </div>
+                  <div class="flex items-center gap-1 shrink-0">
+                    <a href="${getGoogleCalendarUrl(s)}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold">Google ↗</a>
+                    <button type="button" onclick="downloadSingleLessonIcs('${s.id}')" class="px-2.5 py-1.5 rounded-xl card-white text-[10px] font-extrabold cursor-pointer">.ics</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Auto-Prompt & Subscription Feed URL -->
+        <form onsubmit="saveCalendarSyncSettings(event)" class="space-y-2.5 pt-2 border-t border-[var(--border-subtle)] text-xs">
+          <label class="flex items-center justify-between gap-3 p-2.5 rounded-2xl surface-soft cursor-pointer">
+            <div>
+              <div class="font-extrabold">Auto-Prompt After Adding Session</div>
+              <div class="text-[10px] text-[var(--text-muted)]">Opens quick Apple / Google Calendar add right after booking</div>
+            </div>
+            <input type="checkbox" name="autoPrompt" ${cs.autoPrompt ? 'checked' : ''} class="w-4 h-4 accent-[#010101]" />
+          </label>
+          <div>
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Live Calendar Feed URL (Optional webcal://)</label>
+            <input name="feedUrl" value="${esc(cs.feedUrl)}" placeholder="webcal://... or https://.../calendar.ics" class="w-full px-3 py-2 rounded-xl surface-soft font-medium" />
+          </div>
+          <button type="submit" class="w-full py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">
+            Save Sync Preferences
+          </button>
+        </form>
+      `);
+    }
+
     function renderCoachSchedule() {
       const anchorIso = getScheduleAnchorIso();
       const todayIso = getTodayIsoEst();
@@ -6318,6 +6591,9 @@ create policy "Allow media update" on storage.objects
               <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">${rangeLabel}</h1>
             </div>
             <div class="flex flex-wrap items-center gap-2">
+              <button onclick="openCalendarSyncModal()" class="px-3.5 py-2.5 rounded-2xl card-white text-xs font-extrabold cursor-pointer hover:border-[#010101] transition">
+                Sync Calendar
+              </button>
               <button onclick="openDayAvailabilityModal('${anchorIso}')" class="px-3.5 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer hover:opacity-90 transition">
                 Set Availability
               </button>
