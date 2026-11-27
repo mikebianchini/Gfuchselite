@@ -7246,14 +7246,6 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                 </div>
               </div>
             ` : ''}
-
-            <!-- Single-Row Horizontal Swipe Focus Tags -->
-            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-              ${allTags.map(t => {
-                const on = _recapDraftTags.includes(t);
-                return `<button type="button" onclick="toggleRecapTag('${t}','${ath.id}','${ses ? ses.id : ''}')" class="px-3 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap shrink-0 cursor-pointer transition ${on ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'card-white text-[var(--text-muted)]'}">${t}</button>`;
-              }).join('')}
-            </div>
           </div>
 
           <!-- 1. Lesson Focus Card -->
@@ -8774,7 +8766,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.8.3';
+    const APP_VERSION = 'v3.8.4';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Unified Modal Design System (solid high-contrast sheets, 44px aligned inputs/selects, sticky header & CTA footer, streamlined multi-athlete group picker)';
 
