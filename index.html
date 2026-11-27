@@ -3325,40 +3325,56 @@
     }
 
     function getCustomCues(station) {
-      if (!state.cal.customCues) state.cal.customCues = { tee: [], ft: [], machine: [], homework: [] };
+      if (!state.cal.customCues) state.cal.customCues = { warmup: [], tee: [], ft: [], machine: [], homework: [] };
       return Array.isArray(state.cal.customCues[station]) ? state.cal.customCues[station] : [];
     }
 
     function addCustomCuePrompt(station) {
-      const labels = { tee: 'Tee Drill / Cue', ft: 'Front Toss Drill / Cue', machine: 'Machine Drill / Cue', homework: 'Homework Cue' };
-      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-      openModal(`
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <h3 class="font-extrabold text-base">Save Custom ${labels[station] || 'Cue'}</h3>
-            <p class="text-xs text-[var(--text-muted)] mt-0.5">Adds a 1-tap quick chip to your Session Notes Studio.</p>
-          </div>
-          <button type="button" onclick="closeModal()" aria-label="Close" class="w-9 h-9 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+      const labels = {
+        warmup: 'Warm Up Drill',
+        tee: 'Tee Drill',
+        ft: 'Front Toss Drill',
+        machine: 'Machine Drill',
+        homework: 'Homework Drill'
+      };
+      const placeholders = {
+        warmup: 'e.g., Walking PVC, Med ball rotations',
+        tee: 'e.g., High tee inside-out 3/3/3',
+        ft: 'e.g., Shorty baseballs, Top-hand isolation',
+        machine: 'e.g., Curveball recognition, High fastball',
+        homework: 'e.g., 25 dry swings w/ mirror'
+      };
+      const bodyHtml = `
+        <div>
+          <label class="block text-xs font-bold mb-1.5">Drill Name *</label>
+          <input name="cue" class="w-full px-3.5" placeholder="${placeholders[station] || 'Enter drill name…'}" required autofocus />
         </div>
-        <form onsubmit="submitCustomCue(event, '${station}')" class="space-y-3 text-xs">
-          <input name="cue" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm font-semibold" placeholder="e.g., High tee inside-out 3/3/3" required autofocus />
-          <button type="submit" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer">Save Quick Chip</button>
-        </form>
-      `);
+      `;
+      const footerHtml = `
+        <button type="submit" class="w-full h-12 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-md hover:brightness-95 transition">Save Drill</button>
+      `;
+      openSheetModal({
+        eyebrow: 'Custom Drill Bank',
+        title: `Add ${labels[station] || 'Drill'}`,
+        subtitle: 'Adds a 1-tap quick drill button to Session Notes.',
+        formOnsubmit: `submitCustomCue(event, '${station}')`,
+        bodyHtml,
+        footerHtml
+      });
     }
 
     function submitCustomCue(e, station) {
       e.preventDefault();
       const val = (e.target.cue.value || '').trim();
       if (!val) return;
-      if (!state.cal.customCues) state.cal.customCues = { tee: [], ft: [], machine: [], homework: [] };
+      if (!state.cal.customCues) state.cal.customCues = { warmup: [], tee: [], ft: [], machine: [], homework: [] };
       if (!Array.isArray(state.cal.customCues[station])) state.cal.customCues[station] = [];
       if (!state.cal.customCues[station].includes(val)) {
         state.cal.customCues[station].push(val);
       }
       closeModal();
       render();
-      showToast(`Saved "${val}" to your quick cues!`);
+      showToast(`Saved "${val}" drill!`);
     }
 
     function copyLastRecapIntoDraft(athId) {
@@ -6719,28 +6735,34 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const lines = [];
       if (r.date) lines.push(r.date);
       if (r.warmup) {
-        lines.push(`* Hitter’s Warm up routine`);
-        lines.push(r.warmup);
+        lines.push(`Warm Up Routine:`);
+        r.warmup.split('\n').map(x => x.trim()).filter(Boolean).forEach(x => lines.push(`* ${x.replace(/^[•\-*]\s*/, '')}`));
         lines.push('');
       }
-      lines.push(`What’s new/focus for lesson:`);
+      lines.push(`Player Notes and Focus:`);
       lines.push(r.focus || r.note || '');
       lines.push('');
-      lines.push(`What we did today:`);
-      lines.push('');
-      if (r.tee) {
-        lines.push(`Tee:`);
-        r.tee.split('\n').map(x => x.trim()).filter(Boolean).forEach(x => lines.push(`* ${x.replace(/^[•\-*]\s*/, '')}`));
+      if (r.tee || r.ft || r.machine) {
+        lines.push(`What We Worked On:`);
+        if (r.tee) {
+          lines.push(`Tee:`);
+          r.tee.split('\n').map(x => x.trim()).filter(Boolean).forEach(x => lines.push(`* ${x.replace(/^[•\-*]\s*/, '')}`));
+        }
+        if (r.ft) {
+          lines.push(`Front Toss:`);
+          r.ft.split('\n').map(x => x.trim()).filter(Boolean).forEach(x => lines.push(`* ${x.replace(/^[•\-*]\s*/, '')}`));
+        }
+        if (r.machine) {
+          lines.push(`Machine:`);
+          r.machine.split('\n').map(x => x.trim()).filter(Boolean).forEach(x => lines.push(`* ${x.replace(/^[•\-*]\s*/, '')}`));
+        }
+        lines.push('');
       }
-      if (r.ft) {
-        lines.push(`FT:`);
-        r.ft.split('\n').map(x => x.trim()).filter(Boolean).forEach(x => lines.push(`* ${x.replace(/^[•\-*]\s*/, '')}`));
+      if (r.sessionNotes) {
+        lines.push(`Session Notes:`);
+        lines.push(r.sessionNotes);
+        lines.push('');
       }
-      if (r.machine) {
-        lines.push(`Machine:`);
-        r.machine.split('\n').map(x => x.trim()).filter(Boolean).forEach(x => lines.push(`* ${x.replace(/^[•\-*]\s*/, '')}`));
-      }
-      lines.push('');
       const hwLines = (r.homework || GINA_HOMEWORK_DEFAULT).split('\n').map(x => x.trim()).filter(Boolean);
       lines.push(`Homework - ${hwLines[0] || GINA_HOMEWORK_DEFAULT}`);
       hwLines.slice(1).forEach(x => lines.push(`* ${x.replace(/^[•\-*]\s*/, '')}`));
@@ -6934,7 +6956,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         const ses = _recapActiveSesId ? state.sessions.find(s => s.id === _recapActiveSesId) : null;
         const d = readRecapComposerDraft();
         const nowTime = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        const hasContent = !!(d.focus.trim() || d.tee.trim() || d.ft.trim() || d.machine.trim() || _recapDraftClips.length);
+        const hasContent = !!(d.warmup.trim() || d.focus.trim() || d.tee.trim() || d.ft.trim() || d.machine.trim() || d.sessionNotes.trim() || _recapDraftClips.length);
 
         try {
           localStorage.setItem(getRecapDraftStorageKey(athId), JSON.stringify({
@@ -6955,13 +6977,14 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             date: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }),
             sessionTitle: ses ? ses.focus : '1-on-1 Training Session',
             tags: [..._recapDraftTags],
-            warmup: d.includeWarmup ? d.warmup.trim() : '',
+            warmup: d.warmup.trim(),
             focus: d.focus.trim(),
             tee: d.tee.trim(),
             ft: d.ft.trim(),
             machine: d.machine.trim(),
+            sessionNotes: d.sessionNotes.trim(),
             homework: d.homework.trim() || GINA_HOMEWORK_DEFAULT,
-            note: d.focus.trim() || 'In-progress session note',
+            note: d.focus.trim() || d.sessionNotes.trim() || 'In-progress session note',
             videoTitle: vidTitle,
             videoImg: vidImg,
             videoUrl: _recapDraftVideoUrl,
@@ -6986,7 +7009,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     function clearRecapDraft(athId, sessionId) {
       try { localStorage.removeItem(getRecapDraftStorageKey(athId)); } catch (_) {}
       state.sessionRecaps = state.sessionRecaps.filter(r => r.id !== `draft-${athId}`);
-      _recapDraftTags = ['Barrel Control', 'Variability'];
+      _recapDraftTags = [];
       _recapDraftVideoUrl = null;
       _recapDraftVideoName = null;
       _recapDraftClips = [];
@@ -7016,7 +7039,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       _recapActiveSesId = ses ? ses.id : null;
       state.selectedAthleteId = ath.id;
       const saved = loadSavedRecapDraft(ath.id);
-      _recapDraftTags = saved?.tags ? [...saved.tags] : ['Barrel Control', 'Variability'];
+      _recapDraftTags = saved?.tags ? [...saved.tags] : [];
       _recapDraftVideoUrl = null;
       _recapDraftVideoName = null;
       _recapDraftClips = [];
@@ -7030,12 +7053,12 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
     function readRecapComposerDraft() {
       return {
-        includeWarmup: document.getElementById('recap-include-warmup')?.checked ?? true,
-        warmup: document.getElementById('recap-warmup-input')?.value ?? GINA_WARMUP_DEFAULT,
+        warmup: document.getElementById('recap-warmup-input')?.value ?? '',
         focus: document.getElementById('recap-focus-input')?.value ?? '',
         tee: document.getElementById('recap-tee-input')?.value ?? '',
         ft: document.getElementById('recap-ft-input')?.value ?? '',
         machine: document.getElementById('recap-machine-input')?.value ?? '',
+        sessionNotes: document.getElementById('recap-session-notes-input')?.value ?? '',
         homework: document.getElementById('recap-homework-input')?.value ?? GINA_HOMEWORK_DEFAULT
       };
     }
@@ -7047,18 +7070,22 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       render();
     }
 
-    function handleRecapVideoFile(input) {
+    function handleRecapVideoFile(input, station = 'general') {
       const files = Array.from(input.files || []);
       if (!files.length) return;
       autoSaveRecapDraft(true);
+      const stationNames = { tee: 'Tee', ft: 'Front Toss', machine: 'Machine', general: 'Session' };
+      const stLabel = stationNames[station] || 'Session';
       files.forEach(file => {
         const url = URL.createObjectURL(file);
-        _recapDraftClips.push({ title: file.name || `Cage Clip ${_recapDraftClips.length + 1}`, url, img: 'assets/images/fastpitch-hitter.jpg' });
+        const rawTitle = file.name || `${stLabel} Clip ${_recapDraftClips.length + 1}`;
+        _recapDraftClips.push({ title: rawTitle, station, stationLabel: stLabel, url, img: 'assets/images/fastpitch-hitter.jpg' });
       });
       _recapDraftVideoUrl = _recapDraftClips[0].url;
       _recapDraftVideoName = _recapDraftClips.length === 1 ? _recapDraftClips[0].title : `${_recapDraftClips.length} clips attached`;
+      if (['tee', 'ft', 'machine'].includes(station)) _recapActiveStation = station;
       render(false);
-      showToast(`Attached ${files.length} clip${files.length === 1 ? '' : 's'}!`);
+      showToast(`Added ${files.length} ${stLabel} clip${files.length === 1 ? '' : 's'}!`);
     }
 
     let _recapActiveStation = 'tee';
@@ -7081,7 +7108,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       ['tee', 'ft', 'machine'].forEach(st => {
         const dot = document.getElementById(`recap-dot-${st}`);
         const val = document.getElementById(`recap-${st}-input`)?.value?.trim();
-        if (dot) dot.classList.toggle('hidden', !val);
+        const hasClip = _recapDraftClips.some(c => c.station === st);
+        if (dot) dot.classList.toggle('hidden', !(val || hasClip));
       });
     }
 
@@ -7132,22 +7160,59 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const defaultPrice = Number(ses?.price) || getCashPrice(state.cal.eventTypes[0] || { price: 60 }) || 60;
       const saved = loadSavedRecapDraft(ath.id);
       const d = saved || {
-        includeWarmup: true,
-        warmup: GINA_WARMUP_DEFAULT,
+        warmup: '',
         focus: '',
         tee: '',
         ft: '',
         machine: '',
+        sessionNotes: '',
         homework: GINA_HOMEWORK_DEFAULT
       };
       const prevRecap = getSortedRecapsForAthlete(ath.id, false)[0];
-      const allTags = ['Barrel Control', 'Variability', 'Approach', 'Exit Velo', 'Timing', 'Slapping', 'Footwork', 'Pop Time'];
+      const warmupQuick = ['Walking PVC', ...getCustomCues('warmup')];
       const teeQuick = ['Extensions 3/3/3', 'Swing 3/3/3', ...getCustomCues('tee')];
       const ftQuick = ['Shorty baseballs', 'Baseball bat baseballs', 'Regular bat softballs', ...getCustomCues('ft')];
       const machQuick = ['Middle-in timing', 'Outside corner tracking', 'Changeup recognition', ...getCustomCues('machine')];
       const hwQuick = ['Extensions in mid out', 'Step back drill to stay in legs', 'Outside pitches', ...getCustomCues('homework')];
       const micSvg = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path stroke-linecap="round" d="M5 11a7 7 0 0014 0M12 18v3m-3 0h6"/></svg>`;
       const escAttr = (v) => String(v ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+      const renderStationVideoBar = (stationKey, stationTitle) => {
+        const stationClips = _recapDraftClips
+          .map((c, idx) => ({ ...c, _idx: idx }))
+          .filter(c => c.station === stationKey);
+        return `
+          <div class="pt-1 space-y-2">
+            <div class="grid grid-cols-2 gap-2">
+              <label class="py-2.5 px-3 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-1.5 shadow-sm hover:opacity-90">
+                ${uiIcon('video', 'w-3.5 h-3.5')}
+                <span>Record ${stationTitle} Video</span>
+                <input type="file" accept="video/*" capture="environment" onchange="handleRecapVideoFile(this, '${stationKey}')" class="hidden" />
+              </label>
+              <label class="py-2.5 px-3 rounded-xl surface-soft text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-1.5 hover:border-[#010101]">
+                ${uiIcon('plus', 'w-3.5 h-3.5')}
+                <span>Attach Clip</span>
+                <input type="file" accept="video/*,image/*" multiple onchange="handleRecapVideoFile(this, '${stationKey}')" class="hidden" />
+              </label>
+            </div>
+            ${stationClips.length ? `
+              <div class="flex flex-wrap gap-1.5">
+                ${stationClips.map(c => `
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl surface-soft text-[11px] font-extrabold">
+                    ${uiIcon('video', 'w-3 h-3 text-[#4E6075] dark:text-[#D5FF5F]')}
+                    <span class="max-w-[150px] truncate">${formatClipLabel(c.title, c._idx)}</span>
+                    <button type="button" onclick="removeRecapDraftClip(${c._idx})" aria-label="Remove clip" class="text-[var(--text-muted)] hover:text-red-500 cursor-pointer ml-0.5">✕</button>
+                  </span>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      };
+
+      const teeClipCount = _recapDraftClips.filter(c => c.station === 'tee').length;
+      const ftClipCount = _recapDraftClips.filter(c => c.station === 'ft').length;
+      const machineClipCount = _recapDraftClips.filter(c => c.station === 'machine').length;
 
       return `
         <form oninput="autoSaveRecapDraft(); updateStationDots();" onchange="autoSaveRecapDraft(true); updateStationDots();" onsubmit="submitSessionRecap(event, '${ath.id}', '${ses ? ses.id : ''}')" class="max-w-2xl mx-auto space-y-4">
@@ -7164,65 +7229,15 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             </div>
           </div>
 
-          <!-- Athlete Studio Header + 1-Tap Switcher -->
+          <!-- Athlete Studio Header -->
           <div class="card-mist rounded-[28px] p-5 space-y-3.5">
-            <div class="flex items-center justify-between gap-3">
-              <div class="flex items-center gap-3 min-w-0">
-                <div class="w-12 h-12 rounded-2xl bg-[#010101] text-[#D5FF5F] font-extrabold text-sm flex items-center justify-center shrink-0">${ath.initials}</div>
-                <div class="min-w-0">
-                  <div class="text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6]">Session Notes Studio</div>
-                  <h1 class="text-xl font-extrabold tracking-tight truncate">${ath.name} ${ath.ageGroup ? `<span class="text-sm font-bold text-[var(--text-muted)]">(${ath.ageGroup})</span>` : ''}</h1>
-                </div>
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-12 h-12 rounded-2xl bg-[#010101] text-[#D5FF5F] font-extrabold text-sm flex items-center justify-center shrink-0">${ath.initials}</div>
+              <div class="min-w-0">
+                <div class="text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6]">Session Notes Studio</div>
+                <h1 class="text-xl font-extrabold tracking-tight truncate">${ath.name} ${ath.ageGroup ? `<span class="text-sm font-bold text-[var(--text-muted)]">(${ath.ageGroup})</span>` : ''}</h1>
               </div>
-              <button type="button" onclick="const p=document.getElementById('recap-ath-switcher'); if(p){p.classList.toggle('hidden'); if(!p.classList.contains('hidden')) document.getElementById('recap-ath-pick-search')?.focus();}" class="px-3 py-2 rounded-xl card-white text-xs font-extrabold cursor-pointer shrink-0 inline-flex items-center gap-1.5 hover:border-[#010101]">
-                ${uiIcon('users', 'w-3.5 h-3.5')} Switch
-              </button>
             </div>
-            <div id="recap-ath-switcher" class="hidden pt-1">
-              ${renderSearchableAthletePicker({ id: 'recap-ath-pick', inputName: '_recapSwitchAth', selectedId: ath.id, placeholder: 'Type athlete name to switch…', onSelectFn: 'switchRecapAthlete' })}
-            </div>
-
-            ${ses?.sessionPlan && (ses.sessionPlan.goal || ses.sessionPlan.drills) ? `
-              <!-- Pinned Today's Session Plan -->
-              <div class="rounded-2xl card-white p-3.5 space-y-1.5 text-xs">
-                <div class="flex items-center justify-between gap-2">
-                  <span class="inline-flex items-center gap-1.5 font-extrabold text-[#4E6075] dark:text-[#D5FF5F]">${uiIcon('clipboard', 'w-3.5 h-3.5')} Today’s Session Plan</span>
-                  <div class="flex items-center gap-2">
-                    <button type="button" onclick="pullSessionPlanIntoDraft('${ses.id}')" class="px-2.5 py-1 rounded-lg bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer">Pull into Notes</button>
-                    <button type="button" onclick="openSessionPlanModal('${ses.id}')" class="text-[11px] font-bold text-[var(--text-muted)] hover:underline cursor-pointer">Edit</button>
-                  </div>
-                </div>
-                ${ses.sessionPlan.goal ? `<div class="font-bold">${ses.sessionPlan.goal.replace(/</g, '&lt;')}</div>` : ''}
-                ${ses.sessionPlan.drills ? `<div class="text-[11px] text-[var(--text-muted)] whitespace-pre-line">${ses.sessionPlan.drills.replace(/</g, '&lt;')}</div>` : ''}
-                ${ses.sessionPlan.notes ? `<div class="text-[11px] italic text-[var(--text-muted)]">${ses.sessionPlan.notes.replace(/</g, '&lt;')}</div>` : ''}
-              </div>
-            ` : ''}
-
-            <!-- Live Cage Video Capture Bar (1-Tap Rear Camera + Library) -->
-            <div class="grid grid-cols-2 gap-2">
-              <label class="py-3 px-3.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-2 shadow-sm hover:opacity-90">
-                ${uiIcon('video', 'w-4 h-4')}
-                <span>Record Video</span>
-                <input type="file" accept="video/*" capture="environment" onchange="handleRecapVideoFile(this)" class="hidden" />
-              </label>
-              <label class="py-3 px-3.5 rounded-2xl card-white text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-2 hover:border-[#010101]">
-                ${uiIcon('plus', 'w-4 h-4')}
-                <span>Attach Clip</span>
-                <input type="file" accept="video/*,image/*" multiple onchange="handleRecapVideoFile(this)" class="hidden" />
-              </label>
-            </div>
-
-            ${_recapDraftClips.length ? `
-              <div class="flex flex-wrap gap-1.5">
-                ${_recapDraftClips.map((c, idx) => `
-                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl card-white text-[11px] font-extrabold">
-                    ${uiIcon('video', 'w-3 h-3 text-[#4E6075] dark:text-[#D5FF5F]')}
-                    <span class="max-w-[140px] truncate">${formatClipLabel(c.title, idx)}</span>
-                    <button type="button" onclick="removeRecapDraftClip(${idx})" aria-label="Remove clip" class="text-[var(--text-muted)] hover:text-red-500 cursor-pointer ml-0.5">✕</button>
-                  </span>
-                `).join('')}
-              </div>
-            ` : ''}
 
             ${prevRecap ? `
               <!-- Collapsible Last Session Memory Pill + 1-Tap Copy Forward -->
@@ -7236,7 +7251,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                 </button>
                 <div id="recap-prev-detail" class="hidden px-3.5 pb-3 pt-1.5 border-t border-[var(--border-subtle)] text-xs space-y-2">
                   <div><span class="font-extrabold">Focus:</span> <span class="text-[var(--text-muted)] whitespace-pre-line">${prevRecap.focus || prevRecap.note}</span></div>
-                  ${prevRecap.ft ? `<div><span class="font-extrabold">FT:</span> <span class="text-[var(--text-muted)]">${prevRecap.ft.replace(/\n/g, ' • ')}</span></div>` : ''}
+                  ${prevRecap.ft ? `<div><span class="font-extrabold">Front Toss:</span> <span class="text-[var(--text-muted)]">${prevRecap.ft.replace(/\n/g, ' • ')}</span></div>` : ''}
                   ${prevRecap.homework ? `<div><span class="font-extrabold">HW:</span> <span class="text-[var(--text-muted)]">${prevRecap.homework.replace(/\n/g, ' ')}</span></div>` : ''}
                   <button type="button" onclick="copyLastRecapIntoDraft('${ath.id}')" class="px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold cursor-pointer">
                     Copy Last Focus &amp; HW into Today’s Note
@@ -7246,102 +7261,122 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             ` : ''}
           </div>
 
-          <!-- 1. Lesson Focus Card -->
-          <div class="card-white rounded-[28px] p-5 space-y-2.5">
+          <!-- 1. Warm Up Routine -->
+          <div class="card-white rounded-[28px] p-5 space-y-3">
             <div class="flex items-center justify-between gap-2">
-              <label for="recap-focus-input" class="text-sm font-extrabold tracking-tight">What’s new / focus for lesson *</label>
-              <button type="button" onclick="startRecapDictation('recap-focus-input', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full surface-soft text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition">${micSvg} Dictate</button>
+              <label for="recap-warmup-input" class="text-sm font-extrabold tracking-tight">Warm Up Routine</label>
+              <button type="button" onclick="startRecapDictation('recap-warmup-input', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full surface-soft text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition">${micSvg} Dictate</button>
             </div>
-            <textarea id="recap-focus-input" name="focus" rows="2" class="w-full px-4 py-3 rounded-2xl surface-soft text-[16px] leading-snug resize-none" placeholder="e.g., Playing in 14u tourney this weekend • Barrel control w diff bats..." required>${d.focus}</textarea>
+            <div class="flex flex-wrap gap-1.5">
+              ${warmupQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-warmup-input','${escAttr(q)}')" class="px-3 py-1.5 rounded-full surface-soft text-xs font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
+              <button type="button" onclick="addCustomCuePrompt('warmup')" class="px-3 py-1.5 rounded-full border border-dashed border-[var(--border-subtle)] text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ New Drill</button>
+            </div>
+            <textarea id="recap-warmup-input" name="warmup" rows="2" class="w-full px-4 py-3 rounded-2xl surface-soft text-[16px] leading-snug resize-none" placeholder="Tap drills above or type warm-up routine…">${d.warmup || ''}</textarea>
           </div>
 
-          <!-- 2. Segmented Station Studio: Tee | FT | Machine -->
+          <!-- 2. Player Notes and Focus -->
+          <div class="card-white rounded-[28px] p-5 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <label for="recap-focus-input" class="text-sm font-extrabold tracking-tight block">Player Notes and Focus *</label>
+                <p class="text-xs text-[var(--text-muted)]">What’s new with the player and what they want to work on</p>
+              </div>
+              <button type="button" onclick="startRecapDictation('recap-focus-input', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full surface-soft text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
+            </div>
+            <textarea id="recap-focus-input" name="focus" rows="2" class="w-full px-4 py-3 rounded-2xl surface-soft text-[16px] leading-snug resize-none" placeholder="e.g., Playing in 14U tourney this weekend • Wants to work on inside pitch timing…" required>${d.focus || ''}</textarea>
+          </div>
+
+          <!-- 3. What We Worked On: Tee | Front Toss | Machine -->
           <div class="card-white rounded-[28px] p-5 space-y-3.5">
             <div class="flex items-center justify-between">
-              <span class="text-sm font-extrabold tracking-tight">What We Did Today</span>
-              <span class="text-xs font-semibold text-[var(--text-muted)]">Tap station to log</span>
+              <span class="text-sm font-extrabold tracking-tight">What We Worked On</span>
+              <span class="text-xs font-semibold text-[var(--text-muted)]">Drills &amp; video per area</span>
             </div>
 
             <!-- 3-Tab Segmented Control -->
             <div class="p-1 rounded-2xl surface-soft flex items-center gap-1">
-              <button id="recap-tab-tee" type="button" onclick="switchRecapStation('tee')" class="flex-1 py-2.5 px-3 rounded-xl text-xs font-extrabold cursor-pointer transition ${_recapActiveStation === 'tee' ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'text-[var(--text-muted)]'} flex items-center justify-center gap-1.5">
-                <span>Tee</span><span id="recap-dot-tee" class="w-2 h-2 rounded-full bg-[#9ED11E] ${d.tee.trim() ? '' : 'hidden'}"></span>
+              <button id="recap-tab-tee" type="button" onclick="switchRecapStation('tee')" class="flex-1 py-2.5 px-2 rounded-xl text-xs font-extrabold cursor-pointer transition ${_recapActiveStation === 'tee' ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'text-[var(--text-muted)]'} flex items-center justify-center gap-1.5">
+                <span>Tee</span>
+                ${teeClipCount ? `<span class="text-[10px] opacity-80">(${teeClipCount})</span>` : ''}
+                <span id="recap-dot-tee" class="w-2 h-2 rounded-full bg-[#9ED11E] ${(d.tee.trim() || teeClipCount) ? '' : 'hidden'}"></span>
               </button>
-              <button id="recap-tab-ft" type="button" onclick="switchRecapStation('ft')" class="flex-1 py-2.5 px-3 rounded-xl text-xs font-extrabold cursor-pointer transition ${_recapActiveStation === 'ft' ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'text-[var(--text-muted)]'} flex items-center justify-center gap-1.5">
-                <span>FT</span><span id="recap-dot-ft" class="w-2 h-2 rounded-full bg-[#9ED11E] ${d.ft.trim() ? '' : 'hidden'}"></span>
+              <button id="recap-tab-ft" type="button" onclick="switchRecapStation('ft')" class="flex-1 py-2.5 px-2 rounded-xl text-xs font-extrabold cursor-pointer transition ${_recapActiveStation === 'ft' ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'text-[var(--text-muted)]'} flex items-center justify-center gap-1.5">
+                <span>Front Toss</span>
+                ${ftClipCount ? `<span class="text-[10px] opacity-80">(${ftClipCount})</span>` : ''}
+                <span id="recap-dot-ft" class="w-2 h-2 rounded-full bg-[#9ED11E] ${(d.ft.trim() || ftClipCount) ? '' : 'hidden'}"></span>
               </button>
-              <button id="recap-tab-machine" type="button" onclick="switchRecapStation('machine')" class="flex-1 py-2.5 px-3 rounded-xl text-xs font-extrabold cursor-pointer transition ${_recapActiveStation === 'machine' ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'text-[var(--text-muted)]'} flex items-center justify-center gap-1.5">
-                <span>Machine</span><span id="recap-dot-machine" class="w-2 h-2 rounded-full bg-[#9ED11E] ${d.machine.trim() ? '' : 'hidden'}"></span>
+              <button id="recap-tab-machine" type="button" onclick="switchRecapStation('machine')" class="flex-1 py-2.5 px-2 rounded-xl text-xs font-extrabold cursor-pointer transition ${_recapActiveStation === 'machine' ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'text-[var(--text-muted)]'} flex items-center justify-center gap-1.5">
+                <span>Machine</span>
+                ${machineClipCount ? `<span class="text-[10px] opacity-80">(${machineClipCount})</span>` : ''}
+                <span id="recap-dot-machine" class="w-2 h-2 rounded-full bg-[#9ED11E] ${(d.machine.trim() || machineClipCount) ? '' : 'hidden'}"></span>
               </button>
             </div>
 
             <!-- Tee Panel -->
             <div id="recap-panel-tee" class="space-y-2.5 ${_recapActiveStation === 'tee' ? '' : 'hidden'}">
-              <div class="flex items-center justify-between gap-2">
+              <div class="flex items-start justify-between gap-2">
                 <div class="flex flex-wrap gap-1.5">
                   ${teeQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-tee-input','${escAttr(q)}')" class="px-3 py-1.5 rounded-full surface-soft text-xs font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
-                  <button type="button" onclick="addCustomCuePrompt('tee')" class="px-2.5 py-1.5 rounded-full border border-dashed border-[var(--border-subtle)] text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ Cue</button>
+                  <button type="button" onclick="addCustomCuePrompt('tee')" class="px-3 py-1.5 rounded-full border border-dashed border-[var(--border-subtle)] text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ New Drill</button>
                 </div>
                 <button type="button" onclick="startRecapDictation('recap-tee-input', this)" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full surface-soft text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0">${micSvg}</button>
               </div>
-              <textarea id="recap-tee-input" name="tee" rows="3" class="w-full px-4 py-3 rounded-2xl surface-soft text-[16px] leading-snug resize-none" placeholder="• Extensions 3/3/3&#10;• Swing 3/3/3">${d.tee}</textarea>
+              <textarea id="recap-tee-input" name="tee" rows="3" class="w-full px-4 py-3 rounded-2xl surface-soft text-[16px] leading-snug resize-none" placeholder="• Extensions 3/3/3&#10;• Swing 3/3/3">${d.tee || ''}</textarea>
+              ${renderStationVideoBar('tee', 'Tee')}
             </div>
 
-            <!-- FT Panel -->
+            <!-- Front Toss Panel -->
             <div id="recap-panel-ft" class="space-y-2.5 ${_recapActiveStation === 'ft' ? '' : 'hidden'}">
-              <div class="flex items-center justify-between gap-2">
+              <div class="flex items-start justify-between gap-2">
                 <div class="flex flex-wrap gap-1.5">
                   ${ftQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-ft-input','${escAttr(q)}')" class="px-3 py-1.5 rounded-full surface-soft text-xs font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
-                  <button type="button" onclick="addCustomCuePrompt('ft')" class="px-2.5 py-1.5 rounded-full border border-dashed border-[var(--border-subtle)] text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ Cue</button>
+                  <button type="button" onclick="addCustomCuePrompt('ft')" class="px-3 py-1.5 rounded-full border border-dashed border-[var(--border-subtle)] text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ New Drill</button>
                 </div>
                 <button type="button" onclick="startRecapDictation('recap-ft-input', this)" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full surface-soft text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0">${micSvg}</button>
               </div>
-              <textarea id="recap-ft-input" name="ft" rows="3" class="w-full px-4 py-3 rounded-2xl surface-soft text-[16px] leading-snug resize-none" placeholder="• Shorty baseballs&#10;• Worked on at bats & attacking pitches you are hunting!!">${d.ft}</textarea>
+              <textarea id="recap-ft-input" name="ft" rows="3" class="w-full px-4 py-3 rounded-2xl surface-soft text-[16px] leading-snug resize-none" placeholder="• Shorty baseballs&#10;• Worked on at bats & attacking pitches you are hunting!!">${d.ft || ''}</textarea>
+              ${renderStationVideoBar('ft', 'Front Toss')}
             </div>
 
             <!-- Machine Panel -->
             <div id="recap-panel-machine" class="space-y-2.5 ${_recapActiveStation === 'machine' ? '' : 'hidden'}">
-              <div class="flex items-center justify-between gap-2">
+              <div class="flex items-start justify-between gap-2">
                 <div class="flex flex-wrap gap-1.5">
                   ${machQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-machine-input','${escAttr(q)}')" class="px-3 py-1.5 rounded-full surface-soft text-xs font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
-                  <button type="button" onclick="addCustomCuePrompt('machine')" class="px-2.5 py-1.5 rounded-full border border-dashed border-[var(--border-subtle)] text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ Cue</button>
+                  <button type="button" onclick="addCustomCuePrompt('machine')" class="px-3 py-1.5 rounded-full border border-dashed border-[var(--border-subtle)] text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ New Drill</button>
                 </div>
                 <button type="button" onclick="startRecapDictation('recap-machine-input', this)" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full surface-soft text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0">${micSvg}</button>
               </div>
-              <textarea id="recap-machine-input" name="machine" rows="3" class="w-full px-4 py-3 rounded-2xl surface-soft text-[16px] leading-snug resize-none" placeholder="• Fastball timing reps (optional)">${d.machine}</textarea>
+              <textarea id="recap-machine-input" name="machine" rows="3" class="w-full px-4 py-3 rounded-2xl surface-soft text-[16px] leading-snug resize-none" placeholder="• Fastball timing reps (optional)">${d.machine || ''}</textarea>
+              ${renderStationVideoBar('machine', 'Machine')}
             </div>
           </div>
 
-          <!-- 3. Homework Card -->
+          <!-- 4. Homework Card -->
           <div class="card-white rounded-[28px] p-5 space-y-2.5">
             <div class="flex items-center justify-between gap-2">
               <label for="recap-homework-input" class="text-sm font-extrabold tracking-tight">Homework</label>
-              <button type="button" onclick="addCustomCuePrompt('homework')" class="text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ Save Cue</button>
+              <button type="button" onclick="addCustomCuePrompt('homework')" class="text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ New Drill</button>
             </div>
             <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
               ${hwQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-homework-input','${escAttr(q)}')" class="px-3 py-1.5 rounded-full surface-soft text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
             </div>
-            <textarea id="recap-homework-input" name="homework" rows="3" class="w-full px-4 py-3 rounded-2xl surface-soft text-[16px] leading-snug font-medium resize-none">${d.homework}</textarea>
+            <textarea id="recap-homework-input" name="homework" rows="3" class="w-full px-4 py-3 rounded-2xl surface-soft text-[16px] leading-snug font-medium resize-none">${d.homework || ''}</textarea>
           </div>
 
-          <!-- 4. Compact Hitter's Warm Up Routine -->
-          <div class="card-white rounded-[26px] p-4 space-y-2.5">
+          <!-- 5. Session Notes (Bottom) -->
+          <div class="card-white rounded-[28px] p-5 space-y-2.5">
             <div class="flex items-center justify-between gap-2">
-              <label class="flex items-center gap-3 cursor-pointer min-w-0">
-                <input id="recap-include-warmup" type="checkbox" name="includeWarmup" ${d.includeWarmup ? 'checked' : ''} class="w-5 h-5 accent-[#010101] shrink-0" />
-                <div class="min-w-0">
-                  <div class="text-xs font-extrabold truncate">Hitter’s Warm up routine</div>
-                  <div class="text-xs text-[var(--text-muted)] truncate">PVC swings, recoils, rotations + 4lb med ball</div>
-                </div>
-              </label>
-              <button type="button" onclick="document.getElementById('recap-warmup-editor').classList.toggle('hidden')" class="px-3 py-1.5 rounded-full surface-soft text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0">Edit</button>
+              <div>
+                <label for="recap-session-notes-input" class="text-sm font-extrabold tracking-tight block">Session Notes</label>
+                <p class="text-xs text-[var(--text-muted)]">Overall session takeaways, reminders, or follow-up notes</p>
+              </div>
+              <button type="button" onclick="startRecapDictation('recap-session-notes-input', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full surface-soft text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
             </div>
-            <div id="recap-warmup-editor" class="hidden">
-              <textarea id="recap-warmup-input" name="warmup" rows="2" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm leading-relaxed resize-none">${d.warmup}</textarea>
-            </div>
+            <textarea id="recap-session-notes-input" name="sessionNotes" rows="3" class="w-full px-4 py-3 rounded-2xl surface-soft text-[16px] leading-snug resize-none" placeholder="Additional session notes, progress observations, or next-lesson reminders…">${d.sessionNotes || ''}</textarea>
           </div>
 
-          <!-- 5. Post-Lesson Wrap-Up (Payment, Rebook +7d & Group Share) -->
+          <!-- 6. Post-Lesson Wrap-Up (Payment, Rebook +7d & Group Share) -->
           <div class="card-white rounded-[28px] p-5 space-y-3 text-xs">
             <div class="inline-flex items-center gap-1.5 font-extrabold text-sm tracking-tight">${uiIcon('sliders', 'w-4 h-4 text-[#4E6075] dark:text-[#9AC0D6]')} Lesson Wrap-Up</div>
 
@@ -7408,11 +7443,11 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                   <input type="checkbox" name="wrapShareGroup" checked onchange="document.getElementById('wrap-group-cues')?.classList.toggle('hidden', !this.checked)" class="w-5 h-5 accent-[#010101]" />
                 </label>
                 <div id="wrap-group-cues" class="space-y-1.5 pt-1">
-                  <div class="text-[11px] font-bold text-[var(--text-muted)]">Optional 1-line personal cue per athlete:</div>
+                  <div class="text-[11px] font-bold text-[var(--text-muted)]">Optional 1-line personal note per athlete:</div>
                   ${groupAthletes.map(ga => `
                     <div class="flex items-center gap-2">
                       <span class="text-[11px] font-extrabold w-20 truncate shrink-0">${ga.name.split(' ')[0]}:</span>
-                      <input type="text" name="groupCue_${ga.id}" class="flex-1 px-3 py-1.5 rounded-xl card-white text-xs" placeholder="Personal cue for ${ga.name.split(' ')[0]}..." />
+                      <input type="text" name="groupCue_${ga.id}" class="flex-1 px-3 py-1.5 rounded-xl card-white text-xs" placeholder="Personal note for ${ga.name.split(' ')[0]}..." />
                     </div>
                   `).join('')}
                 </div>
@@ -7420,14 +7455,12 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             ` : ''}
           </div>
 
-          <!-- 6. Clips & Send Action Card -->
+          <!-- 7. Send & Save Action Card -->
           <div class="card-mist rounded-[28px] p-5 space-y-3.5">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <label class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl card-white text-xs font-extrabold cursor-pointer hover:border-[#010101]">
-                ${uiIcon('video')}
-                <span id="recap-video-status">${_recapDraftVideoName ? _recapDraftVideoName : '+ Add Videos / Photos'}</span>
-                <input type="file" accept="video/*,image/*" multiple onchange="handleRecapVideoFile(this)" class="hidden" />
-              </label>
+              <div class="text-xs font-bold text-[var(--text-muted)]">
+                ${_recapDraftClips.length ? `${_recapDraftClips.length} video clip${_recapDraftClips.length === 1 ? '' : 's'} attached across stations` : 'Add videos inside Tee, Front Toss, or Machine above'}
+              </div>
               <label class="inline-flex items-center gap-2 text-xs font-extrabold cursor-pointer">
                 <span>Text ${(ath.parentName || 'Parent').split(' ')[0]}</span>
                 <input type="checkbox" name="sendNow" checked class="w-5 h-5 accent-[#010101]" />
@@ -7448,14 +7481,14 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const ath = state.athletes.find(a => a.id === athId) || state.athletes[0];
       const ses = sessionId ? state.sessions.find(s => s.id === sessionId) : null;
       const f = e.target;
-      const includeWarmup = f.includeWarmup.checked;
-      const warmup = includeWarmup ? f.warmup.value.trim() : '';
-      const baseFocus = f.focus.value.trim();
-      const tee = f.tee.value.trim();
-      const ft = f.ft.value.trim();
-      const machine = f.machine.value.trim();
-      const homework = f.homework.value.trim() || GINA_HOMEWORK_DEFAULT;
-      const sendNow = f.sendNow.checked;
+      const warmup = (f.warmup?.value || '').trim();
+      const baseFocus = (f.focus?.value || '').trim();
+      const tee = (f.tee?.value || '').trim();
+      const ft = (f.ft?.value || '').trim();
+      const machine = (f.machine?.value || '').trim();
+      const sessionNotes = (f.sessionNotes?.value || '').trim();
+      const homework = (f.homework?.value || '').trim() || GINA_HOMEWORK_DEFAULT;
+      const sendNow = Boolean(f.sendNow?.checked);
 
       // Determine target athletes (single or all athletes in a Small Group session)
       const shareGroup = Boolean(f.wrapShareGroup?.checked && ses && Array.isArray(ses.athleteIds) && ses.athleteIds.length > 1);
@@ -7469,7 +7502,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
       targets.forEach((targetAth, idx) => {
         const personalCue = shareGroup ? (f[`groupCue_${targetAth.id}`]?.value || '').trim() : '';
-        const focus = personalCue ? `${baseFocus}\nPersonal cue: ${personalCue}` : baseFocus;
+        const focus = personalCue ? `${baseFocus}\nPersonal note: ${personalCue}` : baseFocus;
         const vidTitle = _recapDraftVideoName || `${targetAth.name.split(' ')[0]} Session Clip — Today (0:14)`;
         const vidImg = getAthleteCoverImg(targetAth);
         const clips = _recapDraftClips.length ? _recapDraftClips.map(c => ({ ...c, img: vidImg })) : [{ title: vidTitle, img: vidImg, url: _recapDraftVideoUrl }];
@@ -7486,6 +7519,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           tee,
           ft,
           machine,
+          sessionNotes,
           homework,
           note: focus,
           videoTitle: vidTitle,
@@ -8764,9 +8798,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.8.7';
+    const APP_VERSION = 'v3.9.0';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Unified Modal Design System (solid high-contrast sheets, 44px aligned inputs/selects, sticky header & CTA footer, streamlined multi-athlete group picker)';
+    const APP_RELEASE_NOTES = 'Redesigned Session Notes Studio (Warm Up Routine w/ Walking PVC & custom drills, Player Notes and Focus, What We Worked On Tee/Front Toss/Machine with drills & per-area video, Session Notes)';
 
     function reloadLatestAppVersion() {
       try {
