@@ -7444,33 +7444,37 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const isImage = clip.isVideo === false || /\.(png|jpe?g|gif|webp|heic)$/i.test(clip.title || '');
       const escHtml = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const escJs = (v) => String(v ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      const sameStation = _recapDraftClips.filter(c => c.station === clip.station);
+      const stationIdx = Math.max(0, sameStation.indexOf(clip));
+      const cleanLabel = `${clip.stationLabel || 'Session'} • Clip ${stationIdx + 1}`;
       openModal(`
-        <div class="overflow-hidden rounded-[28px] bg-[#010101]">
-          <div class="relative bg-[#010101] flex items-center justify-center min-h-[220px]">
+        <div class="bg-white dark:bg-[#131820]">
+          <div class="relative bg-[#010101] flex items-center justify-center min-h-[200px] max-h-[48vh]">
             ${isImage
-              ? `<img src="${clip.url}" alt="${clip.title || 'Session clip'}" class="w-full max-h-[56vh] object-contain" />`
-              : `<video controls playsinline preload="metadata" class="w-full max-h-[56vh] object-contain"><source src="${clip.url}" type="video/mp4" /><source src="${clip.url}" type="video/quicktime" /></video>`}
-            <button type="button" onclick="closeModal()" aria-label="Close" class="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center bg-[#010101]/75 text-white text-xs font-bold cursor-pointer">✕</button>
+              ? `<img src="${clip.url}" alt="${cleanLabel}" class="w-full max-h-[48vh] object-contain" />`
+              : `<video controls playsinline preload="metadata" class="w-full max-h-[48vh] object-contain"><source src="${clip.url}" type="video/mp4" /><source src="${clip.url}" type="video/quicktime" /></video>`}
+            <button type="button" onclick="autoSaveRecapDraft(true); closeModal();" aria-label="Close" class="absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center bg-white/15 backdrop-blur-md border border-white/25 text-white text-xs font-extrabold cursor-pointer hover:bg-white/25 transition">✕</button>
           </div>
-          <div class="p-4 bg-[var(--bg-card)] space-y-3">
+          <div class="p-5 pb-[calc(env(safe-area-inset-bottom,0px)+20px)] bg-white dark:bg-[#131820] space-y-4">
             <div class="flex items-center justify-between gap-2">
               <div class="min-w-0">
-                <div class="text-xs font-extrabold truncate">${clip.title || 'Session Clip'}</div>
+                <div class="text-sm font-extrabold truncate text-[var(--text-main)]">${cleanLabel}</div>
                 <div class="text-[11px] font-semibold text-[var(--text-muted)]">
-                  ${clip.stationLabel || 'Session'} • ${clip.uploading ? 'Uploading to cloud…' : clip.cloud ? 'Saved in Supabase Cloud ✓' : 'Local preview only'}
+                  ${clip.uploading ? 'Uploading to Supabase Cloud…' : clip.cloud ? 'Saved in Supabase Cloud ✓' : 'Local preview only'}
                 </div>
               </div>
-              <div class="flex items-center gap-1.5 shrink-0">
-                <button type="button" onclick="shareOrSaveVideoClip('${escJs(clip.url)}', '${escJs(clip.title || 'session-clip.mp4')}', this)" class="min-h-[40px] px-3 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5">
-                  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 3v12m0 0l-4-4m4 4l4-4"/></svg>
-                  <span>Save / Share</span>
-                </button>
-                <button type="button" onclick="autoSaveRecapDraft(true); closeModal();" class="min-h-[40px] px-4 py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Done</button>
-              </div>
+              <span class="px-2.5 py-1 rounded-full surface-soft text-[10px] font-extrabold text-[#4E6075] dark:text-[#D5FF5F] shrink-0">${clip.stationLabel || 'Session'}</span>
             </div>
-            <div class="space-y-1">
+            <div class="space-y-1.5">
               <label class="block text-[11px] font-extrabold text-[var(--text-muted)] uppercase tracking-wider">Clip Note</label>
-              <textarea rows="2" oninput="updateRecapDraftClipNote(${idx}, this.value)" onchange="autoSaveRecapDraft(true)" placeholder="Add coaching notes for this clip (e.g., great hip rotation, stay through the ball)…" class="w-full px-3 py-2 rounded-xl text-xs font-medium resize-none">${escHtml(clip.note || '')}</textarea>
+              <textarea rows="2" oninput="updateRecapDraftClipNote(${idx}, this.value)" onchange="autoSaveRecapDraft(true)" placeholder="Add coaching notes for this clip…" class="w-full px-3.5 py-2.5 rounded-xl text-sm font-medium resize-none">${escHtml(clip.note || '')}</textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-2.5 pt-1">
+              <button type="button" onclick="shareOrSaveVideoClip('${escJs(clip.url)}', '${escJs(clip.title || 'session-clip.mp4')}', this)" class="min-h-[44px] px-3.5 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center justify-center gap-1.5 shadow-sm hover:brightness-95 transition">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 3v12m0 0l-4-4m4 4l4-4"/></svg>
+                <span>Save / Share</span>
+              </button>
+              <button type="button" onclick="autoSaveRecapDraft(true); closeModal();" class="min-h-[44px] px-4 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer shadow-sm hover:opacity-90 transition">Done</button>
             </div>
           </div>
         </div>
@@ -8138,21 +8142,21 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                   : `<video controls playsinline preload="metadata" class="w-full max-h-64 object-contain"><source src="${activeUrl}" type="video/mp4" /><source src="${activeUrl}" type="video/quicktime" /></video>`)
               : `<div class="relative h-48"><img src="${r.videoImg}" class="w-full h-full object-cover" alt="Fastpitch softball training" loading="lazy" decoding="async" /><div class="absolute inset-0 bg-[#010101]/55 flex flex-col items-center justify-center gap-2 text-white px-4 text-center"><div class="w-12 h-12 rounded-full bg-[#D5FF5F] text-[#010101] flex items-center justify-center text-base font-extrabold shadow-xl">▶</div><span class="text-xs font-extrabold">No video uploaded to this note yet</span><label class="px-3.5 py-2 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Upload Video Clip<input type="file" accept="video/*,image/*" multiple onchange="attachVideosToRecap('${r.id}', this).then(() => openRecapViewerModal('${r.id}', 0))" class="hidden" /></label></div></div>`
             }
-            <button onclick="closeModal()" aria-label="Close" class="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center bg-[#010101]/70 text-white text-xs font-bold cursor-pointer">✕</button>
+            <button onclick="closeModal()" aria-label="Close" class="absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center bg-white/15 backdrop-blur-md border border-white/25 text-white text-xs font-extrabold cursor-pointer hover:bg-white/25 transition">✕</button>
           </div>
           ${clips.length > 1 ? `
             <div class="px-4 py-2.5 bg-[#010101]/95 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
               ${clips.map((c, i) => `
                 <button onclick="openRecapViewerModal('${r.id}', ${i})" class="px-3 py-1 rounded-full text-[11px] font-extrabold shrink-0 cursor-pointer transition ${i === clipIdx ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-white/15 text-white hover:bg-white/25'}">
-                  Clip ${i + 1}: ${(c.title || 'Video').slice(0, 18)}${(c.note || '').trim() ? ' • 📝' : ''}
+                  ${c.stationLabel ? `${c.stationLabel} ` : ''}Clip ${i + 1}${(c.note || '').trim() ? ' • 📝' : ''}
                 </button>
               `).join('')}
             </div>
           ` : ''}
-          <div class="p-5 space-y-3 bg-[var(--bg-card)]">
+          <div class="p-5 pb-[calc(env(safe-area-inset-bottom,0px)+20px)] space-y-3.5 bg-white dark:bg-[#131820]">
             ${activeUrl ? `
               <div class="flex items-center justify-between gap-2">
-                <span class="text-xs font-extrabold truncate text-[var(--text-muted)]">${activeClip?.title || 'Session Clip'}</span>
+                <span class="text-xs font-extrabold truncate text-[var(--text-main)]">${activeClip?.stationLabel ? `${activeClip.stationLabel} • ` : ''}Clip ${clipIdx + 1}</span>
                 <button type="button" onclick="shareOrSaveVideoClip('${String(activeUrl).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', '${String(activeClip?.title || 'session-clip.mp4').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', this)" class="min-h-[40px] px-3.5 py-2 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5 shrink-0 shadow-sm hover:brightness-95 transition">
                   <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 3v12m0 0l-4-4m4 4l4-4"/></svg>
                   <span>Save / Share Video</span>
@@ -9353,9 +9357,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.14.0';
+    const APP_VERSION = 'v3.14.1';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Added Save / Share Video to device (native iOS/Android Share Sheet + desktop download) in Session Notes Studio and Saved Recap Viewer';
+    const APP_RELEASE_NOTES = 'Fixed video preview modal layout: solid elevated surface, clean clip labels, visible frosted close button, 2-column Save/Share & Done footer, and safe-area bottom padding';
 
     function reloadLatestAppVersion() {
       try {
