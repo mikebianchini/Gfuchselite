@@ -6963,6 +6963,15 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         lines.push(r.sessionNotes);
         lines.push('');
       }
+      const notedClips = Array.isArray(r.clips) ? r.clips.filter(c => c && (c.note || '').trim()) : [];
+      if (notedClips.length) {
+        lines.push(`Video Clip Notes:`);
+        notedClips.forEach((c, i) => {
+          const label = c.stationLabel ? `${c.stationLabel} — ${c.title || `Clip ${i + 1}`}` : (c.title || `Clip ${i + 1}`);
+          lines.push(`* ${label}: ${c.note.trim()}`);
+        });
+        lines.push('');
+      }
       const hwLines = (r.homework || GINA_HOMEWORK_DEFAULT).split('\n').map(x => x.trim()).filter(Boolean);
       lines.push(`Homework - ${hwLines[0] || GINA_HOMEWORK_DEFAULT}`);
       hwLines.slice(1).forEach(x => lines.push(`* ${x.replace(/^[•\-*]\s*/, '')}`));
@@ -7350,26 +7359,41 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       render();
     }
 
+    function updateRecapDraftClipNote(idx, value) {
+      if (idx < 0 || idx >= _recapDraftClips.length) return;
+      _recapDraftClips[idx].note = value;
+      const inlineInput = document.getElementById(`recap-clip-note-${idx}`);
+      if (inlineInput && inlineInput.value !== value) inlineInput.value = value;
+      autoSaveRecapDraft();
+    }
+
     function previewRecapDraftClip(idx) {
       const clip = _recapDraftClips[idx];
       if (!clip || !clip.url) return;
       const isImage = clip.isVideo === false || /\.(png|jpe?g|gif|webp|heic)$/i.test(clip.title || '');
+      const escHtml = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       openModal(`
         <div class="overflow-hidden rounded-[28px] bg-[#010101]">
           <div class="relative bg-[#010101] flex items-center justify-center min-h-[220px]">
             ${isImage
-              ? `<img src="${clip.url}" alt="${clip.title || 'Session clip'}" class="w-full max-h-[68vh] object-contain" />`
-              : `<video src="${clip.url}" controls autoplay playsinline class="w-full max-h-[68vh] object-contain"></video>`}
+              ? `<img src="${clip.url}" alt="${clip.title || 'Session clip'}" class="w-full max-h-[56vh] object-contain" />`
+              : `<video src="${clip.url}" controls autoplay playsinline class="w-full max-h-[56vh] object-contain"></video>`}
             <button type="button" onclick="closeModal()" aria-label="Close" class="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center bg-[#010101]/75 text-white text-xs font-bold cursor-pointer">✕</button>
           </div>
-          <div class="p-4 bg-[var(--bg-card)] flex items-center justify-between gap-3">
-            <div class="min-w-0">
-              <div class="text-xs font-extrabold truncate">${clip.title || 'Session Clip'}</div>
-              <div class="text-[11px] font-semibold text-[var(--text-muted)]">
-                ${clip.stationLabel || 'Session'} • ${clip.uploading ? 'Uploading to cloud…' : clip.cloud ? 'Saved in Supabase Cloud ✓' : 'Local preview only'}
+          <div class="p-4 bg-[var(--bg-card)] space-y-3">
+            <div class="flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <div class="text-xs font-extrabold truncate">${clip.title || 'Session Clip'}</div>
+                <div class="text-[11px] font-semibold text-[var(--text-muted)]">
+                  ${clip.stationLabel || 'Session'} • ${clip.uploading ? 'Uploading to cloud…' : clip.cloud ? 'Saved in Supabase Cloud ✓' : 'Local preview only'}
+                </div>
               </div>
+              <button type="button" onclick="autoSaveRecapDraft(true); closeModal();" class="px-4 py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer shrink-0">Done</button>
             </div>
-            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer shrink-0">Done</button>
+            <div class="space-y-1">
+              <label class="block text-[11px] font-extrabold text-[var(--text-muted)] uppercase tracking-wider">Clip Note</label>
+              <textarea rows="2" oninput="updateRecapDraftClipNote(${idx}, this.value)" onchange="autoSaveRecapDraft(true)" placeholder="Add coaching notes for this clip (e.g., great hip rotation, stay through the ball)…" class="w-full px-3 py-2 rounded-xl text-xs font-medium resize-none">${escHtml(clip.note || '')}</textarea>
+            </div>
           </div>
         </div>
       `, true);
@@ -7397,6 +7421,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           isVideo,
           url: localUrl,
           img: isVideo ? vidImg : localUrl,
+          note: '',
           uploading: true,
           cloud: false
         };
@@ -7553,21 +7578,27 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               </label>
             </div>
             ${stationClips.length ? `
-              <div class="flex flex-wrap gap-1.5">
-                ${stationClips.map(c => `
-                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl surface-soft text-[11px] font-extrabold">
-                    <button type="button" onclick="previewRecapDraftClip(${c._idx})" class="inline-flex items-center gap-1.5 cursor-pointer hover:underline">
-                      ${uiIcon('video', 'w-3 h-3 text-[#4E6075] dark:text-[#D5FF5F]')}
-                      <span class="max-w-[140px] truncate">${formatClipLabel(c.title, c._idx)}</span>
-                      ${c.uploading
-                        ? `<span class="text-[10px] font-bold text-[#4E6075] dark:text-[#D5FF5F] animate-pulse">Uploading…</span>`
-                        : c.cloud
-                          ? `<span class="text-[10px] font-extrabold text-emerald-600 dark:text-[#D5FF5F]" title="Saved in Supabase Cloud">✓</span>`
-                          : ''}
-                    </button>
-                    <button type="button" onclick="removeRecapDraftClip(${c._idx})" aria-label="Remove clip" class="text-[var(--text-muted)] hover:text-red-500 cursor-pointer ml-0.5">✕</button>
-                  </span>
-                `).join('')}
+              <div class="space-y-2">
+                ${stationClips.map(c => {
+                  const safeNote = String(c.note || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+                  return `
+                  <div class="p-2.5 rounded-2xl surface-soft space-y-1.5">
+                    <div class="flex items-center justify-between gap-2">
+                      <button type="button" onclick="previewRecapDraftClip(${c._idx})" class="inline-flex items-center gap-1.5 min-w-0 text-[11px] font-extrabold cursor-pointer hover:underline">
+                        ${uiIcon('video', 'w-3.5 h-3.5 shrink-0 text-[#4E6075] dark:text-[#D5FF5F]')}
+                        <span class="truncate">${formatClipLabel(c.title, c._idx)}</span>
+                        ${c.uploading
+                          ? `<span class="text-[10px] font-bold text-[#4E6075] dark:text-[#D5FF5F] animate-pulse shrink-0">Uploading…</span>`
+                          : c.cloud
+                            ? `<span class="text-[10px] font-extrabold text-emerald-600 dark:text-[#D5FF5F] shrink-0" title="Saved in Supabase Cloud">✓</span>`
+                            : ''}
+                      </button>
+                      <button type="button" onclick="removeRecapDraftClip(${c._idx})" aria-label="Remove clip" class="w-6 h-6 rounded-full inline-flex items-center justify-center text-[11px] text-[var(--text-muted)] hover:text-red-500 cursor-pointer shrink-0">✕</button>
+                    </div>
+                    <input id="recap-clip-note-${c._idx}" type="text" value="${safeNote}" oninput="updateRecapDraftClipNote(${c._idx}, this.value)" onchange="autoSaveRecapDraft(true)" placeholder="Add note for this clip…" class="w-full px-2.5 py-1.5 rounded-xl bg-white/80 dark:bg-black/25 border border-[var(--border-subtle)] text-xs font-medium focus:outline-none focus:border-[#010101] dark:focus:border-[#D5FF5F]" />
+                  </div>
+                `;
+                }).join('')}
               </div>
             ` : ''}
           </div>
@@ -7966,6 +7997,23 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         : `Session notes saved for ${ath.name.split(' ')[0]}${payMsg}${rebookedMsg}!`);
     }
 
+    function updateSavedRecapClipNote(recapId, clipIdx, value) {
+      const r = state.sessionRecaps.find(x => x.id === recapId);
+      if (!r) return;
+      if (!Array.isArray(r.clips) || !r.clips.length) {
+        if (r.videoUrl) r.clips = [{ title: r.videoTitle || 'Session Clip', url: r.videoUrl, isVideo: true, note: '' }];
+        else return;
+      }
+      if (!r.clips[clipIdx]) return;
+      r.clips[clipIdx].note = value;
+      r._modifiedAt = Date.now();
+      saveLocalState();
+      clearTimeout(window._clipNoteSyncTimer);
+      window._clipNoteSyncTimer = setTimeout(() => {
+        if (typeof pushStateToSupabase === 'function') pushStateToSupabase();
+      }, 500);
+    }
+
     function openRecapViewerModal(recapId, clipIdx = 0) {
       const r = state.sessionRecaps.find(x => x.id === recapId);
       if (!r) return;
@@ -7975,6 +8023,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const activeClip = clips[clipIdx] || clips[0] || null;
       const activeUrl = activeClip?.url || null;
       const activeIsImage = activeClip && (activeClip.isVideo === false || /\.(jpe?g|png|gif|webp|heic)(\?|$)/i.test(activeClip.title || activeUrl || ''));
+      const escHtml = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const isCoach = state.role === 'coach';
 
       openModal(`
         <div>
@@ -7991,12 +8041,26 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             <div class="px-4 py-2.5 bg-[#010101]/95 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
               ${clips.map((c, i) => `
                 <button onclick="openRecapViewerModal('${r.id}', ${i})" class="px-3 py-1 rounded-full text-[11px] font-extrabold shrink-0 cursor-pointer transition ${i === clipIdx ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-white/15 text-white hover:bg-white/25'}">
-                  Clip ${i + 1}: ${(c.title || 'Video').slice(0, 18)}
+                  Clip ${i + 1}: ${(c.title || 'Video').slice(0, 18)}${(c.note || '').trim() ? ' • 📝' : ''}
                 </button>
               `).join('')}
             </div>
           ` : ''}
           <div class="p-5 space-y-3 bg-[var(--bg-card)]">
+            ${activeClip ? (isCoach ? `
+              <div class="p-3 rounded-2xl surface-soft space-y-1.5">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-[11px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Clip ${clipIdx + 1} Note</span>
+                  ${activeClip.stationLabel ? `<span class="text-[10px] font-bold text-[#4E6075] dark:text-[#D5FF5F]">${activeClip.stationLabel}</span>` : ''}
+                </div>
+                <textarea rows="2" oninput="updateSavedRecapClipNote('${r.id}', ${clipIdx}, this.value)" placeholder="Add coaching notes for this clip…" class="w-full px-3 py-2 rounded-xl text-xs font-medium resize-none">${escHtml(activeClip.note || '')}</textarea>
+              </div>
+            ` : ((activeClip.note || '').trim() ? `
+              <div class="p-3 rounded-2xl surface-soft space-y-1">
+                <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#D5FF5F]">Coach Note — Clip ${clipIdx + 1}</div>
+                <p class="text-xs font-medium whitespace-pre-line">${escHtml(activeClip.note)}</p>
+              </div>
+            ` : '')) : ''}
             <div class="flex items-center justify-between gap-2">
               <span class="px-2.5 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">${r.date}</span>
               <span class="text-[11px] text-[var(--text-muted)] font-semibold">${r.sentTo}</span>
@@ -9177,9 +9241,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.12.1';
+    const APP_VERSION = 'v3.13.0';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Fixed iOS Safari page magnification when entering text in notes and forms; cloud video uploads via Supabase Storage';
+    const APP_RELEASE_NOTES = 'Added per-clip coaching notes in Session Notes Studio, video preview modal, saved recap viewer, and copied/texted recaps';
 
     function reloadLatestAppVersion() {
       try {
