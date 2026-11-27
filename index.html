@@ -7258,19 +7258,330 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       `;
     }
 
-    function renderCoachMessaging() {
-      const thread = state.threads.find(t => t.id === state.activeThreadId) || state.threads[0];
-      if (!thread) return `<div class="card-white rounded-[28px] p-10 text-center space-y-2"><div class="text-base font-extrabold">No Messages Yet</div><p class="text-xs text-[var(--text-muted)]">Messages automatically appear here when you schedule a session or send session notes to a parent.</p></div>`;
-      return `
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div class="space-y-3">
-            ${state.threads.map(t => `<button onclick="openThread('${t.id}')" class="w-full text-left p-4 rounded-[24px] border cursor-pointer ${t.id === thread.id ? 'bg-[#010101] text-white border-[#010101]' : 'card-white'}"><div class="font-extrabold text-xs">${t.parent}</div><div class="text-xs opacity-70">${t.athletes}</div></button>`).join('')}
+    const COACH_QUICK_REPLIES = [
+      'Running 10 min behind in the cage — see you shortly!',
+      'Great work today! Session notes & video are up.',
+      'Want to grab the same slot next week?',
+      'Friendly reminder: session payment is due whenever you get a chance.'
+    ];
+
+    function findAthleteForThread(t) {
+      if (!t) return null;
+      const athText = String(t.athletes || '').toLowerCase();
+      const parText = String(t.parent || '').toLowerCase();
+      return state.athletes.find(a =>
+        (a.name && athText.includes(a.name.toLowerCase())) ||
+        (a.parentName && a.parentName.toLowerCase() === parText)
+      ) || null;
+    }
+
+    function openNewMessageModal() {
+      const activeAthletes = state.athletes.filter(a => !a.archived);
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="inline-flex items-center gap-1.5 text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('send', 'w-3.5 h-3.5')} New Message</div>
+            <h3 class="font-extrabold text-base mt-0.5">Message an Athlete / Family</h3>
           </div>
-          <div class="lg:col-span-2 card-white rounded-[28px] p-5 space-y-4">
-            <div class="space-y-2.5">${thread.messages.map(m => `<div class="flex ${m.from === 'coach' ? 'justify-end' : 'justify-start'}"><div class="max-w-md px-4 py-3 rounded-2xl text-xs whitespace-pre-line ${m.from === 'coach' ? 'bg-[#D5FF5F] text-[#010101] font-bold' : 'surface-soft'}">${m.text}</div></div>`).join('')}</div>
-            <form onsubmit="sendCoachReply(event,'${thread.id}')" class="flex gap-2"><input name="text" class="flex-1 px-4 py-2.5 rounded-2xl surface-soft text-xs" placeholder="Reply to ${thread.parent}..." required /><button type="submit" class="px-5 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Send</button></form>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-9 h-9 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+
+        <form onsubmit="submitNewMessage(event)" class="space-y-3 text-xs">
+          <div>
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Select Athlete / Family *</label>
+            <select name="athleteId" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm" required>
+              ${activeAthletes.length
+                ? activeAthletes.map(a => `<option value="${a.id}">${esc(a.name)}${a.parentName ? ` (${esc(a.parentName)})` : ''}</option>`).join('')
+                : `<option value="">No active athletes yet</option>`}
+            </select>
+          </div>
+          <div class="space-y-1.5">
+            <label class="block font-bold text-[var(--text-muted)]">Quick Templates (Tap to fill)</label>
+            <div class="flex flex-wrap gap-1.5">
+              ${COACH_QUICK_REPLIES.map(q => `<button type="button" onclick="const el=document.getElementById('new-msg-body'); if(el){el.value='${q.replace(/'/g, "\\'")}'; el.focus();}" class="px-2.5 py-1 rounded-full surface-soft text-[11px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">${q.slice(0, 32)}…</button>`).join('')}
+            </div>
+            <textarea id="new-msg-body" name="text" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm leading-snug" placeholder="Write your message..." required></textarea>
+          </div>
+          <button type="submit" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-sm hover:brightness-95 inline-flex items-center justify-center gap-2">${uiIcon('send', 'w-4 h-4')} Send Message</button>
+        </form>
+      `);
+    }
+
+    function submitNewMessage(e) {
+      e.preventDefault();
+      const athId = e.target.athleteId?.value;
+      const text = (e.target.text?.value || '').trim();
+      const ath = state.athletes.find(a => a.id === athId);
+      if (!ath || !text) return;
+      const parentKey = ath.parentName || ath.name;
+      const nowTime = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      let thread = state.threads.find(t => t.parent === parentKey || (t.athletes || '').includes(ath.name));
+      if (!thread) {
+        thread = { id: 'msg-' + Date.now(), parent: parentKey, athletes: ath.name, unread: 0, messages: [], _modifiedAt: Date.now() };
+        state.threads.unshift(thread);
+      }
+      thread.messages.push({ from: 'coach', time: nowTime, text });
+      thread._modifiedAt = Date.now();
+      state.activeThreadId = thread.id;
+      state.mobileMsgOpen = true;
+      closeModal();
+      render();
+      showToast(`Message sent to ${parentKey}!`);
+    }
+
+    function openBroadcastModal() {
+      const todayIso = getTodayIsoEst();
+      const todayAthIds = new Set(state.sessions.filter(s => s.status !== 'Canceled' && s.dateIso === todayIso).flatMap(s => [s.athleteId, ...(s.athleteIds || [])]).filter(Boolean));
+      const days7 = new Set(getRolling7Days().map(d => d.iso));
+      const weekAthIds = new Set(state.sessions.filter(s => s.status !== 'Canceled' && days7.has(s.dateIso)).flatMap(s => [s.athleteId, ...(s.athleteIds || [])]).filter(Boolean));
+      const activeCount = state.athletes.filter(a => !a.archived).length;
+      const presets = [
+        'Running 10 minutes behind in the cage today — thank you for your patience!',
+        'Weather / facility update: lessons are still ON as scheduled today.',
+        'I have an open cage slot today! Reply if you want to grab it.'
+      ];
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="inline-flex items-center gap-1.5 text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('bell', 'w-3.5 h-3.5')} Group Broadcast</div>
+            <h3 class="font-extrabold text-base mt-0.5">Send Update to Multiple Families</h3>
+          </div>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-9 h-9 rounded-full surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+
+        <form onsubmit="submitBroadcastMessage(event)" class="space-y-3 text-xs">
+          <div>
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Recipients</label>
+            <select name="audience" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft font-bold text-sm">
+              <option value="today">Today’s Booked Families (${todayAthIds.size})</option>
+              <option value="week">This Week’s Booked Families (${weekAthIds.size})</option>
+              <option value="all">All Active Families (${activeCount})</option>
+            </select>
+          </div>
+          <div class="space-y-1.5">
+            <label class="block font-bold text-[var(--text-muted)]">Quick Presets</label>
+            <div class="flex flex-wrap gap-1.5">
+              ${presets.map(p => `<button type="button" onclick="const el=document.getElementById('broadcast-body'); if(el){el.value='${p.replace(/'/g, "\\'")}'; el.focus();}" class="px-2.5 py-1 rounded-full surface-soft text-[11px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">${p.slice(0, 34)}…</button>`).join('')}
+            </div>
+            <textarea id="broadcast-body" name="text" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm leading-snug" placeholder="Write your announcement..." required></textarea>
+          </div>
+          <button type="submit" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-sm hover:brightness-95 inline-flex items-center justify-center gap-2">${uiIcon('bell', 'w-4 h-4')} Send Broadcast</button>
+        </form>
+      `);
+    }
+
+    function submitBroadcastMessage(e) {
+      e.preventDefault();
+      const audience = e.target.audience?.value || 'today';
+      const text = (e.target.text?.value || '').trim();
+      if (!text) return;
+
+      const todayIso = getTodayIsoEst();
+      const days7 = new Set(getRolling7Days().map(d => d.iso));
+      let targets = [];
+      if (audience === 'today') {
+        const ids = new Set(state.sessions.filter(s => s.status !== 'Canceled' && s.dateIso === todayIso).flatMap(s => [s.athleteId, ...(s.athleteIds || [])]).filter(Boolean));
+        targets = state.athletes.filter(a => !a.archived && ids.has(a.id));
+      } else if (audience === 'week') {
+        const ids = new Set(state.sessions.filter(s => s.status !== 'Canceled' && days7.has(s.dateIso)).flatMap(s => [s.athleteId, ...(s.athleteIds || [])]).filter(Boolean));
+        targets = state.athletes.filter(a => !a.archived && ids.has(a.id));
+      } else {
+        targets = state.athletes.filter(a => !a.archived);
+      }
+
+      if (!targets.length) {
+        showToast('No families in that group right now.');
+        return;
+      }
+
+      const nowTime = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      const seenParents = new Set();
+      let sent = 0;
+      targets.forEach((ath, idx) => {
+        const parentKey = ath.parentName || ath.name;
+        if (seenParents.has(parentKey)) return;
+        seenParents.add(parentKey);
+        let thread = state.threads.find(t => t.parent === parentKey);
+        if (!thread) {
+          thread = { id: 'msg-' + (Date.now() + idx), parent: parentKey, athletes: ath.name, unread: 0, messages: [], _modifiedAt: Date.now() };
+          state.threads.unshift(thread);
+        }
+        thread.messages.push({ from: 'coach', time: nowTime, text });
+        thread._modifiedAt = Date.now();
+        sent++;
+      });
+
+      closeModal();
+      render();
+      showToast(`Broadcast sent to ${sent} ${sent === 1 ? 'family' : 'families'}!`);
+    }
+
+    function insertQuickReply(text) {
+      const inp = document.getElementById('coach-reply-input');
+      if (!inp) return;
+      inp.value = text;
+      inp.focus();
+    }
+
+    function markThreadUnread(id) {
+      const t = state.threads.find(x => x.id === id);
+      if (!t) return;
+      t.unread = Math.max(1, Number(t.unread) || 1);
+      t._modifiedAt = Date.now();
+      state.mobileMsgOpen = false;
+      render();
+      showToast(`Marked ${t.parent} as unread.`);
+    }
+
+    function closeMobileThread() {
+      state.mobileMsgOpen = false;
+      render(false);
+    }
+
+    function renderCoachMessaging() {
+      const q = (state.msgSearch || '').trim().toLowerCase();
+      const unreadOnly = Boolean(state.msgUnreadOnly);
+      const totalUnread = state.threads.reduce((s, t) => s + (Number(t.unread) || 0), 0);
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      const filteredThreads = state.threads.filter(t => {
+        if (unreadOnly && !(Number(t.unread) > 0)) return false;
+        if (q) {
+          const lastMsg = t.messages?.[t.messages.length - 1]?.text || '';
+          const hay = `${t.parent || ''} ${t.athletes || ''} ${lastMsg}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      const thread = state.threads.find(t => t.id === state.activeThreadId) || filteredThreads[0] || state.threads[0] || null;
+      const mobileShowingChat = Boolean(state.mobileMsgOpen && thread);
+      const linkedAth = thread ? findAthleteForThread(thread) : null;
+      const phone = linkedAth?.parentPhone || linkedAth?.playerPhone || '';
+      const todayIso = getTodayIsoEst();
+      const nextSes = linkedAth
+        ? state.sessions.find(s => s.status !== 'Canceled' && (s.athleteId === linkedAth.id || (s.athletes || []).includes(linkedAth.name)) && (!s.dateIso || s.dateIso >= todayIso))
+        : null;
+
+      return `
+        <!-- Header + Quick Actions -->
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold">Messages</h1>
+            <p class="text-[13px] text-[var(--text-muted)] mt-0.5">${state.threads.length} ${state.threads.length === 1 ? 'conversation' : 'conversations'}${totalUnread ? ` • ${totalUnread} unread` : ''}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="openBroadcastModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl card-white text-xs sm:text-[13px] font-extrabold cursor-pointer hover:border-[#010101]">${uiIcon('bell', 'w-3.5 h-3.5')} Broadcast</button>
+            <button type="button" onclick="openNewMessageModal()" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs sm:text-[13px] font-extrabold cursor-pointer shadow-sm hover:brightness-95">${uiIcon('plus', 'w-3.5 h-3.5')} New Message</button>
           </div>
         </div>
+
+        ${state.threads.length === 0 ? `
+          <div class="card-white rounded-[28px] p-10 text-center space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-[#010101] text-[#D5FF5F] mx-auto flex items-center justify-center">${uiIcon('send', 'w-5 h-5')}</div>
+            <div class="text-base font-extrabold">No Messages Yet</div>
+            <p class="text-xs text-[var(--text-muted)] max-w-sm mx-auto">Start a conversation with any family, send a group broadcast, or messages will appear here automatically when you send session notes.</p>
+            <div class="flex items-center justify-center gap-2 pt-1">
+              <button type="button" onclick="openNewMessageModal()" class="px-5 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm">+ Start Conversation</button>
+            </div>
+          </div>
+        ` : `
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <!-- Left: Inbox List (Hidden on mobile when a conversation is open) -->
+            <div class="lg:col-span-4 space-y-3 ${mobileShowingChat ? 'hidden lg:block' : ''}">
+              <div class="card-mist rounded-[24px] p-3 space-y-2">
+                <input
+                  type="search"
+                  value="${(state.msgSearch || '').replace(/"/g, '&quot;')}"
+                  oninput="state.msgSearch=this.value; render(false);"
+                  placeholder="Search families or messages…"
+                  class="w-full px-3.5 py-2 rounded-xl card-white text-xs font-medium"
+                />
+                <div class="flex items-center gap-1.5">
+                  <button type="button" onclick="state.msgUnreadOnly=false; render(false);" class="px-3 py-1 rounded-full text-[11px] font-extrabold cursor-pointer transition ${!unreadOnly ? 'bg-[#010101] text-[#D5FF5F]' : 'card-white text-[var(--text-muted)]'}">All (${state.threads.length})</button>
+                  <button type="button" onclick="state.msgUnreadOnly=true; render(false);" class="px-3 py-1 rounded-full text-[11px] font-extrabold cursor-pointer transition ${unreadOnly ? 'bg-[#010101] text-[#D5FF5F]' : 'card-white text-[var(--text-muted)]'}">Unread (${totalUnread})</button>
+                </div>
+              </div>
+
+              <div class="space-y-2 max-h-[65dvh] overflow-y-auto pr-0.5">
+                ${filteredThreads.length ? filteredThreads.map(t => {
+                  const isActive = thread && t.id === thread.id;
+                  const last = t.messages?.[t.messages.length - 1];
+                  const initials = String(t.parent || 'F').split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase() || 'GF';
+                  return `
+                    <button type="button" onclick="openThread('${t.id}')" class="w-full text-left p-3.5 rounded-[22px] border transition cursor-pointer flex items-start gap-3 ${isActive ? 'bg-[#010101] text-white border-[#010101] shadow-md' : 'card-white hover:border-[#010101]'}">
+                      <div class="w-10 h-10 rounded-xl ${isActive ? 'bg-[#D5FF5F] text-[#010101]' : 'surface-soft text-[var(--text-main)]'} font-extrabold text-xs flex items-center justify-center shrink-0">${esc(initials)}</div>
+                      <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between gap-2">
+                          <span class="font-extrabold text-xs truncate">${esc(t.parent)}</span>
+                          <span class="text-[10px] shrink-0 ${isActive ? 'text-white/70' : 'text-[var(--text-muted)]'}">${esc(last?.time || '')}</span>
+                        </div>
+                        <div class="text-[11px] truncate ${isActive ? 'text-[#D5FF5F]' : 'text-[#4E6075] dark:text-[#9AC0D6]'} font-semibold">${esc(t.athletes || '')}</div>
+                        <div class="flex items-center justify-between gap-2 mt-0.5">
+                          <span class="text-[11px] truncate ${isActive ? 'text-white/75' : 'text-[var(--text-muted)]'}">${esc(last ? (last.from === 'coach' ? 'You: ' : '') + last.text.replace(/\n/g, ' ') : 'No messages yet')}</span>
+                          ${t.unread ? `<span class="px-1.5 py-0.5 rounded-full bg-[#D5FF5F] text-[#010101] text-[9px] font-extrabold shrink-0">${t.unread}</span>` : ''}
+                        </div>
+                      </div>
+                    </button>
+                  `;
+                }).join('') : `<div class="card-white rounded-2xl p-6 text-center text-xs text-[var(--text-muted)]">No conversations match this filter.</div>`}
+              </div>
+            </div>
+
+            <!-- Right: Active Conversation View -->
+            ${thread ? `
+              <div class="lg:col-span-8 card-white rounded-[28px] overflow-hidden flex flex-col ${!mobileShowingChat ? 'hidden lg:flex' : 'flex'}">
+                <!-- Thread Context Header -->
+                <div class="p-4 sm:p-5 border-b border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-2.5">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <button type="button" onclick="closeMobileThread()" class="lg:hidden px-2.5 py-1.5 rounded-xl surface-soft text-xs font-extrabold cursor-pointer shrink-0">← Inbox</button>
+                    <div class="min-w-0">
+                      <div class="font-extrabold text-sm truncate">${esc(thread.parent)}</div>
+                      <div class="text-[11px] text-[var(--text-muted)] truncate">
+                        ${esc(thread.athletes || '')}${nextSes ? ` • Next: ${esc(nextSes.day)} ${esc(nextSes.time)}` : ''}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-wrap shrink-0">
+                    ${phone ? `
+                      <a href="sms:${esc(phone)}" class="px-2.5 py-1.5 rounded-xl surface-soft text-[11px] font-extrabold hover:border-[#010101]">SMS</a>
+                      <a href="tel:${esc(phone)}" class="px-2.5 py-1.5 rounded-xl surface-soft text-[11px] font-extrabold hover:border-[#010101]">Call</a>
+                    ` : ''}
+                    ${linkedAth ? `
+                      <button type="button" onclick="openAddSessionForAthleteModal('${linkedAth.id}')" class="px-2.5 py-1.5 rounded-xl surface-soft text-[11px] font-extrabold cursor-pointer hover:border-[#010101]">+ Book</button>
+                      <button type="button" onclick="jumpToAthlete('${linkedAth.id}')" class="px-2.5 py-1.5 rounded-xl surface-soft text-[11px] font-extrabold cursor-pointer hover:border-[#010101]">Profile</button>
+                    ` : ''}
+                    <button type="button" onclick="markThreadUnread('${thread.id}')" title="Mark Unread" class="px-2.5 py-1.5 rounded-xl surface-soft text-[11px] font-bold text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-main)]">Unread</button>
+                  </div>
+                </div>
+
+                <!-- Messages Feed -->
+                <div class="p-4 sm:p-5 space-y-3 max-h-[50dvh] overflow-y-auto flex-1">
+                  ${thread.messages.map(m => `
+                    <div class="flex flex-col ${m.from === 'coach' ? 'items-end' : 'items-start'}">
+                      <div class="max-w-[85%] sm:max-w-md px-4 py-3 rounded-2xl text-xs whitespace-pre-line leading-relaxed ${m.from === 'coach' ? 'bg-[#D5FF5F] text-[#010101] font-semibold rounded-br-sm' : 'surface-soft rounded-bl-sm'}">${esc(m.text)}</div>
+                      ${m.time ? `<span class="text-[10px] text-[var(--text-muted)] mt-1 px-1">${m.from === 'coach' ? 'Coach Gina • ' : ''}${esc(m.time)}</span>` : ''}
+                    </div>
+                  `).join('')}
+                </div>
+
+                <!-- 1-Tap Quick Replies + Composer -->
+                <div class="p-3.5 sm:p-4 border-t border-[var(--border-subtle)] space-y-2.5">
+                  <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                    ${COACH_QUICK_REPLIES.map(q => `
+                      <button type="button" onclick="insertQuickReply('${q.replace(/'/g, "\\'")}')" class="px-3 py-1.5 rounded-full surface-soft text-[11px] font-bold whitespace-nowrap shrink-0 cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">${esc(q.slice(0, 34))}${q.length > 34 ? '…' : ''}</button>
+                    `).join('')}
+                  </div>
+                  <form onsubmit="sendCoachReply(event,'${thread.id}')" class="flex gap-2">
+                    <input id="coach-reply-input" name="text" class="flex-1 px-4 py-2.5 rounded-2xl surface-soft text-[16px] sm:text-xs font-medium" placeholder="Reply to ${esc(thread.parent)}..." required />
+                    <button type="submit" class="px-5 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5 shrink-0">${uiIcon('send', 'w-3.5 h-3.5')} Send</button>
+                  </form>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `}
       `;
     }
 
@@ -7306,8 +7617,23 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
     function toggleDrill(a, d) { const dr = state.athletes.find(x => x.id === a).drills.find(x => x.id === d); dr.done = !dr.done; render(); showToast(dr.done ? 'Drill completed!' : 'Drill unchecked.'); }
     function markVideoReviewed(id) { state.videos.find(x => x.id === id).status = 'Reviewed'; render(); showToast('Marked reviewed & notified parent!'); }
     function addVideoCue(e, id) { e.preventDefault(); state.videos.find(x => x.id === id).cues.push({ time: e.target.time.value, pct: 60, note: e.target.note.value }); render(); showToast('Cue added!'); }
-    function openThread(id) { state.activeThreadId = id; state.threads.find(x => x.id === id).unread = 0; render(); }
-    function sendCoachReply(e, id) { e.preventDefault(); state.threads.find(x => x.id === id).messages.push({ from: 'coach', time: 'Just now', text: e.target.text.value }); render(); }
+    function openThread(id) {
+      state.activeThreadId = id;
+      state.mobileMsgOpen = true;
+      const t = state.threads.find(x => x.id === id);
+      if (t) { t.unread = 0; t._modifiedAt = Date.now(); }
+      render();
+    }
+    function sendCoachReply(e, id) {
+      e.preventDefault();
+      const text = (e.target.text?.value || '').trim();
+      const t = state.threads.find(x => x.id === id);
+      if (!t || !text) return;
+      const nowTime = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      t.messages.push({ from: 'coach', time: nowTime, text });
+      t._modifiedAt = Date.now();
+      render();
+    }
     function bookSlot(slotId, payMode) {
       const slot = state.openSlots.find(s => s.id === slotId), ath = state.athletes.find(a => a.id === state.activeSiblingId);
       if (payMode === 'credit') state.athletes.filter(a => a.familyId === 'fam-1').forEach(a => a.credits = Math.max(0, a.credits - 1));
@@ -7824,9 +8150,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.6.2';
+    const APP_VERSION = 'v3.7.0';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Optimized for Coach Gina’s daily flow: Today-first schedule, per-session plans, 1-tap previous session review & live camera video recording';
+    const APP_RELEASE_NOTES = 'Coach Messaging Hub (New Message, Broadcast, quick replies, mobile inbox), Transactions table, First/Last name & Dark Mode fix';
 
     function reloadLatestAppVersion() {
       try {
