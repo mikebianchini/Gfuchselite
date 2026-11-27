@@ -3589,13 +3589,38 @@
 
     const MEDIA_SUBFOLDER_NAMES = new Set(['files', 'attachments', 'media', 'assets', 'images', 'videos', 'resources']);
 
-    async function uploadMediaToSupabase(file, folderSlug = 'clips') {
-      if (!file) return { url: null, cloud: false };
+    function toStorageSlug(folderSlug = 'clips') {
+      return String(folderSlug || 'clips').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'clips';
+    }
+
+    async function listExistingStorageFiles(folderSlug) {
+      try {
+        const sb = _sbClient || window._sb;
+        if (!sb || !sb.storage) return [];
+        const safeSlug = toStorageSlug(folderSlug);
+        const { data, error } = await sb.storage.from('gfuchs-media').list(safeSlug, { limit: 1000 });
+        if (!error && Array.isArray(data)) return data.map(f => f.name).filter(Boolean);
+      } catch (_) {}
+      return [];
+    }
+
+    async function uploadMediaToSupabase(file, folderSlug = 'clips', existingNames = null) {
+      if (!file) return { url: null, cloud: false, reused: false };
       try {
         const sb = _sbClient || window._sb;
         if (sb && sb.storage) {
-          const safeSlug = String(folderSlug || 'clips').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'clips';
+          const safeSlug = toStorageSlug(folderSlug);
           const safeName = String(file.name || 'clip.mp4').replace(/[^a-zA-Z0-9._-]+/g, '_');
+
+          // Reuse existing uploaded file in Supabase Storage if already present!
+          if (Array.isArray(existingNames) && existingNames.length) {
+            const match = existingNames.find(n => n === safeName || n.endsWith('-' + safeName));
+            if (match) {
+              const { data } = sb.storage.from('gfuchs-media').getPublicUrl(`${safeSlug}/${match}`);
+              if (data?.publicUrl) return { url: data.publicUrl, cloud: true, reused: true };
+            }
+          }
+
           const path = `${safeSlug}/${Date.now()}-${Math.random().toString(36).slice(2, 6)}-${safeName}`;
           const { error } = await sb.storage.from('gfuchs-media').upload(path, file, {
             cacheControl: '3600',
@@ -3604,7 +3629,7 @@
           });
           if (!error) {
             const { data } = sb.storage.from('gfuchs-media').getPublicUrl(path);
-            if (data?.publicUrl) return { url: data.publicUrl, cloud: true };
+            if (data?.publicUrl) return { url: data.publicUrl, cloud: true, reused: false };
           } else {
             console.warn('Supabase Storage upload error:', error.message || error);
           }
@@ -3612,7 +3637,7 @@
       } catch (err) {
         console.warn('Supabase Storage upload failed:', err);
       }
-      return { url: URL.createObjectURL(file), cloud: false };
+      return { url: URL.createObjectURL(file), cloud: false, reused: false };
     }
 
     function resolveAthleteNameFromPath(relPath) {
@@ -3788,6 +3813,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       let addedAthletes = 0;
       let addedNotes = 0;
       let uploadedMedia = 0;
+      let reusedMedia = 0;
       let localOnlyMedia = 0;
 
       // Count total files to upload for progress feedback
@@ -3796,132 +3822,148 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
       if (btn) {
         btn.disabled = true;
-        btn.textContent = totalFiles ? `Uploading media (0/${totalFiles})…` : 'Importing…';
+        btn.textContent = totalFiles ? `Syncing media (0/${totalFiles})…` : 'Importing…';
       }
 
-      for (let idx = 0; idx < _importPreviewData.length; idx++) {
-        const entry = _importPreviewData[idx];
-        const cleanName = entry.athleteName.trim();
-        let ath = state.athletes.find(a => a.name.toLowerCase() === cleanName.toLowerCase());
-        if (!ath) {
-          const parts = cleanName.split(/\s+/).filter(Boolean);
-          const initials = ((parts[0]?.[0] || 'A') + (parts[1]?.[0] || parts[0]?.[1] || 'F')).toUpperCase();
-          ath = {
-            id: `ath-imp-${Date.now()}-${idx}`,
-            initials,
-            name: cleanName,
-            familyId: `fam-imp-${Date.now()}-${idx}`,
-            parentName: '',
-            parentPhone: '',
-            parentEmail: '',
-            ageGroup: '',
-            gradYear: '',
-            position: '',
-            batsThrows: '',
-            team: '',
-            height: '',
-            streakDays: 0,
-            weeklyReps: 0,
-            weeklyDuration: '',
-            waiverSigned: false,
-            waiverDate: null,
-            emergencyContact: '',
-            medicalNotes: '',
-            coachBio: '',
-            pitches: [],
-            notes: [],
-            drills: []
-          };
-          state.athletes.push(ath);
-          addedAthletes++;
-        }
-
-        const vidImg = getAthleteCoverImg(ath);
-        for (let nIdx = 0; nIdx < entry.notes.length; nIdx++) {
-          const n = entry.notes[nIdx];
-          const finalClips = [];
-          for (const clip of (n.clips || [])) {
-            if (clip.rawFile) {
-              fileIdx++;
-              if (btn) btn.textContent = `Uploading media (${fileIdx}/${totalFiles})…`;
-              const res = await uploadMediaToSupabase(clip.rawFile, cleanName);
-              if (res.cloud) uploadedMedia++;
-              else localOnlyMedia++;
-              finalClips.push({
-                title: clip.title,
-                url: res.url,
-                isVideo: clip.isVideo !== false,
-                img: clip.isVideo === false ? res.url : vidImg
-              });
-            } else if (clip.url) {
-              finalClips.push({ title: clip.title, url: clip.url, isVideo: clip.isVideo !== false, img: clip.img || vidImg });
-            }
+      window._importingInProgress = true;
+      try {
+        for (let idx = 0; idx < _importPreviewData.length; idx++) {
+          const entry = _importPreviewData[idx];
+          const cleanName = entry.athleteName.trim();
+          let ath = state.athletes.find(a => a.name.toLowerCase() === cleanName.toLowerCase());
+          if (!ath) {
+            const parts = cleanName.split(/\s+/).filter(Boolean);
+            const initials = ((parts[0]?.[0] || 'A') + (parts[1]?.[0] || parts[0]?.[1] || 'F')).toUpperCase();
+            ath = {
+              id: `ath-imp-${Date.now()}-${idx}`,
+              initials,
+              name: cleanName,
+              familyId: `fam-imp-${Date.now()}-${idx}`,
+              parentName: '',
+              parentPhone: '',
+              parentEmail: '',
+              ageGroup: '',
+              gradYear: '',
+              position: '',
+              batsThrows: '',
+              team: '',
+              height: '',
+              streakDays: 0,
+              weeklyReps: 0,
+              weeklyDuration: '',
+              waiverSigned: false,
+              waiverDate: null,
+              emergencyContact: '',
+              medicalNotes: '',
+              coachBio: '',
+              pitches: [],
+              notes: [],
+              drills: []
+            };
+            state.athletes.push(ath);
+            addedAthletes++;
           }
 
-          // If this athlete already has an imported note on the same date, attach new videos to it instead of duplicating
-          const existingRecap = state.sessionRecaps.find(r => r.athleteId === ath.id && r.date === n.date && (r.focus || '').trim() === (n.focus || '').trim());
-          if (existingRecap && finalClips.length) {
-            existingRecap.clips = [...(existingRecap.clips || []), ...finalClips];
-            if (!existingRecap.videoUrl) {
-              existingRecap.videoUrl = finalClips[0].url;
-              existingRecap.videoTitle = finalClips[0].title;
-            }
-          } else {
-            state.sessionRecaps.unshift({
-              id: `rec-imp-${Date.now()}-${idx}-${nIdx}`,
-              isDraft: false,
-              athleteId: ath.id,
-              athleteName: ath.name,
-              date: n.date,
-              sessionTitle: '1-on-1 Hitting Private (45m)',
-              tags: n.tags,
-              warmup: n.warmup,
-              focus: n.focus,
-              tee: n.tee,
-              ft: n.ft,
-              machine: n.machine,
-              homework: n.homework,
-              note: n.focus,
-              videoTitle: finalClips[0]?.title || `${n.date} Session Clip`,
-              videoImg: finalClips[0]?.img || vidImg,
-              videoUrl: finalClips[0]?.url || null,
-              clips: finalClips,
-              sentTo: 'Imported from Apple Notes',
-              sentAt: n.date
-            });
-            ath.notes.unshift({ date: n.date, text: n.focus });
-            addedNotes++;
-          }
+          // Fetch already-uploaded media in Supabase Storage for this athlete so we never re-upload!
+          const existingNames = await listExistingStorageFiles(cleanName);
+          const vidImg = getAthleteCoverImg(ath);
 
-          // Also add video clips to state.videos for the athlete
-          finalClips.forEach((c, cIdx) => {
-            if (c.url) {
-              state.videos.unshift({
-                id: `vid-imp-${Date.now()}-${idx}-${nIdx}-${cIdx}`,
+          for (let nIdx = 0; nIdx < entry.notes.length; nIdx++) {
+            const n = entry.notes[nIdx];
+            const finalClips = [];
+            for (const clip of (n.clips || [])) {
+              if (clip.rawFile) {
+                fileIdx++;
+                if (btn) btn.textContent = `Syncing media (${fileIdx}/${totalFiles})…`;
+                const res = await uploadMediaToSupabase(clip.rawFile, cleanName, existingNames);
+                if (res.cloud) {
+                  if (res.reused) reusedMedia++;
+                  else uploadedMedia++;
+                } else {
+                  localOnlyMedia++;
+                }
+                finalClips.push({
+                  title: clip.title,
+                  url: res.url,
+                  isVideo: clip.isVideo !== false,
+                  img: clip.isVideo === false ? res.url : vidImg
+                });
+              } else if (clip.url) {
+                finalClips.push({ title: clip.title, url: clip.url, isVideo: clip.isVideo !== false, img: clip.img || vidImg });
+              }
+            }
+
+            // If this athlete already has an imported note on the same date, attach new videos to it instead of duplicating
+            const existingRecap = state.sessionRecaps.find(r => r.athleteId === ath.id && r.date === n.date && (r.focus || '').trim() === (n.focus || '').trim());
+            if (existingRecap && finalClips.length) {
+              existingRecap.clips = [...(existingRecap.clips || []), ...finalClips];
+              if (!existingRecap.videoUrl) {
+                existingRecap.videoUrl = finalClips[0].url;
+                existingRecap.videoTitle = finalClips[0].title;
+              }
+            } else {
+              state.sessionRecaps.unshift({
+                id: `rec-imp-${Date.now()}-${idx}-${nIdx}`,
+                isDraft: false,
                 athleteId: ath.id,
                 athleteName: ath.name,
-                title: c.title,
-                uploadedAt: n.date,
-                status: 'Reviewed',
-                img: c.img || vidImg,
-                videoUrl: c.url,
-                cues: []
+                date: n.date,
+                sessionTitle: '1-on-1 Hitting Private (45m)',
+                tags: n.tags,
+                warmup: n.warmup,
+                focus: n.focus,
+                tee: n.tee,
+                ft: n.ft,
+                machine: n.machine,
+                homework: n.homework,
+                note: n.focus,
+                videoTitle: finalClips[0]?.title || `${n.date} Session Clip`,
+                videoImg: finalClips[0]?.img || vidImg,
+                videoUrl: finalClips[0]?.url || null,
+                clips: finalClips,
+                sentTo: 'Imported from Apple Notes',
+                sentAt: n.date
               });
+              ath.notes.unshift({ date: n.date, text: n.focus });
+              addedNotes++;
             }
-          });
-        }
-      }
 
-      if (!state.selectedAthleteId && state.athletes.length) state.selectedAthleteId = state.athletes[0].id;
-      if (!state.activeSiblingId && state.athletes.length) state.activeSiblingId = state.athletes[0].id;
-      state.rosterView = 'list';
-      _importPreviewData = [];
-      closeModal();
-      render();
-      if (localOnlyMedia > 0) {
-        showToast(`Imported ${addedNotes} notes (${localOnlyMedia} videos local only — run Storage SQL in Supabase to sync videos across devices).`);
-      } else {
-        showToast(`Imported ${addedAthletes} athletes, ${addedNotes} notes${uploadedMedia ? ` & ${uploadedMedia} cloud videos` : ''}!`);
+            // Also add video clips to state.videos for the athlete
+            finalClips.forEach((c, cIdx) => {
+              if (c.url) {
+                state.videos.unshift({
+                  id: `vid-imp-${Date.now()}-${idx}-${nIdx}-${cIdx}`,
+                  athleteId: ath.id,
+                  athleteName: ath.name,
+                  title: c.title,
+                  uploadedAt: n.date,
+                  status: 'Reviewed',
+                  img: c.img || vidImg,
+                  videoUrl: c.url,
+                  cues: []
+                });
+              }
+            });
+          }
+        }
+
+        if (!state.selectedAthleteId && state.athletes.length) state.selectedAthleteId = state.athletes[0].id;
+        if (!state.activeSiblingId && state.athletes.length) state.activeSiblingId = state.athletes[0].id;
+        state.coachTab = 'athletes';
+        state.rosterView = 'list';
+        _importPreviewData = [];
+        closeModal();
+        saveLocalState();
+        render(false);
+        await pushStateToSupabase(true);
+        const totalCloud = uploadedMedia + reusedMedia;
+        if (localOnlyMedia > 0) {
+          showToast(`Imported ${addedAthletes} athletes & ${addedNotes} notes (${totalCloud} cloud videos, ${localOnlyMedia} local only).`);
+        } else {
+          showToast(`Imported ${addedAthletes} athletes, ${addedNotes} notes & linked ${totalCloud} cloud videos!`);
+        }
+      } finally {
+        window._importingInProgress = false;
       }
     }
 
@@ -5776,7 +5818,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           .channel('gfuchs-live-sync')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'gfuchs_state', filter: 'id=eq.main' }, (payload) => {
             const incoming = payload.new?.data;
-            if (!incoming || incoming._clientId === CLIENT_SESSION_ID) return;
+            if (!incoming || incoming._clientId === CLIENT_SESSION_ID || window._importingInProgress) return;
             applySyncedState(incoming);
             saveLocalState();
             render(false);
