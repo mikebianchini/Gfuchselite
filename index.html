@@ -48,6 +48,7 @@
       --text-soft: #64707D;
       --bg-card: rgba(255, 255, 255, 0.78);
       --bg-elevated: rgba(255, 255, 255, 0.56);
+      --bg-canvas: var(--bg-page);
     }
 
     html.dark {
@@ -67,6 +68,7 @@
       --text-soft: #8F99A3;
       --bg-card: rgba(20, 25, 31, 0.76);
       --bg-elevated: rgba(255, 255, 255, 0.08);
+      --bg-canvas: var(--bg-page);
     }
 
     body {
@@ -76,9 +78,15 @@
       overflow-x: hidden;
     }
 
-    /* Accessible Focus Rings & Native Tactile Tap Feedback */
+    h1 { letter-spacing: -0.03em; }
+    h2 { letter-spacing: -0.02em; }
+
+    /* Accessible Focus Rings & Calibrated Tactile Tap Feedback */
     button, a[href], input, select, textarea, [tabindex] {
       -webkit-tap-highlight-color: transparent;
+    }
+    button {
+      transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms ease-out, border-color 180ms ease-out, color 180ms ease-out, opacity 180ms ease-out;
     }
     button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
       outline: 2px solid #010101;
@@ -2691,51 +2699,50 @@
             return `
             <div class="card-white rounded-[26px] overflow-hidden flex flex-col justify-between">
               <div>
-                <div class="relative h-32">
+                <div class="relative h-36">
                   <img src="${t.img || 'assets/images/fastpitch-hitter.jpg'}" alt="${t.title}" class="w-full h-full object-cover" loading="lazy" decoding="async" />
-                  <div class="absolute inset-0 bg-gradient-to-t from-[#010101]/80 via-[#010101]/20 to-transparent"></div>
-                  <div class="absolute top-3 left-3 flex items-center gap-1.5">
-                    <span class="px-2.5 py-1 rounded-full bg-[#010101]/85 text-[#D5FF5F] text-[10px] font-extrabold">${t.durationLabel} (${t.duration} min)</span>
-                    <span class="px-2.5 py-1 rounded-full bg-white/90 text-[#010101] text-[10px] font-extrabold">${t.type}</span>
-                  </div>
-                  <div class="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold tabular-nums shadow">
-                    ${formatDualPrice(t)}
-                  </div>
                 </div>
-                <div class="p-4 space-y-2.5">
-                  <div>
-                    <div class="font-extrabold text-base leading-snug">${t.title}</div>
-                    <div class="text-[11px] text-[var(--text-muted)] font-semibold mt-0.5">${t.location || 'Gina Fuchs Elite Facility'} • Clover or Cash</div>
-                  </div>
-                  <p class="text-xs text-[var(--text-muted)] leading-relaxed">${t.desc}</p>
-                  <div class="surface-soft rounded-2xl p-2.5 flex items-center justify-between gap-2 text-[11px]">
+                <div class="p-4 sm:p-5 space-y-3">
+                  <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                      <span class="font-extrabold uppercase tracking-wider text-[10px] text-[#4E6075] dark:text-[#9AC0D6]">Booking Availability</span>
+                      <h3 class="font-extrabold text-base leading-snug">${t.title}</h3>
+                      <div class="text-[13px] text-[var(--text-muted)] font-medium mt-0.5">${t.type} · ${t.durationLabel} (${t.duration} min)</div>
+                    </div>
+                    <div class="text-right shrink-0">
+                      <div class="text-sm font-extrabold tabular-nums">${formatDualPrice(t)}</div>
+                      <div class="text-xs text-[var(--text-muted)]">Clover or Cash</div>
+                    </div>
+                  </div>
+                  <div class="text-xs text-[var(--text-muted)] font-medium">${t.location || 'Gina Fuchs Elite Facility'}</div>
+                  <p class="text-[13px] text-[var(--text-muted)] leading-relaxed">${t.desc}</p>
+                  <div class="pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2 text-xs">
+                    <div class="min-w-0">
+                      <div class="font-semibold text-[var(--text-muted)]">Booking availability</div>
                       <div class="font-bold truncate mt-0.5">${formatSessionAvailabilitySummary(t)}</div>
                     </div>
-                    <button onclick="openClassTypeModal('${t.id}')" class="px-2.5 py-1 rounded-xl card-white text-[10px] font-extrabold shrink-0 cursor-pointer hover:border-[#010101]">Change</button>
+                    <button onclick="openClassTypeModal('${t.id}')" class="px-3 py-1.5 rounded-xl surface-soft text-xs font-bold shrink-0 cursor-pointer hover:border-[#010101]">Change</button>
                   </div>
                   <!-- Scheduled Sessions under this Lesson -->
-                  <div class="surface-soft rounded-2xl p-2.5 space-y-2 text-[11px]">
+                  <div class="pt-2.5 border-t border-[var(--border-subtle)] space-y-2 text-xs">
                     <div class="flex items-center justify-between gap-2">
-                      <span class="font-extrabold uppercase tracking-wider text-[10px] text-[#4E6075] dark:text-[#9AC0D6]">Scheduled Sessions (${lessonSessions.length})</span>
-                      <button onclick="openAddSessionModal(null, '${t.id}')" class="px-2.5 py-1 rounded-xl bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold shrink-0 cursor-pointer hover:brightness-95">+ Add Session</button>
+                      <span class="font-bold text-[var(--text-muted)]">Scheduled sessions (${lessonSessions.length})</span>
+                      <button onclick="openAddSessionModal(null, '${t.id}')" class="px-2.5 py-1 rounded-xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold shrink-0 cursor-pointer hover:brightness-95">+ Add Session</button>
                     </div>
                     ${lessonSessions.length ? `
-                      <div class="space-y-1">
+                      <div class="space-y-1.5">
                         ${lessonSessions.slice(0, 3).map(s => `
-                          <button type="button" onclick="openManageSessionModal('${s.id}')" class="w-full text-left flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl card-white hover:border-[#010101] cursor-pointer transition">
-                            <span class="font-extrabold truncate">${s.day || s.dateIso || 'Scheduled'} • ${s.time} (${s.duration})</span>
-                            <span class="text-[10px] font-bold text-[var(--text-muted)] truncate max-w-[120px]">${(s.athletes && s.athletes.length) ? s.athletes.join(', ') : 'Open Session'}</span>
+                          <button type="button" onclick="openManageSessionModal('${s.id}')" class="w-full text-left flex items-center justify-between gap-2 px-3 py-2 rounded-xl surface-soft hover:border-[#010101] cursor-pointer">
+                            <span class="font-bold truncate tabular-nums">${s.day || s.dateIso || 'Scheduled'} · ${s.time} (${s.duration})</span>
+                            <span class="text-xs font-medium text-[var(--text-muted)] truncate max-w-[120px]">${(s.athletes && s.athletes.length) ? s.athletes.join(', ') : 'Open Session'}</span>
                           </button>
                         `).join('')}
-                        ${lessonSessions.length > 3 ? `<button onclick="setTab('schedule')" class="text-[10px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer pl-1">+${lessonSessions.length - 3} more on Schedule →</button>` : ''}
+                        ${lessonSessions.length > 3 ? `<button onclick="setTab('schedule')" class="text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer pl-1">+${lessonSessions.length - 3} more on Schedule →</button>` : ''}
                       </div>
-                    ` : `<div class="text-[11px] text-[var(--text-muted)]">No sessions scheduled for this lesson yet.</div>`}
+                    ` : `<div class="text-xs text-[var(--text-muted)]">No sessions scheduled for this lesson yet.</div>`}
                   </div>
                 </div>
               </div>
-              <div class="px-4 pb-4 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">
+              <div class="px-4 sm:px-5 pb-4 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">
                 <button onclick="copyCalLink('${t.slug}')" class="text-xs font-bold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer inline-flex items-center gap-1">${uiIcon('link')} Copy Link</button>
                 <div class="flex items-center gap-1.5">
                   <button onclick="openClassTypeModal('${t.id}')" class="px-3 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer">Edit</button>
@@ -2768,41 +2775,40 @@
       ];
 
       return `
-        <div class="card-mist rounded-[28px] p-5 sm:p-6 space-y-5">
+        <div class="card-mist rounded-[28px] p-5 sm:p-6 space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Lesson Types &amp; Classes</div>
-              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">Lessons</h1>
-              <p class="text-xs text-[var(--text-muted)] mt-0.5">Create lesson types (1-on-1, slapping, small groups) and schedule timed sessions for each lesson</p>
+              <h1 class="text-2xl sm:text-3xl font-extrabold">Lessons</h1>
+              <p class="text-[13px] text-[var(--text-muted)] mt-1">Manage lesson offerings and schedule timed sessions for each class</p>
             </div>
             <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-              <button onclick="openAddSessionModal()" class="px-4 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer shadow-sm hover:opacity-90 transition">
+              <button onclick="openAddSessionModal()" class="px-4 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-[13px] font-extrabold cursor-pointer shadow-sm hover:opacity-90">
                 + Schedule Session
               </button>
-              <button onclick="openClassTypeModal(null)" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition">
+              <button onclick="openClassTypeModal(null)" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-[13px] font-extrabold cursor-pointer shadow-sm hover:brightness-95">
                 + Add Lesson
               </button>
             </div>
           </div>
 
-          <div class="grid grid-cols-3 gap-2.5">
-            <div class="card-white rounded-2xl p-3.5">
-              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Total Lessons</div>
-              <div class="text-2xl font-extrabold mt-0.5">${all.length}</div>
+          <div class="card-white rounded-2xl grid grid-cols-3 divide-x divide-[var(--border-subtle)]">
+            <div class="p-3.5">
+              <div class="text-[13px] font-semibold text-[var(--text-muted)]">Total lessons</div>
+              <div class="text-2xl font-extrabold tabular-nums mt-0.5">${all.length}</div>
             </div>
-            <div class="card-white rounded-2xl p-3.5">
-              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">1-on-1 / Groups</div>
-              <div class="text-2xl font-extrabold mt-0.5">${privates} / ${groupsClinics}</div>
+            <div class="p-3.5">
+              <div class="text-[13px] font-semibold text-[var(--text-muted)]">1-on-1 / Groups</div>
+              <div class="text-2xl font-extrabold tabular-nums mt-0.5">${privates} / ${groupsClinics}</div>
             </div>
-            <div class="card-white rounded-2xl p-3.5">
-              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Scheduled Sessions</div>
-              <div class="text-2xl font-extrabold mt-0.5">${totalScheduledSessions}</div>
+            <div class="p-3.5">
+              <div class="text-[13px] font-semibold text-[var(--text-muted)]">Sessions</div>
+              <div class="text-2xl font-extrabold tabular-nums mt-0.5">${totalScheduledSessions}</div>
             </div>
           </div>
 
           <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             ${cats.map(c => `
-              <button onclick="state.sessionsPageFilter='${c.id}'; render(false);" class="px-3.5 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap transition cursor-pointer ${filterCat === c.id ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'card-white text-[var(--text-muted)]'}">
+              <button onclick="state.sessionsPageFilter='${c.id}'; render(false);" class="px-3.5 py-2 rounded-full text-[13px] font-bold whitespace-nowrap cursor-pointer ${filterCat === c.id ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'card-white text-[var(--text-muted)]'}">
                 ${c.label}
               </button>
             `).join('')}
@@ -3203,21 +3209,21 @@
       const activeAthletesCount = state.athletes.filter(a => !a.archived).length;
       const sectionHtmlMap = {
         metrics: `
-          <div class="grid grid-cols-3 gap-2.5 sm:gap-3">
-            <button onclick="scheduleSelectDate('${today.iso}', 'day'); setTab('schedule');" class="card-white rounded-2xl p-3.5 text-left hover:border-[#010101] transition cursor-pointer">
-              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Today</div>
-              <div class="text-2xl font-extrabold mt-0.5">${todaySessions.length}</div>
-              <div class="text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-bold">Day View →</div>
+          <div class="card-white rounded-[24px] grid grid-cols-3 divide-x divide-[var(--border-subtle)] overflow-hidden">
+            <button onclick="scheduleSelectDate('${today.iso}', 'day'); setTab('schedule');" class="p-3.5 sm:p-4 text-left hover:bg-white/40 dark:hover:bg-white/5 cursor-pointer">
+              <div class="text-[13px] font-semibold text-[var(--text-muted)]">Today</div>
+              <div class="text-2xl font-extrabold tabular-nums mt-0.5">${todaySessions.length}</div>
+              <div class="text-xs text-[#4E6075] dark:text-[#9AC0D6] font-bold mt-0.5">Day view →</div>
             </button>
-            <button onclick="state.schedule.view='week'; setTab('schedule');" class="card-white rounded-2xl p-3.5 text-left hover:border-[#010101] transition cursor-pointer">
-              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Next 7 Days</div>
-              <div class="text-2xl font-extrabold mt-0.5">${totalNext7Count}</div>
-              <div class="text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-bold">Week View →</div>
+            <button onclick="state.schedule.view='week'; setTab('schedule');" class="p-3.5 sm:p-4 text-left hover:bg-white/40 dark:hover:bg-white/5 cursor-pointer">
+              <div class="text-[13px] font-semibold text-[var(--text-muted)]">Next 7 days</div>
+              <div class="text-2xl font-extrabold tabular-nums mt-0.5">${totalNext7Count}</div>
+              <div class="text-xs text-[#4E6075] dark:text-[#9AC0D6] font-bold mt-0.5">Week view →</div>
             </button>
-            <button onclick="setTab('athletes')" class="card-white rounded-2xl p-3.5 text-left hover:border-[#010101] transition cursor-pointer">
-              <div class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">Athletes</div>
-              <div class="text-2xl font-extrabold mt-0.5">${activeAthletesCount}</div>
-              <div class="text-[11px] text-[#4E6075] dark:text-[#9AC0D6] font-bold">View Roster →</div>
+            <button onclick="setTab('athletes')" class="p-3.5 sm:p-4 text-left hover:bg-white/40 dark:hover:bg-white/5 cursor-pointer">
+              <div class="text-[13px] font-semibold text-[var(--text-muted)]">Athletes</div>
+              <div class="text-2xl font-extrabold tabular-nums mt-0.5">${activeAthletesCount}</div>
+              <div class="text-xs text-[#4E6075] dark:text-[#9AC0D6] font-bold mt-0.5">Roster →</div>
             </button>
           </div>
         `,
@@ -3372,20 +3378,20 @@
         <div class="card-mist rounded-[28px] p-4 sm:p-6 space-y-3.5">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${todayFullLabel} • EST</div>
-              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">Coach Gina</h1>
+              <h1 class="text-2xl sm:text-3xl font-extrabold">Coach Gina</h1>
+              <p class="text-[13px] font-medium text-[var(--text-muted)] mt-0.5">${todayFullLabel} · Pittsburgh Eastern Time</p>
             </div>
-            <button onclick="toggleHomeReorderMode()" title="Reorder Home sections" aria-label="Reorder Home sections" class="px-3 py-2 rounded-2xl text-xs font-extrabold cursor-pointer transition shrink-0 inline-flex items-center gap-1 ${isReordering ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'card-white text-[var(--text-muted)] hover:text-[var(--text-main)] hover:border-[#010101]'}">
+            <button onclick="toggleHomeReorderMode()" title="Reorder Home sections" aria-label="Reorder Home sections" class="px-3 py-2 rounded-2xl text-[13px] font-bold cursor-pointer shrink-0 inline-flex items-center gap-1 ${isReordering ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'card-white text-[var(--text-muted)] hover:text-[var(--text-main)] hover:border-[#010101]'}">
               <span>⇅</span>
               <span class="${isReordering ? '' : 'hidden sm:inline'}">${isReordering ? 'Done' : 'Reorder'}</span>
             </button>
           </div>
 
           <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
-            <button onclick="openAddSessionModal()" class="py-2.5 px-4 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm hover:brightness-95 transition inline-flex items-center justify-center gap-1.5">
+            <button onclick="openAddSessionModal()" class="py-2.5 px-4 rounded-2xl bg-[#D5FF5F] text-[#010101] text-[13px] font-extrabold cursor-pointer shadow-sm hover:brightness-95 inline-flex items-center justify-center gap-1.5">
               + Add Session
             </button>
-            <button onclick="openAddAthleteModal(null)" class="py-2.5 px-4 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer shadow-sm hover:opacity-90 transition inline-flex items-center justify-center gap-1.5">
+            <button onclick="openAddAthleteModal(null)" class="py-2.5 px-4 rounded-2xl bg-[#010101] text-[#D5FF5F] text-[13px] font-extrabold cursor-pointer shadow-sm hover:opacity-90 inline-flex items-center justify-center gap-1.5">
               + Add Athlete
             </button>
           </div>
@@ -4131,14 +4137,14 @@
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
               <thead>
-                <tr class="border-b border-[var(--border-subtle)] bg-white/40 dark:bg-white/5 text-[11px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">
+                <tr class="border-b border-[var(--border-subtle)] bg-white/40 dark:bg-white/5 text-[13px] font-bold text-[var(--text-muted)]">
                   <th class="py-3 pl-4 pr-2">
                     <button type="button" onclick="setRosterSort('name')" class="cursor-pointer hover:text-[var(--text-main)]">Athlete${arrow('name')}</button>
                   </th>
                   <th class="py-3 px-2">
                     <button type="button" onclick="setRosterSort('age')" class="cursor-pointer hover:text-[var(--text-main)]">Age${arrow('age')}</button>
                   </th>
-                  <th class="py-3 px-2 hidden md:table-cell">Position &amp; Team</th>
+                  <th class="py-3 px-2 hidden md:table-cell">Position &amp; team</th>
                   <th class="py-3 px-2 hidden sm:table-cell">Parent</th>
                   <th class="py-3 pl-2 pr-4 text-right">Actions</th>
                 </tr>
@@ -5914,34 +5920,28 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       return `
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div class="flex items-center gap-2">
-              <h1 class="text-2xl font-extrabold">Payments</h1>
-              <span class="px-2.5 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-[10px] font-extrabold">🍀 CLOVER CONNECTED ✓</span>
-            </div>
-            <p class="text-xs text-[var(--text-muted)] mt-0.5">Clover Hosted Checkout &amp; Tap-to-Pay + Cash / Venmo / Zelle tracking</p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold">Payments</h1>
+            <p class="text-[13px] text-[var(--text-muted)] mt-0.5">Clover Checkout, Cash, Venmo &amp; Zelle tracking</p>
           </div>
-          <button onclick="openLogPaymentModal()" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer">+ Log Cash / Clover</button>
+          <button onclick="openLogPaymentModal()" class="px-4 py-2.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-[13px] font-extrabold cursor-pointer shadow-sm hover:brightness-95">+ Log Payment</button>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div class="space-y-3">
-            <div class="card-mist rounded-[24px] p-5 space-y-2">
-              <div class="flex items-center justify-between text-xs">
-                <span class="font-extrabold">🍀 Clover &amp; Cash Collected</span>
-                <span class="text-[11px] font-extrabold text-[#22c55e]">● Live</span>
-              </div>
+            <div class="card-mist rounded-[24px] p-5 space-y-1.5">
+              <div class="text-[13px] font-bold text-[var(--text-muted)]">Collected (Clover &amp; Cash)</div>
               <div class="text-3xl font-extrabold tabular-nums">$${collected.toLocaleString()}</div>
-              <div class="text-[11px] text-[var(--text-muted)]">Collected via Clover (Card / Apple Pay) &amp; Cash</div>
+              <div class="text-xs text-[var(--text-muted)]">Card, Apple Pay, Cash, Venmo &amp; Zelle</div>
             </div>
             <div class="card-white rounded-[24px] p-5 space-y-1.5">
-              <div class="text-xs font-extrabold">💵 Unpaid / Pending Due</div>
+              <div class="text-[13px] font-bold text-[var(--text-muted)]">Unpaid / Pending due</div>
               <div class="text-2xl font-extrabold tabular-nums">$${pendingCash.toLocaleString()}</div>
-              <div class="text-[11px] text-[var(--text-muted)]">${pendingCash > 0 ? 'Toggle Paid / Unpaid on any entry below' : 'No unpaid sessions right now'}</div>
+              <div class="text-xs text-[var(--text-muted)]">${pendingCash > 0 ? 'Toggle Paid / Unpaid or swipe any entry' : 'No unpaid sessions right now'}</div>
             </div>
           </div>
 
           <div class="lg:col-span-2 card-white rounded-[28px] p-5 space-y-3">
-            <div class="flex justify-between items-center"><h2 class="text-sm font-extrabold">Recent Transactions</h2><span class="px-3 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-xs font-extrabold">${state.payments.length} entries</span></div>
+            <div class="flex justify-between items-center"><h2 class="text-base font-extrabold">Recent Transactions</h2><span class="text-[13px] font-semibold text-[var(--text-muted)] tabular-nums">${state.payments.length} ${state.payments.length === 1 ? 'entry' : 'entries'}</span></div>
             ${state.payments.length ? state.payments.map(p => {
               const unpaid = isUnpaid(p);
               return `
@@ -6421,9 +6421,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.1.0';
+    const APP_VERSION = 'v3.2.0';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Mobile swipe actions (Sessions, Payments, Schedule, Drawer & Modals)';
+    const APP_RELEASE_NOTES = 'Gemini Frontend Design polish, Mobile UX 3.0 & swipe actions';
 
     function reloadLatestAppVersion() {
       try {
@@ -6444,11 +6444,10 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       return `
         <div class="card-mist rounded-[28px] p-5 sm:p-6 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">App Configuration</div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">Settings</h1>
-            <p class="text-xs text-[var(--text-muted)] mt-0.5">Facility locations, Clover payments, cloud sync, display &amp; data backup</p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold">Settings</h1>
+            <p class="text-[13px] text-[var(--text-muted)] mt-1">Facility locations, Clover payments, cloud sync, display &amp; data backup</p>
           </div>
-          <span class="px-3 py-1.5 rounded-full bg-[#010101] text-[#D5FF5F] text-xs font-extrabold tabular-nums self-start">
+          <span class="text-[13px] font-extrabold text-[var(--text-muted)] tabular-nums self-start pt-1">
             ${APP_VERSION}
           </span>
         </div>
@@ -8031,8 +8030,8 @@ create policy "Allow media update" on storage.objects
         <div class="card-mist rounded-[28px] p-5 sm:p-6 space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Pittsburgh • Eastern Time (EST)</div>
-              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">${rangeLabel}</h1>
+              <h1 class="text-2xl sm:text-3xl font-extrabold">${rangeLabel}</h1>
+              <p class="text-[13px] font-medium text-[var(--text-muted)] mt-0.5">Pittsburgh · Eastern Time (EST)</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
               <button onclick="openDayAvailabilityModal('${anchorIso}')" class="px-3.5 py-2.5 rounded-2xl bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer hover:opacity-90 transition">
