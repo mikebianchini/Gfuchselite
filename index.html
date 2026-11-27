@@ -19,6 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       /* Exact Brand System */
@@ -3317,7 +3318,11 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                 <h1 class="text-2xl font-extrabold tracking-tight">Athlete Roster</h1>
                 <p class="text-xs text-[var(--text-muted)]"><span id="roster-match-count">${filteredCount} of ${state.athletes.length}</span> active players • Tap any row for full profile &amp; notes</p>
               </div>
-              <div class="flex items-center gap-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <button onclick="openCloudSyncModal()" class="px-3 py-2.5 rounded-full card-white text-xs font-extrabold cursor-pointer hover:border-[#010101] transition inline-flex items-center gap-1.5">
+                  <span id="roster-sync-dot" class="w-2 h-2 rounded-full ${window._sbConnected ? 'bg-[#9ED11E]' : 'bg-amber-400'}"></span>
+                  <span id="roster-sync-label">${window._sbConnected ? 'Synced' : 'Cloud Sync'}</span>
+                </button>
                 <button onclick="openAppleNotesImporterModal('folder')" class="px-3.5 py-2.5 rounded-full card-white text-xs font-extrabold cursor-pointer hover:border-[#010101] transition inline-flex items-center gap-1.5">
                   ${uiIcon('note')} Import Notes
                 </button>
@@ -4345,7 +4350,235 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       `);
     }
 
-    function render() {
+    // =========================================================================
+    // SUPABASE REAL-TIME CLOUD SYNC + LOCAL CACHE
+    // =========================================================================
+    // Paste your Supabase Project URL & Publishable/Anon Key here (or configure via Cloud Sync button)
+    const SUPABASE_BAKED_URL = '';
+    const SUPABASE_BAKED_KEY = '';
+    const LOCAL_STATE_KEY = 'gfuchs_elite_state_v1';
+    const CLIENT_SESSION_ID = 'dev-' + Math.random().toString(36).slice(2, 10);
+
+    let _sbClient = null;
+    let _sbPushTimer = null;
+    let _sbHydrating = false;
+    window._sbConnected = false;
+
+    function getSupabaseCreds() {
+      const url = (SUPABASE_BAKED_URL || localStorage.getItem('gfuchs_sb_url') || '').trim();
+      const key = (SUPABASE_BAKED_KEY || localStorage.getItem('gfuchs_sb_key') || '').trim();
+      return { url, key };
+    }
+
+    function serializeSyncedState() {
+      return {
+        athletes: state.athletes,
+        sessions: state.sessions,
+        sessionRecaps: state.sessionRecaps.filter(r => !r.isDraft),
+        videos: state.videos,
+        payments: state.payments,
+        threads: state.threads,
+        waitlist: state.waitlist,
+        cal: {
+          bookedSlots: state.cal.bookedSlots,
+          availability: state.cal.availability,
+          eventTypes: state.cal.eventTypes
+        },
+        _clientId: CLIENT_SESSION_ID,
+        _updatedAt: new Date().toISOString()
+      };
+    }
+
+    function applySyncedState(data) {
+      if (!data || typeof data !== 'object') return;
+      _sbHydrating = true;
+      if (Array.isArray(data.athletes)) state.athletes = data.athletes;
+      if (Array.isArray(data.sessions)) state.sessions = data.sessions;
+      if (Array.isArray(data.sessionRecaps)) {
+        const localDrafts = state.sessionRecaps.filter(r => r.isDraft);
+        state.sessionRecaps = [...localDrafts, ...data.sessionRecaps];
+      }
+      if (Array.isArray(data.videos)) state.videos = data.videos;
+      if (Array.isArray(data.payments)) state.payments = data.payments;
+      if (Array.isArray(data.threads)) state.threads = data.threads;
+      if (Array.isArray(data.waitlist)) state.waitlist = data.waitlist;
+      if (data.cal) {
+        if (Array.isArray(data.cal.bookedSlots)) state.cal.bookedSlots = data.cal.bookedSlots;
+        if (data.cal.availability) state.cal.availability = data.cal.availability;
+        if (Array.isArray(data.cal.eventTypes) && data.cal.eventTypes.length) state.cal.eventTypes = data.cal.eventTypes;
+      }
+      if (!state.selectedAthleteId && state.athletes.length) state.selectedAthleteId = state.athletes[0].id;
+      if (!state.activeSiblingId && state.athletes.length) state.activeSiblingId = state.athletes[0].id;
+      _sbHydrating = false;
+    }
+
+    function saveLocalState() {
+      try {
+        localStorage.setItem(LOCAL_STATE_KEY, JSON.stringify(serializeSyncedState()));
+      } catch (_) {}
+    }
+
+    function loadLocalState() {
+      try {
+        const raw = localStorage.getItem(LOCAL_STATE_KEY);
+        if (raw) applySyncedState(JSON.parse(raw));
+      } catch (_) {}
+    }
+
+    function updateSyncIndicators(connected, labelText = null) {
+      window._sbConnected = connected;
+      const dot = document.getElementById('roster-sync-dot');
+      const lbl = document.getElementById('roster-sync-label');
+      if (dot) dot.className = `w-2 h-2 rounded-full ${connected ? 'bg-[#9ED11E]' : 'bg-amber-400'}`;
+      if (lbl) lbl.textContent = labelText || (connected ? 'Synced' : 'Cloud Sync');
+    }
+
+    async function pushStateToSupabase(immediate = false) {
+      if (!_sbClient || _sbHydrating) return;
+      clearTimeout(_sbPushTimer);
+      const run = async () => {
+        try {
+          updateSyncIndicators(true, 'Syncing…');
+          const payload = serializeSyncedState();
+          const { error } = await _sbClient
+            .from('gfuchs_state')
+            .upsert({ id: 'main', data: payload, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+          if (error) {
+            console.warn('Supabase upsert error:', error.message);
+            updateSyncIndicators(false, 'Sync Error');
+          } else {
+            updateSyncIndicators(true, 'Synced');
+          }
+        } catch (err) {
+          console.warn('Supabase sync failed:', err);
+          updateSyncIndicators(false, 'Offline');
+        }
+      };
+      if (immediate) await run();
+      else _sbPushTimer = setTimeout(run, 450);
+    }
+
+    async function initSupabaseSync() {
+      const { url, key } = getSupabaseCreds();
+      if (!url || !key || !window.supabase?.createClient) {
+        updateSyncIndicators(false, 'Cloud Sync');
+        return;
+      }
+      try {
+        _sbClient = window.supabase.createClient(url, key);
+        const { data, error } = await _sbClient.from('gfuchs_state').select('data').eq('id', 'main').maybeSingle();
+        if (error) {
+          console.warn('Supabase fetch error:', error.message);
+          updateSyncIndicators(false, 'Check SQL');
+          return;
+        }
+        if (data?.data && (data.data.athletes?.length || data.data.sessions?.length || data.data.sessionRecaps?.length)) {
+          applySyncedState(data.data);
+          saveLocalState();
+          updateSyncIndicators(true, 'Synced');
+          render(false);
+        } else if (state.athletes.length || state.sessions.length || state.sessionRecaps.length) {
+          // Cloud is empty, local has imported athletes — push up immediately!
+          await pushStateToSupabase(true);
+        } else {
+          updateSyncIndicators(true, 'Synced');
+        }
+
+        // Subscribe to real-time updates from other devices
+        _sbClient
+          .channel('gfuchs-live-sync')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'gfuchs_state', filter: 'id=eq.main' }, (payload) => {
+            const incoming = payload.new?.data;
+            if (!incoming || incoming._clientId === CLIENT_SESSION_ID) return;
+            applySyncedState(incoming);
+            saveLocalState();
+            render(false);
+            showToast('Synced live update from another device!');
+          })
+          .subscribe();
+      } catch (err) {
+        console.warn('Supabase init failed:', err);
+        updateSyncIndicators(false, 'Cloud Sync');
+      }
+    }
+
+    function copySupabaseSql() {
+      const sql = `create table if not exists public.gfuchs_state (
+  id text primary key,
+  data jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.gfuchs_state enable row level security;
+
+create policy "Allow app sync" on public.gfuchs_state
+  for all using (true) with check (true);
+
+alter publication supabase_realtime add table public.gfuchs_state;`;
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(sql).then(() => showToast('Supabase SQL copied! Paste into SQL Editor → Run.'));
+      } else {
+        showToast('SQL copied!');
+      }
+    }
+
+    function saveSupabaseCreds(e) {
+      e.preventDefault();
+      const url = e.target.sbUrl.value.trim();
+      const key = e.target.sbKey.value.trim();
+      try {
+        localStorage.setItem('gfuchs_sb_url', url);
+        localStorage.setItem('gfuchs_sb_key', key);
+      } catch (_) {}
+      closeModal();
+      showToast('Connecting to Supabase…');
+      initSupabaseSync().then(() => {
+        if (window._sbConnected) showToast('Connected & synced with Supabase!');
+      });
+    }
+
+    function openCloudSyncModal() {
+      const { url, key } = getSupabaseCreds();
+      openModal(`
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Multi-Device Sync</div>
+            <h3 class="font-extrabold text-base mt-0.5">Supabase Cloud Sync</h3>
+          </div>
+          <button type="button" onclick="closeModal()" aria-label="Close" class="w-10 h-10 rounded-full flex items-center justify-center surface-soft text-xs font-bold cursor-pointer">✕</button>
+        </div>
+
+        <div class="p-3 rounded-2xl surface-soft flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full ${window._sbConnected ? 'bg-[#9ED11E]' : 'bg-amber-400'}"></span>
+            <span class="font-extrabold">${window._sbConnected ? 'Connected & Syncing Live' : 'Not Connected Yet'}</span>
+          </div>
+          ${window._sbConnected ? `<button type="button" onclick="pushStateToSupabase(true); showToast('Synced to cloud!');" class="px-2.5 py-1 rounded-full card-white text-[11px] font-extrabold cursor-pointer">Sync Now</button>` : ''}
+        </div>
+
+        <div class="space-y-2 text-xs">
+          <div class="font-extrabold">Step 1: Create table in Supabase SQL Editor</div>
+          <button type="button" onclick="copySupabaseSql()" class="w-full py-2.5 rounded-2xl surface-soft font-extrabold cursor-pointer hover:border-[#010101] inline-flex items-center justify-center gap-1.5">${uiIcon('copy')} Copy 1-Click Supabase SQL</button>
+        </div>
+
+        <form onsubmit="saveSupabaseCreds(event)" class="space-y-3 text-xs">
+          <div class="font-extrabold">Step 2: Paste Project URL &amp; Publishable Key</div>
+          <div>
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Supabase Project URL *</label>
+            <input name="sbUrl" value="${url.replace(/"/g, '&quot;')}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm font-medium" placeholder="https://xxxx.supabase.co" required />
+          </div>
+          <div>
+            <label class="block font-bold text-[var(--text-muted)] mb-1">Anon / Publishable Key *</label>
+            <input name="sbKey" value="${key.replace(/"/g, '&quot;')}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm font-medium" placeholder="eyJhbGciOi… or sb_publishable_…" required />
+          </div>
+          <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
+            Connect &amp; Sync Across Devices →
+          </button>
+        </form>
+      `);
+    }
+
+    function render(shouldSync = true) {
       renderChrome();
       const root = document.getElementById('app-root');
       if (state.role === 'coach') {
@@ -4363,8 +4596,14 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         else if (state.parentTab === 'waiver') root.innerHTML = renderParentWaiver();
         else if (state.parentTab === 'profile') root.innerHTML = renderAthleteProfile();
       }
+      if (shouldSync && !_sbHydrating) {
+        saveLocalState();
+        pushStateToSupabase();
+      }
     }
-    render();
+    loadLocalState();
+    render(false);
+    initSupabaseSync();
 
     // =========================================================================
     // NATIVE-FEELING LIQUID GLASS PULL-TO-REFRESH
