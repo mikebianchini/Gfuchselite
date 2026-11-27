@@ -3744,8 +3744,8 @@
         </div>
 
         <div class="grid grid-cols-2 gap-2 pt-1">
-          ${sessionId ? `<button type="button" onclick="openSessionPlanModal('${sessionId}')" class="inline-flex items-center justify-center gap-1.5 py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer hover:border-[#010101]">${uiIcon('clipboard')} Session Plan</button>` : `<button type="button" onclick="closeModal(); jumpToAthlete('${ath.id}');" class="py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Full Profile</button>`}
-          <button type="button" onclick="closeModal(); openSessionRecapModal('${ath.id}', '${sessionId || ''}');" class="inline-flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm">${uiIcon(hasStartedSessionNote(ath.id, sessionId) ? 'edit' : 'note')} ${hasStartedSessionNote(ath.id, sessionId) ? 'Edit Note' : 'Start Notes'}</button>
+          <button type="button" onclick="closeModal(); jumpToAthlete('${ath.id}');" class="py-3 rounded-2xl surface-soft text-xs font-extrabold cursor-pointer">Full Profile</button>
+          <button type="button" onclick="closeModal(); openSessionRecapModal('${ath.id}', '${sessionId || ''}');" class="inline-flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-xs font-extrabold cursor-pointer shadow-sm">${uiIcon('note')} Session Notes</button>
         </div>
       `);
     }
@@ -8887,7 +8887,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.10.0';
+    const APP_VERSION = 'v3.10.1';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Redesigned Session Notes Studio (Warm Up Routine w/ Walking PVC & custom drills, Player Notes and Focus, What We Worked On Tee/Front Toss/Machine with drills & per-area video, Session Notes)';
 
