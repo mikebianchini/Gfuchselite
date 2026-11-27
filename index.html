@@ -3607,6 +3607,12 @@
       const players = (s.athletes && s.athletes.length) ? s.athletes.join(', ') : 'Open Session';
       const isCanceled = s.status === 'Canceled';
       const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const existingAthIds = [...new Set([
+        ...(Array.isArray(s.athleteIds) ? s.athleteIds : []),
+        ...(s.athleteId ? [s.athleteId] : [])
+      ].filter(Boolean))];
+      const matchedEvt = state.cal.eventTypes.find(t => t.id === s.lessonId || t.title === s.lessonTitle);
+      const isGroupSession = isGroupLessonType(matchedEvt) || s.type === 'Small Group' || s.type === 'Camp / Clinic' || existingAthIds.length > 1;
 
       openModal(`
         <div class="flex items-start justify-between gap-2">
@@ -3637,23 +3643,33 @@
             </div>
           </div>
 
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="font-bold text-[var(--text-muted)]">${isGroupSession ? 'Group Athletes' : 'Athletes'} <span class="font-normal">(A–Z by last name)</span></label>
+              ${!isGroupSession ? `<button type="button" onclick="document.getElementById('manage-ses-ath-section')?.classList.toggle('hidden')" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">+ Add / Edit Athletes</button>` : ''}
+            </div>
+            <div id="manage-ses-ath-section" class="${isGroupSession ? '' : 'hidden'}">
+              ${renderMultiAthletePicker({ id: 'manage-ses-ath', inputName: 'manageAthleteIds', selectedIds: existingAthIds, placeholder: 'Type first or last name to add/remove athletes…' })}
+            </div>
+          </div>
+
           <div>
             <label class="block font-bold text-[var(--text-muted)] mb-1">Session Notes / Focus</label>
             <input name="focus" value="${esc(s.focus || '')}" class="w-full px-3.5 py-2.5 rounded-2xl surface-soft text-sm" placeholder="e.g., Slapping Footwork & Timing" />
           </div>
 
-          ${s.athleteId ? `
+          ${(s.athleteId || existingAthIds.length) ? `
             <label class="flex items-center justify-between gap-3 p-3 rounded-2xl card-mist cursor-pointer">
               <div>
                 <div class="font-extrabold">Log Update in Coach Messages</div>
-                <div class="text-[11px] text-[var(--text-muted)]">Records the new date &amp; time in the family’s thread</div>
+                <div class="text-[11px] text-[var(--text-muted)]">Records the updated details in each selected family’s thread</div>
               </div>
               <input type="checkbox" name="notify" checked class="w-5 h-5 accent-[#010101]" />
             </label>
           ` : ''}
 
           <button type="submit" class="w-full py-3 rounded-2xl bg-[#D5FF5F] text-[#010101] text-sm font-extrabold cursor-pointer shadow-lg hover:brightness-95 transition">
-            ${isCanceled ? 'Reschedule & Restore Session' : 'Save Rescheduled Time'}
+            ${isCanceled ? 'Reschedule & Restore Session' : 'Save Session Changes'}
           </button>
         </form>
 
@@ -3713,6 +3729,40 @@
       const newSlotKey = `${iso}@${hm}`;
       if (!state.cal.bookedSlots.includes(newSlotKey)) state.cal.bookedSlots.push(newSlotKey);
 
+      // Update athletes from multi-athlete picker
+      const prevIds = new Set([...(Array.isArray(s.athleteIds) ? s.athleteIds : []), ...(s.athleteId ? [s.athleteId] : [])].filter(Boolean));
+      const nextIds = [...new Set(Array.from(f.querySelectorAll('input[name="manageAthleteIds"]')).map(el => el.value).filter(Boolean))];
+      const nextAthletes = nextIds.map(id => state.athletes.find(a => a.id === id)).filter(Boolean);
+      s.athleteIds = nextAthletes.map(a => a.id);
+      s.athleteId = nextAthletes[0]?.id || null;
+      s.athletes = nextAthletes.map(a => a.name);
+      if (nextAthletes.length > 1 && s.type !== 'Camp / Clinic') {
+        s.type = 'Small Group';
+        s.spotsMax = Math.max(Number(s.spotsMax) || 6, nextAthletes.length);
+      }
+
+      // Create pending payment entries for newly added athletes
+      const addedAthletes = nextAthletes.filter(a => !prevIds.has(a.id));
+      const unitPrice = Number(s.price) || 60;
+      addedAthletes.forEach((ath, idx) => {
+        const _nowPay = Date.now() + idx;
+        state.payments.unshift({
+          id: 'pay-' + _nowPay,
+          date: dObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          dateIso: iso,
+          createdAt: _nowPay,
+          paidAt: null,
+          athleteId: ath.id,
+          sessionId: s.id,
+          family: `${(ath.parentName || ath.name).split(' ').slice(-1)[0]} Family`,
+          item: `${s.lessonTitle || s.focus || 'Group Session'} (${ath.name.split(' ')[0]})`,
+          amount: unitPrice,
+          method: 'Cash at Session',
+          status: 'Pending Cash',
+          _modifiedAt: _nowPay
+        });
+      });
+
       s.dateIso = iso;
       s.day = dayNice;
       s.dayKey = dayKey;
@@ -3723,24 +3773,25 @@
       s.status = 'Confirmed';
       s._modifiedAt = Date.now();
 
-      if (s.athleteId && f.notify?.checked) {
-        const ath = state.athletes.find(a => a.id === s.athleteId);
-        const parentKey = ath?.parentName || ath?.name || (s.athletes?.[0] || 'Family');
-        let thread = state.threads.find(t => t.parent === parentKey);
-        if (!thread) {
-          thread = { id: 'msg-' + Date.now(), parent: parentKey, athletes: ath?.name || (s.athletes?.[0] || ''), unread: 0, messages: [] };
-          state.threads.unshift(thread);
-        }
-        thread.messages.push({
-          from: 'coach',
-          time: 'Just now',
-          text: `Rescheduled ${s.lessonTitle || s.focus} session to ${dayNice} at ${timeNice} EST (${durLabel.toLowerCase()}). See you then!`
+      if (nextAthletes.length && f.notify?.checked) {
+        nextAthletes.forEach((ath, idx) => {
+          const parentKey = ath?.parentName || ath?.name || 'Family';
+          let thread = state.threads.find(t => t.parent === parentKey);
+          if (!thread) {
+            thread = { id: 'msg-' + (Date.now() + idx), parent: parentKey, athletes: ath.name, unread: 0, messages: [] };
+            state.threads.unshift(thread);
+          }
+          thread.messages.push({
+            from: 'coach',
+            time: 'Just now',
+            text: `Updated ${s.lessonTitle || s.focus} session to ${dayNice} at ${timeNice} EST (${durLabel.toLowerCase()}). See you then!`
+          });
         });
       }
 
       closeModal();
       render();
-      showToast(`Rescheduled to ${dayNice} at ${timeNice} — calendar synced!`);
+      showToast(`Saved session (${dayNice} at ${timeNice}${nextAthletes.length > 1 ? ` • ${nextAthletes.length} athletes` : ''})!`);
     }
 
     function cancelSessionCoach(sessionId, confirmed = false) {
@@ -4454,6 +4505,155 @@
       });
     }
 
+    function isGroupLessonType(evt) {
+      if (!evt) return false;
+      return evt.type === 'Small Group' || evt.type === 'Camp / Clinic' || /\b(group|clinic|camp)\b/i.test(evt.title || '');
+    }
+
+    const _multiAthletePickerState = {};
+
+    function renderMultiAthleteChipsHtml(pickerId) {
+      const st = _multiAthletePickerState[pickerId];
+      if (!st) return '';
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const ids = Array.from(st.selectedIds);
+      if (!ids.length) {
+        return `<span class="text-[11px] text-[var(--text-muted)]">No athletes selected yet — tap below to add multiple athletes (or leave empty for Open Group).</span>`;
+      }
+      return ids.map(id => {
+        const a = state.athletes.find(x => x.id === id);
+        if (!a) return '';
+        const locked = st.lockedIds.has(id);
+        return `
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold">
+            <span>${esc(formatAthleteLastFirst(a))}</span>
+            ${locked ? '' : `<button type="button" onclick="toggleMultiAthletePickerItem('${pickerId}', '${id}')" aria-label="Remove ${esc(a.name)}" class="w-4 h-4 rounded-full bg-[#010101]/15 hover:bg-[#010101]/25 flex items-center justify-center text-[9px] font-black cursor-pointer">✕</button>`}
+          </span>
+        `;
+      }).join('');
+    }
+
+    function renderMultiAthleteHiddenInputsHtml(pickerId) {
+      const st = _multiAthletePickerState[pickerId];
+      if (!st) return '';
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return Array.from(st.selectedIds)
+        .map(id => `<input type="hidden" name="${esc(st.inputName)}" value="${esc(id)}" />`)
+        .join('');
+    }
+
+    function renderMultiAthleteOptionsHtml(pickerId, query = '') {
+      const st = _multiAthletePickerState[pickerId];
+      if (!st) return '';
+      const q = String(query || '').trim().toLowerCase();
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const sorted = getAthletesSortedByLastName(false);
+      const matches = q
+        ? sorted.filter(a => {
+            const { firstName, lastName } = splitAthleteName(a);
+            const hay = `${formatAthleteLastFirst(a)} ${lastName} ${firstName} ${a.name || ''} ${a.parentName || ''} ${a.ageGroup || ''}`.toLowerCase();
+            return hay.includes(q);
+          })
+        : sorted;
+
+      if (!matches.length) {
+        return `<div class="px-3 py-3 text-center text-[11px] text-[var(--text-muted)]">No athletes match "${esc(query)}".</div>`;
+      }
+
+      return matches.map(a => {
+        const isSel = st.selectedIds.has(a.id);
+        const locked = st.lockedIds.has(a.id);
+        const label = formatAthleteLastFirst(a);
+        const sub = [a.ageGroup, a.parentName].filter(Boolean).join(' • ');
+        return `
+          <button type="button" onclick="toggleMultiAthletePickerItem('${pickerId}', '${a.id}')" class="w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between gap-2 cursor-pointer transition ${isSel ? 'bg-[#D5FF5F] text-[#010101] font-extrabold' : 'hover:bg-white/60 dark:hover:bg-white/10'}">
+            <span class="flex items-center gap-2 min-w-0">
+              <span class="w-4 h-4 rounded-md border flex items-center justify-center text-[10px] font-black shrink-0 ${isSel ? 'bg-[#010101] border-[#010101] text-[#D5FF5F]' : 'border-[var(--border-subtle)] bg-white/70 dark:bg-white/10'}">${isSel ? '✓' : ''}</span>
+              <span class="min-w-0 truncate">
+                <strong class="font-extrabold">${esc(label)}</strong>
+                ${sub ? `<span class="text-[11px] ${isSel ? 'text-[#010101]/75' : 'text-[var(--text-muted)]'}"> • ${esc(sub)}</span>` : ''}
+              </span>
+            </span>
+            ${locked ? '<span class="text-[10px] font-extrabold opacity-75 shrink-0">Primary</span>' : ''}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderMultiAthletePicker(opts = {}) {
+      const pickerId = opts.id || ('map-' + Date.now());
+      const inputName = opts.inputName || 'groupAthleteIds';
+      const placeholder = opts.placeholder || 'Type first or last name to add athletes…';
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const selectedIds = new Set((opts.selectedIds || []).filter(Boolean));
+      const lockedIds = new Set((opts.lockedIds || []).filter(Boolean));
+      lockedIds.forEach(id => selectedIds.add(id));
+      _multiAthletePickerState[pickerId] = { selectedIds, lockedIds, inputName };
+
+      return `
+        <div id="${pickerId}-wrap" class="space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <span id="${pickerId}-count" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">${selectedIds.size} ${selectedIds.size === 1 ? 'athlete' : 'athletes'} selected</span>
+            <button id="${pickerId}-clearall" type="button" onclick="clearMultiAthletePicker('${pickerId}')" class="${selectedIds.size > lockedIds.size ? '' : 'hidden'} text-[11px] font-bold text-[var(--text-muted)] hover:underline cursor-pointer">Clear all</button>
+          </div>
+          <div id="${pickerId}-chips" class="flex flex-wrap gap-1.5 p-2 rounded-2xl surface-soft min-h-[38px] items-center">
+            ${renderMultiAthleteChipsHtml(pickerId)}
+          </div>
+          <div class="relative">
+            <svg class="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M20 20l-3.5-3.5"/></svg>
+            <input
+              id="${pickerId}-search"
+              type="search"
+              autocomplete="off"
+              oninput="filterMultiAthletePicker('${pickerId}', this.value)"
+              placeholder="${esc(placeholder)}"
+              class="w-full pl-9 pr-3 py-2.5 rounded-2xl surface-soft font-semibold text-sm"
+            />
+          </div>
+          <div id="${pickerId}-list" class="max-h-44 overflow-y-auto rounded-2xl surface-soft p-1.5 space-y-1">
+            ${renderMultiAthleteOptionsHtml(pickerId, '')}
+          </div>
+          <div id="${pickerId}-inputs">${renderMultiAthleteHiddenInputsHtml(pickerId)}</div>
+        </div>
+      `;
+    }
+
+    function filterMultiAthletePicker(pickerId, query) {
+      const listEl = document.getElementById(`${pickerId}-list`);
+      if (listEl) listEl.innerHTML = renderMultiAthleteOptionsHtml(pickerId, query);
+    }
+
+    function refreshMultiAthletePickerDom(pickerId) {
+      const st = _multiAthletePickerState[pickerId];
+      if (!st) return;
+      const chipsEl = document.getElementById(`${pickerId}-chips`);
+      const inputsEl = document.getElementById(`${pickerId}-inputs`);
+      const countEl = document.getElementById(`${pickerId}-count`);
+      const clearBtn = document.getElementById(`${pickerId}-clearall`);
+      const listEl = document.getElementById(`${pickerId}-list`);
+      const searchEl = document.getElementById(`${pickerId}-search`);
+      if (chipsEl) chipsEl.innerHTML = renderMultiAthleteChipsHtml(pickerId);
+      if (inputsEl) inputsEl.innerHTML = renderMultiAthleteHiddenInputsHtml(pickerId);
+      if (countEl) countEl.textContent = `${st.selectedIds.size} ${st.selectedIds.size === 1 ? 'athlete' : 'athletes'} selected`;
+      if (clearBtn) clearBtn.classList.toggle('hidden', st.selectedIds.size <= st.lockedIds.size);
+      if (listEl) listEl.innerHTML = renderMultiAthleteOptionsHtml(pickerId, searchEl?.value || '');
+    }
+
+    function toggleMultiAthletePickerItem(pickerId, athId) {
+      const st = _multiAthletePickerState[pickerId];
+      if (!st || !athId || st.lockedIds.has(athId)) return;
+      if (st.selectedIds.has(athId)) st.selectedIds.delete(athId);
+      else st.selectedIds.add(athId);
+      refreshMultiAthletePickerDom(pickerId);
+    }
+
+    function clearMultiAthletePicker(pickerId) {
+      const st = _multiAthletePickerState[pickerId];
+      if (!st) return;
+      st.selectedIds = new Set(st.lockedIds);
+      refreshMultiAthletePickerDom(pickerId);
+    }
+
     function openAddAthleteModal(familyId = null) {
       const isParentFlow = familyId === 'fam-1';
       openModal(`
@@ -4860,9 +5060,32 @@
 
     function syncSessionDurationFromLesson(selectEl) {
       const form = selectEl?.form;
-      if (!form || !form.durationMin) return;
+      if (!form) return;
       const evt = state.cal.eventTypes.find(t => t.id === selectEl.value);
-      if (evt?.duration) form.durationMin.value = String(evt.duration);
+      if (form.durationMin && evt?.duration) form.durationMin.value = String(evt.duration);
+      const isGroup = isGroupLessonType(evt);
+
+      // In Schedule Session modal: swap single picker <-> multi-athlete group picker automatically
+      const singleWrap = document.getElementById('sched-single-ath-wrap');
+      const groupWrap = document.getElementById('sched-group-ath-wrap');
+      if (singleWrap && groupWrap) {
+        singleWrap.classList.toggle('hidden', isGroup);
+        groupWrap.classList.toggle('hidden', !isGroup);
+        const modeInput = form.querySelector('input[name="athleteSelectionMode"]');
+        if (modeInput) modeInput.value = isGroup ? 'group' : 'single';
+        if (isGroup) {
+          const singleId = document.getElementById('sched-ath-hidden')?.value;
+          if (singleId && _multiAthletePickerState['sched-group-ath'] && !_multiAthletePickerState['sched-group-ath'].selectedIds.has(singleId)) {
+            toggleMultiAthletePickerItem('sched-group-ath', singleId);
+          }
+        }
+      }
+
+      // In Athlete-Profile Schedule modal: reveal multi-athlete group section automatically
+      const athExtraWrap = document.getElementById('ath-sched-group-wrap');
+      if (athExtraWrap) {
+        athExtraWrap.classList.toggle('hidden', !isGroup);
+      }
     }
 
     function openAddSessionForAthleteModal(athId, presetDate = null, presetLessonId = null) {
@@ -4872,6 +5095,7 @@
       const defaultLesson = state.cal.eventTypes.find(t => t.id === presetLessonId) || state.cal.eventTypes[0];
       const defaultDur = Number(defaultLesson?.duration) || 60;
       const durations = [15, 30, 45, 60, 75, 90, 120, 180];
+      const isGroupLesson = isGroupLessonType(defaultLesson);
       openModal(`
         <div class="flex items-start justify-between gap-2">
           <div>
@@ -4904,6 +5128,11 @@
                 ${durations.map(m => `<option value="${m}" ${defaultDur === m ? 'selected' : ''}>${m >= 60 && m % 60 === 0 ? `${m / 60}h` : `${m}m`}</option>`).join('')}
               </select>
             </div>
+          </div>
+
+          <div id="ath-sched-group-wrap" class="${isGroupLesson ? '' : 'hidden'} space-y-1.5 pt-1">
+            <label class="block font-bold text-[var(--text-muted)]">Group Athletes <span class="font-normal">(A–Z by last name — select multiple)</span></label>
+            ${renderMultiAthletePicker({ id: 'ath-sched-group', inputName: 'extraAthleteIds', selectedIds: [ath.id], lockedIds: [ath.id], placeholder: 'Type first or last name to add teammates…' })}
           </div>
 
           <div>
@@ -4939,6 +5168,11 @@
     function submitAddSessionForAthlete(e, athId, extraAthleteIds = []) {
       e.preventDefault();
       const f = e.target;
+      const formExtraIds = Array.from(f.querySelectorAll('input[name="extraAthleteIds"]'))
+        .filter(el => el.type === 'hidden' || el.checked)
+        .map(el => el.value)
+        .filter(Boolean);
+      const mergedExtraIds = [...new Set([...(Array.isArray(extraAthleteIds) ? extraAthleteIds : []), ...formExtraIds])];
       const evt = state.cal.eventTypes.find(t => t.id === f.eventTypeId.value) || state.cal.eventTypes[0];
       const baseIso = f.date.value;
       const hm = f.time.value; // "16:00"
@@ -4954,7 +5188,7 @@
       const appliedPrice = isCard ? getCardPrice(evt) : getCashPrice(evt);
 
       // Collect all selected athletes (primary + any group multi-select)
-      const allIds = [...new Set([athId, ...(Array.isArray(extraAthleteIds) ? extraAthleteIds : [])].filter(Boolean))];
+      const allIds = [...new Set([athId, ...mergedExtraIds].filter(Boolean))];
       const selectedAthletes = allIds.map(id => state.athletes.find(a => a.id === id)).filter(Boolean);
       const primaryAth = selectedAthletes[0] || null;
       const athNames = selectedAthletes.map(a => a.name);
@@ -7952,7 +8186,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const durations = [15, 30, 45, 60, 75, 90, 120, 180];
       const activeAthletes = state.athletes.filter(a => !a.archived);
       const hasAthletes = activeAthletes.length > 0;
-      const isGroupLesson = defaultLesson && (defaultLesson.type === 'Small Group' || defaultLesson.type === 'Camp / Clinic');
+      const isGroupLesson = isGroupLessonType(defaultLesson);
       openModal(`
         <div class="flex items-start justify-between gap-2">
           <div>
@@ -7963,6 +8197,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         </div>
 
         <form onsubmit="submitQuickAddSession(event)" class="space-y-3 text-xs">
+          <input type="hidden" name="athleteSelectionMode" value="${isGroupLesson ? 'group' : 'single'}" />
           <div>
             <div class="flex items-center justify-between mb-1">
               <label class="font-bold text-[var(--text-muted)]">Lesson *</label>
@@ -8001,33 +8236,26 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           </div>
 
           ${hasAthletes ? `
-            <div class="space-y-2">
+            <div id="sched-single-ath-wrap" class="${isGroupLesson ? 'hidden' : ''} space-y-2">
               <div class="flex items-center justify-between">
                 <label class="font-bold text-[var(--text-muted)]">Athlete <span class="font-normal">(A–Z by last name)</span></label>
                 <div class="flex items-center gap-2">
-                  <button type="button" onclick="document.getElementById('group-multi-athletes')?.classList.toggle('hidden')" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">+ Group (${activeAthletes.length})</button>
+                  <button type="button" onclick="toggleScheduleAthleteMode('group')" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">+ Multiple Athletes</button>
                   <button type="button" onclick="closeModal(); openAddAthleteModal(null);" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">+ New</button>
                 </div>
               </div>
               ${renderSearchableAthletePicker({ id: 'sched-ath', inputName: 'athleteId', allowOpenSession: true, placeholder: 'Type first or last name (or leave blank for Open)…' })}
-              <div id="group-multi-athletes" class="${isGroupLesson ? '' : 'hidden'} surface-soft rounded-2xl p-3 space-y-2">
-                <div class="flex items-center justify-between gap-2">
-                  <span class="text-[11px] font-extrabold text-[var(--text-muted)]">Additional Small Group athletes:</span>
-                </div>
-                <input type="search" oninput="filterGroupAthleteList(this.value)" placeholder="Filter group athletes…" class="w-full px-3 py-1.5 rounded-xl card-white text-xs font-medium" />
-                <div class="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto">
-                  ${getAthletesSortedByLastName(false).map(a => {
-                    const lbl = formatAthleteLastFirst(a);
-                    const hay = `${lbl} ${a.name || ''} ${a.parentName || ''} ${a.ageGroup || ''}`.replace(/"/g, '&quot;');
-                    return `
-                      <label data-group-ath-item data-group-ath-hay="${hay}" class="flex items-center gap-2 px-2 py-1.5 rounded-xl card-white cursor-pointer text-[11px] font-bold">
-                        <input type="checkbox" name="extraAthleteIds" value="${a.id}" class="w-4 h-4 accent-[#010101]" />
-                        <span class="truncate">${lbl.replace(/</g, '&lt;')}</span>
-                      </label>
-                    `;
-                  }).join('')}
+            </div>
+
+            <div id="sched-group-ath-wrap" class="${isGroupLesson ? '' : 'hidden'} space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="font-bold text-[var(--text-muted)]">Group Athletes <span class="font-normal">(A–Z by last name — select multiple)</span></label>
+                <div class="flex items-center gap-2">
+                  <button type="button" onclick="toggleScheduleAthleteMode('single')" class="text-[11px] font-bold text-[var(--text-muted)] hover:underline cursor-pointer">Single</button>
+                  <button type="button" onclick="closeModal(); openAddAthleteModal(null);" class="text-[11px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] hover:underline cursor-pointer">+ New</button>
                 </div>
               </div>
+              ${renderMultiAthletePicker({ id: 'sched-group-ath', inputName: 'groupAthleteIds', placeholder: 'Type first or last name to add athletes to group…' })}
             </div>
           ` : `
             <div>
@@ -8054,7 +8282,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           <label class="flex items-center justify-between gap-3 p-3 rounded-2xl card-mist cursor-pointer">
             <div>
               <div class="font-extrabold">Send Parent Confirmation</div>
-              <div class="text-[11px] text-[var(--text-muted)]">Logs session date &amp; time in Coach Messages (when athlete selected)</div>
+              <div class="text-[11px] text-[var(--text-muted)]">Logs session date &amp; time in Coach Messages (for each selected athlete)</div>
             </div>
             <input type="checkbox" name="notify" checked class="w-5 h-5 accent-[#010101]" />
           </label>
@@ -8066,11 +8294,40 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       `);
     }
 
+    function toggleScheduleAthleteMode(mode) {
+      const isGroup = mode === 'group';
+      const singleWrap = document.getElementById('sched-single-ath-wrap');
+      const groupWrap = document.getElementById('sched-group-ath-wrap');
+      const modeInput = document.querySelector('input[name="athleteSelectionMode"]');
+      if (singleWrap) singleWrap.classList.toggle('hidden', isGroup);
+      if (groupWrap) groupWrap.classList.toggle('hidden', !isGroup);
+      if (modeInput) modeInput.value = isGroup ? 'group' : 'single';
+      if (isGroup) {
+        const singleId = document.getElementById('sched-ath-hidden')?.value;
+        if (singleId && _multiAthletePickerState['sched-group-ath'] && !_multiAthletePickerState['sched-group-ath'].selectedIds.has(singleId)) {
+          toggleMultiAthletePickerItem('sched-group-ath', singleId);
+        }
+      }
+    }
+
     function submitQuickAddSession(e) {
       e.preventDefault();
       const f = e.target;
-      let athId = f.athleteId ? (f.athleteId.value || null) : null;
-      const extraIds = Array.from(f.querySelectorAll('input[name="extraAthleteIds"]:checked')).map(el => el.value);
+      const mode = f.athleteSelectionMode?.value || 'single';
+      let athId = null;
+      let extraIds = [];
+
+      if (mode === 'group') {
+        const groupIds = Array.from(f.querySelectorAll('input[name="groupAthleteIds"]'))
+          .map(el => el.value)
+          .filter(Boolean);
+        athId = groupIds[0] || null;
+        extraIds = groupIds.slice(1);
+      } else {
+        athId = f.athleteId ? (f.athleteId.value || null) : null;
+        extraIds = Array.from(f.querySelectorAll('input[name="extraAthleteIds"]:checked')).map(el => el.value);
+      }
+
       if (!athId && f.newAthleteName && f.newAthleteName.value.trim()) {
         const name = f.newAthleteName.value.trim();
         const parts = name.split(/\s+/);
@@ -8080,6 +8337,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           id: athId,
           initials,
           name,
+          firstName: parts[0] || '',
+          lastName: parts.slice(1).join(' '),
           familyId: 'fam-' + Date.now(),
           parentName: '',
           parentPhone: '',
@@ -8305,7 +8564,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       showToast('Clover integration settings saved & synced!');
     }
 
-    const APP_VERSION = 'v3.7.1';
+    const APP_VERSION = 'v3.7.2';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Coach Messaging Hub (New Message, Broadcast, quick replies, mobile inbox), Transactions table, First/Last name & Dark Mode fix';
 
