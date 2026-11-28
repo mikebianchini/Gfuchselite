@@ -377,6 +377,23 @@
       padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 108px);
     }
 
+    /* Smooth Right-Side Slide-Over Mobile Drawer */
+    #mobile-drawer {
+      opacity: 0;
+      transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    #mobile-drawer.drawer-open {
+      opacity: 1;
+    }
+    #mobile-drawer-panel {
+      transform: translate3d(100%, 0, 0);
+      transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform;
+    }
+    #mobile-drawer.drawer-open #mobile-drawer-panel {
+      transform: translate3d(0, 0, 0);
+    }
+
     /* Ambient Luminous Mesh Behind Liquid Glass */
     .liquid-ambient {
       position: fixed;
@@ -637,11 +654,19 @@
 
     <!-- Floating Mobile Liquid Glass Header Capsule (iOS Safe-Area Aware) -->
     <div class="lg:hidden mobile-header-wrap">
-      <header class="glass-dock rounded-[26px] px-4 py-2 flex items-center justify-between gap-2.5">
-        <div class="leading-tight min-w-0">
-          <div class="font-extrabold text-sm tracking-tight truncate">ELITE FASTPITCH</div>
-          <div class="text-xs text-[var(--text-muted)] font-semibold truncate">Gina Fuchs Training</div>
-        </div>
+      <header class="glass-dock rounded-[26px] px-3 py-2 flex items-center justify-between gap-2.5">
+        <button type="button" onclick="setTab(state.role === 'coach' ? 'today' : 'home')" aria-label="Go to Home" class="flex items-center gap-2.5 min-w-0 text-left cursor-pointer">
+          <span class="w-9 h-9 rounded-2xl bg-[#010101] text-[#D5FF5F] flex items-center justify-center shrink-0 shadow-sm p-1.5">
+            <svg class="w-full h-full" viewBox="14 42 168 168" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <polygon fill="#9AC0D6" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
+              <polygon fill="#D5FF5F" points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
+            </svg>
+          </span>
+          <div class="leading-tight min-w-0">
+            <div class="font-extrabold text-sm tracking-tight truncate">ELITE FASTPITCH</div>
+            <div class="text-xs text-[var(--text-muted)] font-semibold truncate">Gina Fuchs Training</div>
+          </div>
+        </button>
 
         <button onclick="openMobileDrawer()" aria-label="Profile, Role &amp; Settings" class="flex items-center gap-2 pl-2.5 pr-1 py-1 rounded-full surface-soft shrink-0 cursor-pointer hover:border-[#010101] transition">
           <span id="mob-role-pill-label" class="text-xs font-extrabold">Coach</span>
@@ -650,9 +675,9 @@
       </header>
     </div>
 
-    <!-- Mobile Full-Menu Slide-Over Drawer (100% Desktop Sidebar Parity) -->
-    <div id="mobile-drawer" onclick="if (event.target === this) closeMobileDrawer();" class="lg:hidden fixed inset-0 z-50 hidden modal-backdrop">
-      <div class="glass-dock w-80 max-w-[86vw] h-full p-5 flex flex-col justify-between overflow-y-auto" style="padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.25rem);">
+    <!-- Mobile Full-Menu Slide-Over Drawer (Slides Smoothly from Right) -->
+    <div id="mobile-drawer" onclick="if (event.target === this) closeMobileDrawer();" class="lg:hidden fixed inset-0 z-50 hidden flex justify-end modal-backdrop">
+      <div id="mobile-drawer-panel" class="glass-dock w-80 max-w-[86vw] h-full rounded-l-[28px] p-5 flex flex-col justify-between overflow-y-auto shadow-2xl" style="padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.25rem);">
         <div class="space-y-5">
           <div class="flex items-center justify-between gap-2">
             <div class="leading-tight">
@@ -1303,14 +1328,36 @@
       if (typeof fn === 'function') fn();
     }
 
+    let _drawerCloseTimer = null;
+
     function openMobileDrawer() {
       const d = document.getElementById('mobile-drawer');
-      if (d) d.classList.remove('hidden');
+      if (!d) return;
+      clearTimeout(_drawerCloseTimer);
+      const panel = document.getElementById('mobile-drawer-panel') || d.firstElementChild;
+      if (panel) {
+        panel.style.transition = '';
+        panel.style.transform = '';
+      }
+      d.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => d.classList.add('drawer-open'));
+      });
     }
 
     function closeMobileDrawer() {
       const d = document.getElementById('mobile-drawer');
-      if (d) d.classList.add('hidden');
+      if (!d || d.classList.contains('hidden')) return;
+      clearTimeout(_drawerCloseTimer);
+      const panel = document.getElementById('mobile-drawer-panel') || d.firstElementChild;
+      if (panel) {
+        panel.style.transition = '';
+        panel.style.transform = '';
+      }
+      d.classList.remove('drawer-open');
+      _drawerCloseTimer = setTimeout(() => {
+        if (!d.classList.contains('drawer-open')) d.classList.add('hidden');
+      }, 240);
     }
 
     function switchRole(role) {
@@ -9454,7 +9501,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.15.4';
+    const APP_VERSION = 'v3.15.5';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Mobile UX & Typography Upgrade: improved sunlight contrast, rebalanced weight hierarchy, tabular numbers, auto-growing session note textareas, sticky Back/Send bar, wider phone reading layout, and 44px touch targets';
 
@@ -11437,13 +11484,13 @@ create policy "Allow media delete" on storage.objects
         }
       }, { passive: true });
 
-      // 2. Swipe-Left to Close Mobile Drawer
+      // 2. Swipe-Right to Close Mobile Drawer (slides smoothly back to right edge)
       const drawer = document.getElementById('mobile-drawer');
       if (drawer) {
         let dCtx = null;
         drawer.addEventListener('touchstart', (e) => {
           if (e.touches.length !== 1) return;
-          const panel = drawer.firstElementChild;
+          const panel = document.getElementById('mobile-drawer-panel') || drawer.firstElementChild;
           if (!panel) return;
           dCtx = { panel, x0: e.touches[0].clientX, y0: e.touches[0].clientY, dx: 0 };
         }, { passive: true });
@@ -11451,19 +11498,19 @@ create policy "Allow media delete" on storage.objects
           if (!dCtx) return;
           const dx = e.touches[0].clientX - dCtx.x0;
           const dy = e.touches[0].clientY - dCtx.y0;
-          if (dx < -10 && Math.abs(dx) > Math.abs(dy)) {
+          if (dx > 10 && Math.abs(dx) > Math.abs(dy)) {
             dCtx.dx = dx;
             dCtx.panel.style.transition = 'none';
-            dCtx.panel.style.transform = `translateX(${Math.round(dx)}px)`;
+            dCtx.panel.style.transform = `translate3d(${Math.round(dx)}px, 0, 0)`;
           }
         }, { passive: true });
         drawer.addEventListener('touchend', () => {
           if (!dCtx) return;
           const { panel, dx } = dCtx;
           dCtx = null;
-          panel.style.transition = 'transform 0.22s cubic-bezier(0.22, 1, 0.36, 1)';
+          panel.style.transition = '';
           panel.style.transform = '';
-          if (dx <= -60) {
+          if (dx >= 60) {
             vibrateTap();
             closeMobileDrawer();
           }
