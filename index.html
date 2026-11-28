@@ -3753,18 +3753,19 @@
       return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     }
 
-    function getRolling7Days() {
+    function getRolling7Days(startOffset = 0) {
       const todayIso = getTodayIsoEst();
       const base = new Date(todayIso + 'T12:00:00');
       const days = [];
-      for (let i = 0; i < 7; i++) {
+      for (let idx = 0; idx < 7; idx++) {
+        const i = startOffset + idx;
         const d = new Date(base.getTime() + i * 86400000);
         const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         const dow = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
         const num = String(d.getDate());
         const shortLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         const dayKey = d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }).replace(',', '');
-        days.push({ iso, dow, num, shortLabel, dayKey, isToday: i === 0 });
+        days.push({ iso, dow, num, shortLabel, dayKey, isToday: i === 0, isTomorrow: i === 1 });
       }
       return days;
     }
@@ -4784,19 +4785,17 @@
       };
 
       if (activeToday.length === 0) {
-        const upcomingDays = (next7DaysWithSessions || []).slice(1);
+        const upcomingDays = (next7DaysWithSessions || []).filter(d => !d.isToday);
         let nextDay = null;
-        let nextOffset = -1;
         for (let i = 0; i < upcomingDays.length; i++) {
           const active = (upcomingDays[i].sessions || []).filter(s => s.status !== 'Canceled');
           if (active.length) {
             nextDay = { ...upcomingDays[i], active };
-            nextOffset = i + 1;
             break;
           }
         }
         if (nextDay) {
-          const dayWord = nextOffset === 1
+          const dayWord = nextDay.isTomorrow
             ? 'tomorrow'
             : `on ${new Date(nextDay.iso + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' })}`;
           const countWord = `${nextDay.active.length} session${nextDay.active.length === 1 ? '' : 's'}`;
@@ -4834,8 +4833,8 @@
     }
 
     function renderCoachToday() {
-      const days = getRolling7Days();
-      const today = days[0];
+      const today = getRolling7Days(0)[0];
+      const days = getRolling7Days(1); // Next 7 upcoming days starting tomorrow (avoids duplicating Today)
       const todayFullLabel = new Date(today.iso + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
       const todaySessions = sortSessionsByTimeAsc(state.sessions.filter(s => sessionMatchesDay(s, today)));
@@ -4845,7 +4844,8 @@
       }));
       const totalNext7Count = next7DaysWithSessions.reduce((sum, d) => sum + d.sessions.length, 0);
 
-      const activeDayFilter = state.homeDayFilter || 'all7';
+      const rawDayFilter = state.homeDayFilter || 'all7';
+      const activeDayFilter = rawDayFilter !== 'all7' && !days.some(d => d.iso === rawDayFilter) ? 'all7' : rawDayFilter;
       const filtered7Days = activeDayFilter === 'all7'
         ? next7DaysWithSessions.filter(d => d.sessions.length > 0)
         : next7DaysWithSessions.filter(d => d.iso === activeDayFilter);
@@ -4953,7 +4953,7 @@
                 const count = d.sessions.length;
                 return `
                   <button onclick="state.homeDayFilter='${d.iso}'; render(false);" class="flex flex-col items-center justify-center min-w-[68px] py-3 px-2 rounded-2xl border transition cursor-pointer ${isSelected ? 'bg-[#010101] text-[#D5FF5F] border-[#010101] font-extrabold shadow-md' : 'card-white text-[var(--text-muted)] hover:border-[#010101]'}">
-                    <span class="text-[11px] font-bold">${d.isToday ? 'TODAY' : d.dow}</span>
+                    <span class="text-[11px] font-bold">${d.isTomorrow ? 'TMRW' : d.dow}</span>
                     <span class="text-lg font-extrabold leading-tight mt-0.5 ${isSelected ? 'text-[#D5FF5F]' : 'text-[var(--text-main)]'}">${d.num}</span>
                     <span class="mt-1 text-[11px] font-extrabold px-1.5 py-0.5 rounded-full ${count ? (isSelected ? 'bg-[#D5FF5F] text-[#010101]' : 'bg-[#D5FF5F]/80 text-[#010101]') : 'opacity-40'}">${count ? count : '—'}</span>
                   </button>
@@ -4967,7 +4967,7 @@
                 ${filtered7Days.filter(d => d.sessions.length).map(d => `
                   <div class="space-y-2.5">
                     <div class="flex items-center justify-between px-1">
-                      <span class="text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${d.isToday ? `Today • ${d.shortLabel}` : d.shortLabel}</span>
+                      <span class="text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${d.isTomorrow ? `Tomorrow • ${d.shortLabel}` : d.shortLabel}</span>
                       <span class="text-[13px] font-bold text-[var(--text-muted)]">${d.sessions.length} session${d.sessions.length === 1 ? '' : 's'}</span>
                     </div>
                     ${d.sessions.map(s => renderCoachSessionRow(s, false)).join('')}
@@ -4980,7 +4980,7 @@
                   <div class="font-extrabold text-sm">${activeDayFilter === 'all7' ? 'No sessions in the next 7 days' : 'No sessions on this day'}</div>
                   <div class="text-[13px] text-[var(--text-muted)] truncate">Schedule a session for any lesson</div>
                 </div>
-                <button onclick="openAddSessionModal('${activeDayFilter === 'all7' ? today.iso : activeDayFilter}')" class="px-3.5 py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-[13px] font-extrabold cursor-pointer shrink-0">+ Add Session</button>
+                <button onclick="openAddSessionModal('${activeDayFilter === 'all7' ? days[0].iso : activeDayFilter}')" class="px-3.5 py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-[13px] font-extrabold cursor-pointer shrink-0">+ Add Session</button>
               </div>
             `}
           </div>
@@ -10162,9 +10162,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.21.0';
+    const APP_VERSION = 'v3.21.1';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Redesigned Coach session cards with athlete-first hierarchy, Obsidian/Volt time pills, color-coded payment pills, a full-width 2-line coaching cue inset, and a balanced footer with live Notes Started status';
+    const APP_RELEASE_NOTES = 'Started the Home Next 7 Days section on tomorrow so today’s sessions are no longer duplicated below Today’s Schedule';
 
     function reloadLatestAppVersion() {
       try {
