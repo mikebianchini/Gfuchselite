@@ -479,6 +479,9 @@
         right: 0;
         bottom: 0;
         z-index: 40;
+        display: flex;
+        align-items: center;
+        gap: 10px;
         pointer-events: none;
         padding: 18px 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
         background: linear-gradient(0deg, rgba(221, 230, 234, 0.62) 0%, rgba(221, 230, 234, 0.22) 55%, rgba(221, 230, 234, 0) 100%);
@@ -486,11 +489,11 @@
       html.dark #mobile-bottom-dock-wrap {
         background: linear-gradient(0deg, rgba(11, 15, 20, 0.68) 0%, rgba(11, 15, 20, 0.24) 55%, rgba(11, 15, 20, 0) 100%);
       }
-      #mobile-bottom-nav {
+      #mobile-bottom-nav,
+      #mobile-menu-pill {
         position: relative;
         pointer-events: auto;
         border-radius: 9999px !important;
-        padding: 5px 6px !important;
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0.34) 52%, rgba(242, 248, 252, 0.44) 100%) !important;
         backdrop-filter: blur(28px) saturate(210%) brightness(1.04) !important;
         -webkit-backdrop-filter: blur(28px) saturate(210%) brightness(1.04) !important;
@@ -501,7 +504,28 @@
           0 14px 36px rgba(15, 23, 42, 0.16),
           0 2px 8px rgba(15, 23, 42, 0.07) !important;
       }
-      html.dark #mobile-bottom-nav {
+      #mobile-bottom-nav {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 5px 6px !important;
+      }
+      #mobile-menu-pill {
+        width: 58px;
+        height: 58px;
+        flex: 0 0 58px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        color: var(--text-main);
+        cursor: pointer;
+      }
+      #mobile-menu-pill:active {
+        transform: scale(0.94);
+      }
+      html.dark #mobile-bottom-nav,
+      html.dark #mobile-menu-pill {
         background: linear-gradient(180deg, rgba(44, 54, 70, 0.56) 0%, rgba(22, 28, 38, 0.40) 55%, rgba(16, 20, 28, 0.50) 100%) !important;
         backdrop-filter: blur(28px) saturate(200%) !important;
         -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
@@ -849,9 +873,10 @@
       <div id="app-root" class="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 pt-2 pb-10 sm:py-7 space-y-4 sm:space-y-5"></div>
     </main>
 
-    <!-- Mobile Bottom Toolbar (Real Flex Footer — Never Detaches or Sticks on iOS Scroll) -->
+    <!-- Mobile Bottom Toolbar (Split Apple Liquid Glass Pills — Tabs + Separate Menu Orb) -->
     <div id="mobile-bottom-dock-wrap" class="lg:hidden">
       <nav id="mobile-bottom-nav" aria-label="Primary navigation" class="glass-dock rounded-[28px] px-2 py-1.5 flex items-center justify-around gap-1"></nav>
+      <button id="mobile-menu-pill" type="button" onclick="openMobileDrawer()" aria-label="Open full menu"></button>
     </div>
   </div>
 
@@ -1721,19 +1746,10 @@
       const drawerNav = document.getElementById('mobile-drawer-nav');
       if (drawerNav) drawerNav.innerHTML = fullNavMarkup;
 
-      // Mobile bottom dock: Home, Schedule, Athletes + Menu (☰) drawer button
+      // Mobile bottom dock: primary tabs pill (Home, Schedule, Athletes) + separate Menu Liquid Glass pill
       const mobileDockItems = isCoach
         ? navItems.filter(item => ['today', 'schedule', 'athletes'].includes(item.id))
         : navItems.slice(0, 3);
-      const menuBtnMarkup = `
-        <button onclick="openMobileDrawer()" aria-label="Open full menu" class="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 min-h-[48px] rounded-full transition cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)]">
-          <span class="relative inline-flex items-center justify-center">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
-            ${isCoach && unread > 0 ? `<span id="mob-menu-badge" class="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold flex items-center justify-center shadow">${unread}</span>` : ''}
-          </span>
-          <span class="text-[11px] font-semibold leading-tight">Menu</span>
-        </button>
-      `;
       document.getElementById('mobile-bottom-nav').innerHTML = mobileDockItems.map(item => {
         const active = item.id === activeTab;
         return `
@@ -1745,7 +1761,16 @@
             <span class="text-[11px] ${active ? 'font-extrabold' : 'font-semibold'} leading-tight">${item.label}</span>
           </button>
         `;
-      }).join('') + menuBtnMarkup;
+      }).join('');
+      const menuPill = document.getElementById('mobile-menu-pill');
+      if (menuPill) {
+        menuPill.innerHTML = `
+          <span class="relative inline-flex items-center justify-center">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
+            ${isCoach && unread > 0 ? `<span id="mob-menu-badge" class="absolute -top-2 -right-2.5 min-w-[17px] h-[17px] px-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold flex items-center justify-center shadow">${unread}</span>` : ''}
+          </span>
+        `;
+      }
     }
 
     // =========================================================================
@@ -9982,9 +10007,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.19.0';
+    const APP_VERSION = 'v3.19.1';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Fixed iOS keyboard viewport shift when tapping text fields, plus added active ✓ toggle drill pills, sticky Quick-Jump section strip, collapsible completed sections, 1-tap Next Athlete Today switcher, and tactile pulsing dictation';
+    const APP_RELEASE_NOTES = 'Split mobile bottom Liquid Glass toolbar into a primary tabs pill (Home, Schedule, Athletes) plus a separate floating circular Menu pill';
 
     function reloadLatestAppVersion() {
       try {
