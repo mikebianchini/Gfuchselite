@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
   <title>Gina Fuchs Elite Fastpitch — Training App</title>
   <meta name="description" content="Personal fastpitch training app for Gina Fuchs Elite Fastpitch: Peloton-inspired drill workouts, live booking, velocity tracking, video mechanics, packages & waivers." />
   <link rel="icon" href="favicon.ico" sizes="any" />
@@ -227,50 +227,56 @@
       overflow-x: clip;
     }
 
-    /* Prevent iOS Safari auto-zoom when focusing inputs/textareas/selects */
-    @media (pointer: coarse), (max-width: 1024px) {
-      input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
-      textarea,
-      select {
-        font-size: 16px !important;
-      }
-    }
-
     /* Enhanced Mobile Typography Readability */
     @media (max-width: 767px) {
       html {
         font-size: 17.5px;
         -webkit-text-size-adjust: 100%;
       }
-      #app-root .text-\[10px\],
-      #modal-root .text-\[10px\] {
+      #app-root .text-\[10px\]:not(input):not(textarea):not(select),
+      #modal-root .text-\[10px\]:not(input):not(textarea):not(select) {
         font-size: 12.5px !important;
         line-height: 1.35 !important;
       }
-      #app-root .text-\[11px\],
-      #modal-root .text-\[11px\] {
+      #app-root .text-\[11px\]:not(input):not(textarea):not(select),
+      #modal-root .text-\[11px\]:not(input):not(textarea):not(select) {
         font-size: 13.5px !important;
         line-height: 1.4 !important;
       }
-      #app-root .text-\[12px\],
-      #modal-root .text-\[12px\],
-      #app-root .text-xs,
-      #modal-root .text-xs {
+      #app-root .text-\[12px\]:not(input):not(textarea):not(select),
+      #modal-root .text-\[12px\]:not(input):not(textarea):not(select),
+      #app-root .text-xs:not(input):not(textarea):not(select),
+      #modal-root .text-xs:not(input):not(textarea):not(select) {
         font-size: 14.5px !important;
         line-height: 1.45 !important;
       }
-      #app-root .text-\[13px\],
-      #modal-root .text-\[13px\] {
+      #app-root .text-\[13px\]:not(input):not(textarea):not(select),
+      #modal-root .text-\[13px\]:not(input):not(textarea):not(select) {
         font-size: 15px !important;
         line-height: 1.45 !important;
       }
-      #app-root .text-sm,
-      #modal-root .text-sm {
+      #app-root .text-sm:not(input):not(textarea):not(select),
+      #modal-root .text-sm:not(input):not(textarea):not(select) {
         font-size: 16px !important;
         line-height: 1.5 !important;
       }
       #mobile-bottom-nav {
         font-size: 11px;
+      }
+    }
+
+    /* Prevent iOS Safari auto-zoom: ALWAYS keep focused inputs/textareas/selects >= 16px */
+    @media (pointer: coarse), (max-width: 1024px) {
+      input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+      textarea,
+      select,
+      #app-root input[class]:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+      #app-root textarea[class],
+      #app-root select[class],
+      #modal-root input[class]:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+      #modal-root textarea[class],
+      #modal-root select[class] {
+        font-size: 16px !important;
       }
     }
 
@@ -9462,7 +9468,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.14.5';
+    const APP_VERSION = 'v3.14.6';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Upgraded mobile typography scale for improved readability across recaps, schedules, messaging, roster, and booking';
 
