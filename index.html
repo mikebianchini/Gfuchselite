@@ -318,8 +318,24 @@
       }
     }
 
-    h1 { letter-spacing: -0.03em; }
-    h2 { letter-spacing: -0.02em; }
+    h1 { letter-spacing: -0.03em; line-height: 1.15; }
+    h2 { letter-spacing: -0.025em; line-height: 1.22; }
+    #app-root h2 {
+      font-size: 1.1875rem !important; /* 19px crisp section header */
+      font-weight: 800;
+    }
+    .section-heading {
+      font-size: 1.125rem !important; /* 18px studio card section header */
+      line-height: 1.25 !important;
+      letter-spacing: -0.02em;
+      font-weight: 800;
+    }
+    .section-sub {
+      font-size: 13px !important;
+      line-height: 1.4 !important;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
 
     /* Accessible Focus Rings & Calibrated Tactile Tap Feedback */
     button, a[href], input, select, textarea, [tabindex] {
@@ -818,7 +834,7 @@
         slate: 'bg-[#4E6075]/12 text-[#4E6075] dark:bg-[#9AC0D6]/15 dark:text-[#9AC0D6]',
         amber: 'bg-amber-400/20 text-amber-800 dark:text-amber-300'
       };
-      return `<span class="w-8 h-8 rounded-xl inline-flex items-center justify-center shrink-0 ${tones[tone] || tones.slate}" aria-hidden="true">${uiIcon(iconName, 'w-4 h-4')}</span>`;
+      return `<span class="w-9 h-9 rounded-xl inline-flex items-center justify-center shrink-0 ${tones[tone] || tones.slate}" aria-hidden="true">${uiIcon(iconName, 'w-[18px] h-[18px]')}</span>`;
     }
 
     function syncThemeChrome(isDark) {
@@ -4573,7 +4589,7 @@
                 ${sectionBadge('calendar', 'obsidian')}
                 <div class="min-w-0">
                   <h2 class="text-lg font-extrabold tracking-tight leading-tight">Today’s Schedule</h2>
-                  <p class="text-sm text-[var(--text-muted)]">${todayFullLabel}</p>
+                  <p class="section-sub">${todayFullLabel}</p>
                 </div>
               </div>
               ${todaySessions.length ? `<button onclick="openAddSessionModal('${today.iso}')" class="px-3 py-1.5 rounded-xl surface-soft text-[13px] font-extrabold cursor-pointer hover:border-[#010101] transition shrink-0">+ Add Today</button>` : ''}
@@ -4601,7 +4617,7 @@
                 ${sectionBadge('clock', 'slate')}
                 <div class="min-w-0">
                   <h2 class="text-lg font-extrabold tracking-tight leading-tight">Next 7 Days</h2>
-                  <p class="text-sm text-[var(--text-muted)]">${days[0].shortLabel} – ${days[6].shortLabel}</p>
+                  <p class="section-sub">${days[0].shortLabel} – ${days[6].shortLabel}</p>
                 </div>
               </div>
               <button onclick="state.homeDayFilter='all7'; render(false);" class="px-3.5 py-1.5 rounded-full text-[13px] font-extrabold cursor-pointer transition ${activeDayFilter === 'all7' ? 'bg-[#010101] text-[#D5FF5F]' : 'surface-soft text-[var(--text-muted)]'}">
@@ -7181,40 +7197,40 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       const drillCols = [r.tee, r.ft, r.machine].filter(Boolean).length;
       const gridColsCls = drillCols === 1 ? 'grid-cols-1' : drillCols === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-3';
       return `
-        <div class="space-y-3 text-sm">
+        <div class="space-y-3.5 text-sm">
           ${r.warmup ? `
-            <div class="${boxCls} rounded-2xl p-3 space-y-1">
-              <div class="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('flame', 'w-3.5 h-3.5')} ${r.warmupTitle || 'Warm Up Routine'}</div>
+            <div class="${boxCls} rounded-2xl p-3.5 space-y-1.5">
+              <div class="inline-flex items-center gap-2 text-[15px] font-extrabold tracking-tight text-[var(--text-main)]">${uiIcon('flame', 'w-4 h-4 text-[#4E6075] dark:text-[#D5FF5F]')} ${r.warmupTitle || 'Warm Up Routine'}</div>
               <div class="text-sm leading-relaxed whitespace-pre-line text-[var(--text-muted)]">${r.warmup}</div>
             </div>
           ` : ''}
 
           ${r.focus ? `
-            <div class="space-y-0.5">
-              <div class="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('target', 'w-3.5 h-3.5')} What’s New / Focus for Lesson</div>
+            <div class="space-y-1">
+              <div class="inline-flex items-center gap-2 text-[15px] font-extrabold tracking-tight text-[var(--text-main)]">${uiIcon('target', 'w-4 h-4 text-[#4E6075] dark:text-[#9AC0D6]')} What’s New / Focus for Lesson</div>
               <p class="text-sm font-semibold leading-relaxed whitespace-pre-line">${r.focus}</p>
             </div>
           ` : ''}
 
           ${(r.tee || r.ft || r.machine) ? `
-            <div class="space-y-1.5">
-              <div class="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('softball', 'w-3.5 h-3.5')} What We Did Today</div>
-              <div class="grid ${gridColsCls} gap-2">
+            <div class="space-y-2">
+              <div class="inline-flex items-center gap-2 text-[15px] font-extrabold tracking-tight text-[var(--text-main)]">${uiIcon('softball', 'w-4 h-4 text-[#4E6075] dark:text-[#D5FF5F]')} What We Did Today</div>
+              <div class="grid ${gridColsCls} gap-2.5">
                 ${r.tee ? `
-                  <div class="${boxCls} rounded-2xl p-2.5 space-y-1">
-                    <div class="text-xs font-extrabold uppercase tracking-wider">Tee</div>
+                  <div class="${boxCls} rounded-2xl p-3 space-y-1">
+                    <div class="text-[13px] font-extrabold tracking-tight text-[var(--text-main)]">Tee</div>
                     <ul class="space-y-1 text-sm leading-snug">${formatBulletLines(r.tee)}</ul>
                   </div>
                 ` : ''}
                 ${r.ft ? `
-                  <div class="${boxCls} rounded-2xl p-2.5 space-y-1">
-                    <div class="text-xs font-extrabold uppercase tracking-wider">FT (Front Toss)</div>
+                  <div class="${boxCls} rounded-2xl p-3 space-y-1">
+                    <div class="text-[13px] font-extrabold tracking-tight text-[var(--text-main)]">FT (Front Toss)</div>
                     <ul class="space-y-1 text-sm leading-snug">${formatBulletLines(r.ft)}</ul>
                   </div>
                 ` : ''}
                 ${r.machine ? `
-                  <div class="${boxCls} rounded-2xl p-2.5 space-y-1">
-                    <div class="text-xs font-extrabold uppercase tracking-wider">Machine</div>
+                  <div class="${boxCls} rounded-2xl p-3 space-y-1">
+                    <div class="text-[13px] font-extrabold tracking-tight text-[var(--text-main)]">Machine</div>
                     <ul class="space-y-1 text-sm leading-snug">${formatBulletLines(r.machine)}</ul>
                   </div>
                 ` : ''}
@@ -7223,18 +7239,18 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           ` : ''}
 
           ${hwHead ? `
-            <div class="rounded-2xl px-3 py-2.5 bg-[#D5FF5F]/25 dark:bg-[#D5FF5F]/15 border border-[#D5FF5F]/60 space-y-1">
+            <div class="rounded-2xl px-3.5 py-3 bg-[#D5FF5F]/25 dark:bg-[#D5FF5F]/15 border border-[#D5FF5F]/60 space-y-1">
               <div class="flex items-start gap-2 text-sm leading-snug">
-                ${uiIcon('clipboard', 'w-4 h-4 mt-0.5')}
-                <div><span class="font-extrabold">Homework:</span> ${hwHead}</div>
+                ${uiIcon('clipboard', 'w-4 h-4 mt-0.5 shrink-0')}
+                <div><span class="text-[15px] font-extrabold tracking-tight">Homework:</span> ${hwHead}</div>
               </div>
               ${hwBullets.length ? `<ul class="pl-5 space-y-0.5 text-sm leading-snug">${formatBulletLines(hwBullets.join('\n'))}</ul>` : ''}
             </div>
           ` : ''}
 
           ${r.sessionNotes ? `
-            <div class="${boxCls} rounded-2xl p-3 space-y-1">
-              <div class="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('note', 'w-3.5 h-3.5')} Session Notes</div>
+            <div class="${boxCls} rounded-2xl p-3.5 space-y-1.5">
+              <div class="inline-flex items-center gap-2 text-[15px] font-extrabold tracking-tight text-[var(--text-main)]">${uiIcon('note', 'w-4 h-4 text-[#4E6075] dark:text-[#9AC0D6]')} Session Notes</div>
               <div class="text-sm leading-relaxed whitespace-pre-line">${String(r.sessionNotes).replace(/</g, '&lt;')}</div>
             </div>
           ` : ''}
@@ -8014,7 +8030,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-2.5 min-w-0">
                 ${sectionBadge('flame', 'volt')}
-                <label for="recap-warmup-input" class="text-sm font-extrabold tracking-tight">Warm Up Routine</label>
+                <label for="recap-warmup-input" class="section-heading">Warm Up Routine</label>
               </div>
               <button type="button" onclick="startRecapDictation('recap-warmup-input', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full surface-soft text-[13px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
             </div>
@@ -8031,8 +8047,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               <div class="flex items-center gap-2.5 min-w-0">
                 ${sectionBadge('target', 'slate')}
                 <div class="min-w-0">
-                  <label for="recap-focus-input" class="text-sm font-extrabold tracking-tight block">Player Notes and Focus *</label>
-                  <p class="text-sm text-[var(--text-muted)]">What’s new with the player and what they want to work on</p>
+                  <label for="recap-focus-input" class="section-heading block">Player Notes and Focus *</label>
+                  <p class="section-sub">What’s new with the player and what they want to work on</p>
                 </div>
               </div>
               <button type="button" onclick="startRecapDictation('recap-focus-input', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full surface-soft text-[13px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
@@ -8046,8 +8062,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               <div class="flex items-center gap-2.5 min-w-0">
                 ${sectionBadge('softball', 'obsidian')}
                 <div class="min-w-0">
-                  <span class="text-sm font-extrabold tracking-tight block">What We Worked On</span>
-                  <span class="text-xs font-semibold text-[var(--text-muted)]">Drills &amp; video per area</span>
+                  <span class="section-heading block">What We Worked On</span>
+                  <span class="section-sub block">Drills &amp; video per area</span>
                 </div>
               </div>
             </div>
@@ -8116,7 +8132,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-2.5 min-w-0">
                 ${sectionBadge('clipboard', 'volt')}
-                <label for="recap-homework-input" class="text-sm font-extrabold tracking-tight">Homework</label>
+                <label for="recap-homework-input" class="section-heading">Homework</label>
               </div>
               <button type="button" onclick="addCustomCuePrompt('homework')" class="text-[13px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0">+ New Drill</button>
             </div>
@@ -8134,10 +8150,10 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                   ${sectionBadge('note', 'slate')}
                   <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-1.5">
-                      <label for="recap-session-notes-input" class="text-sm font-extrabold tracking-tight">Session Notes</label>
-                      <span class="px-2 py-0.5 rounded-full bg-[#D5FF5F]/40 text-[#010101] dark:text-[#D5FF5F] dark:bg-[#D5FF5F]/15 text-xs font-extrabold">Viewable to Player</span>
+                      <label for="recap-session-notes-input" class="section-heading">Session Notes</label>
+                      <span class="px-2 py-0.5 rounded-full bg-[#D5FF5F]/40 text-[#010101] dark:text-[#D5FF5F] dark:bg-[#D5FF5F]/15 text-[11px] font-extrabold">Viewable to Player</span>
                     </div>
-                    <p class="text-sm text-[var(--text-muted)]">Included in the recap shared with the athlete &amp; parent</p>
+                    <p class="section-sub">Included in the recap shared with the athlete &amp; parent</p>
                   </div>
                 </div>
                 <button type="button" onclick="startRecapDictation('recap-session-notes-input', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full surface-soft text-[13px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
@@ -8151,10 +8167,10 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                   ${sectionBadge('lock', 'amber')}
                   <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-1.5">
-                      <label for="recap-private-note-input" class="text-sm font-extrabold tracking-tight">Private Coach Note</label>
-                      <span class="px-2 py-0.5 rounded-full bg-amber-400/25 text-amber-900 dark:text-amber-300 text-xs font-extrabold">Coach Only • Private</span>
+                      <label for="recap-private-note-input" class="section-heading">Private Coach Note</label>
+                      <span class="px-2 py-0.5 rounded-full bg-amber-400/25 text-amber-900 dark:text-amber-300 text-[11px] font-extrabold">Coach Only • Private</span>
                     </div>
-                    <p class="text-sm text-[var(--text-muted)]">Only viewable by Coach — never sent to athlete or parent</p>
+                    <p class="section-sub">Only viewable by Coach — never sent to athlete or parent</p>
                   </div>
                 </div>
                 <button type="button" onclick="startRecapDictation('recap-private-note-input', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full surface-soft text-[13px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
@@ -9580,9 +9596,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.17.0';
+    const APP_VERSION = 'v3.17.1';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Added crisp section icon badges across Coach Home, Session Notes Studio, and Saved Recaps for faster scanning and clearer section hierarchy';
+    const APP_RELEASE_NOTES = 'Improved visual scanning with larger 18–19px bold section headers, cleaner subtitle hierarchy, larger 36px icon badges, and upgraded saved recap headings';
 
     function reloadLatestAppVersion() {
       try {
