@@ -634,7 +634,7 @@
               <path d="M346.07,203.16c-0.94,0-1.62-0.16-2.03-0.49c-0.41-0.32-0.62-0.83-0.62-1.53c0-0.31,0.06-0.75,0.17-1.31l3.9-18.4h4.7l-1.01,4.74h4.1l-0.77,3.69h-4.1l-1.85,8.7c-0.05,0.22-0.07,0.37-0.07,0.44c0,0.31,0.25,0.47,0.74,0.47h3.09l-0.77,3.69H346.07z"/>
               <path d="M357.48,203.16c-0.94,0-1.62-0.16-2.03-0.49c-0.41-0.32-0.62-0.83-0.62-1.53c0-0.31,0.06-0.75,0.17-1.31l2.18-10.34c0.25-1.14,0.65-1.98,1.23-2.52c0.57-0.54,1.46-0.81,2.67-0.81h11.99l-0.87,4.13h-9.57c-0.38,0-0.64,0.06-0.77,0.17c-0.13,0.11-0.25,0.36-0.34,0.74l-1.44,6.78c-0.02,0.09-0.04,0.17-0.05,0.24c-0.01,0.07-0.02,0.13-0.02,0.2c0,0.34,0.26,0.5,0.77,0.5h9.57l-0.87,4.23H357.48z"/>
               <path d="M386.26,203.16l2.52-11.99c0.04-0.22,0.07-0.36,0.07-0.4c0-0.36-0.28-0.54-0.84-0.54h-7.02c-0.34,0-0.58,0.06-0.74,0.18c-0.16,0.12-0.28,0.38-0.37,0.76l-2.52,11.99h-4.7l5.1-24.11h4.7l-1.91,8.97c0.45-0.65,0.93-1.12,1.46-1.41c0.53-0.29,1.15-0.44,1.86-0.44h7.46c0.92,0,1.58,0.16,2,0.47c0.41,0.31,0.62,0.84,0.62,1.58c0,0.43-0.05,0.85-0.13,1.28l-2.89,13.67H386.26z"/>
-              <polygon fill="#4E6075" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
+              <polygon fill="#D5FF5F" stroke="currentColor" stroke-width="3" stroke-linejoin="round" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
               <polygon points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
             </g>
           </svg>
@@ -674,10 +674,10 @@
     <div class="lg:hidden mobile-header-wrap">
       <header class="glass-dock rounded-[26px] px-3 py-2 flex items-center justify-between gap-2.5">
         <button type="button" onclick="setTab(state.role === 'coach' ? 'today' : 'home')" aria-label="Go to Home" class="flex items-center gap-2.5 min-w-0 text-left cursor-pointer">
-          <span class="w-9 h-9 rounded-2xl bg-[#010101] text-[#D5FF5F] flex items-center justify-center shrink-0 shadow-sm p-1.5">
+          <span class="w-9 h-9 rounded-2xl surface-soft flex items-center justify-center shrink-0 p-1.5 text-[#010101] dark:text-white">
             <svg class="w-full h-full" viewBox="14 42 168 168" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <polygon fill="#9AC0D6" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
-              <polygon fill="#D5FF5F" points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
+              <polygon fill="#D5FF5F" stroke="currentColor" stroke-width="4" stroke-linejoin="round" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
+              <polygon fill="currentColor" points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
             </svg>
           </span>
           <div class="leading-tight min-w-0">
@@ -9518,7 +9518,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.16.0';
+    const APP_VERSION = 'v3.16.1';
     const APP_BUILD_DATE = 'Nov 28, 2026';
     const APP_RELEASE_NOTES = 'Switched mobile to a native 100dvh flex App Shell so the bottom toolbar is a real flex footer below the scroll container and never detaches or sticks mid-screen on iOS';
 
