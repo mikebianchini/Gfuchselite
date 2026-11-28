@@ -610,26 +610,28 @@
       overflow: hidden;
       color: #FFFFFF;
       background:
-        radial-gradient(115% 95% at 100% 0%, rgba(213, 255, 95, 0.22) 0%, rgba(213, 255, 95, 0) 54%),
-        radial-gradient(110% 90% at 0% 100%, rgba(154, 192, 214, 0.24) 0%, rgba(154, 192, 214, 0) 58%),
-        linear-gradient(155deg, rgba(16, 22, 32, 0.94) 0%, rgba(10, 14, 21, 0.92) 55%, rgba(20, 27, 38, 0.95) 100%);
-      backdrop-filter: blur(36px) saturate(200%);
-      -webkit-backdrop-filter: blur(36px) saturate(200%);
-      border: 1px solid rgba(255, 255, 255, 0.16);
+        radial-gradient(115% 95% at 100% 0%, rgba(213, 255, 95, 0.20) 0%, rgba(213, 255, 95, 0) 50%),
+        radial-gradient(125% 100% at 0% 100%, rgba(122, 182, 224, 0.44) 0%, rgba(122, 182, 224, 0) 62%),
+        radial-gradient(95% 85% at 22% 10%, rgba(78, 134, 182, 0.36) 0%, rgba(78, 134, 182, 0) 58%),
+        linear-gradient(155deg, rgba(16, 36, 58, 0.95) 0%, rgba(11, 25, 42, 0.94) 55%, rgba(20, 44, 70, 0.96) 100%);
+      backdrop-filter: blur(36px) saturate(210%);
+      -webkit-backdrop-filter: blur(36px) saturate(210%);
+      border: 1px solid rgba(170, 212, 240, 0.24);
       box-shadow:
-        inset 0 1.5px 0 rgba(255, 255, 255, 0.24),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.45),
-        0 20px 44px rgba(1, 1, 1, 0.28),
-        0 4px 12px rgba(1, 1, 1, 0.16);
+        inset 0 1.5px 0 rgba(210, 234, 252, 0.30),
+        inset 0 -1px 0 rgba(4, 12, 24, 0.45),
+        0 20px 44px rgba(10, 24, 42, 0.30),
+        0 4px 12px rgba(10, 24, 42, 0.16);
     }
     html.dark .coach-hero-glass {
       background:
-        radial-gradient(115% 95% at 100% 0%, rgba(213, 255, 95, 0.18) 0%, rgba(213, 255, 95, 0) 52%),
-        radial-gradient(110% 90% at 0% 100%, rgba(154, 192, 214, 0.18) 0%, rgba(154, 192, 214, 0) 56%),
-        linear-gradient(155deg, rgba(18, 24, 34, 0.92) 0%, rgba(8, 12, 18, 0.94) 55%, rgba(14, 20, 29, 0.96) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.18);
+        radial-gradient(115% 95% at 100% 0%, rgba(213, 255, 95, 0.16) 0%, rgba(213, 255, 95, 0) 48%),
+        radial-gradient(125% 100% at 0% 100%, rgba(110, 174, 220, 0.34) 0%, rgba(110, 174, 220, 0) 60%),
+        radial-gradient(95% 85% at 22% 10%, rgba(64, 118, 166, 0.28) 0%, rgba(64, 118, 166, 0) 56%),
+        linear-gradient(155deg, rgba(14, 32, 52, 0.94) 0%, rgba(9, 20, 35, 0.95) 55%, rgba(16, 36, 58, 0.96) 100%);
+      border: 1px solid rgba(154, 198, 230, 0.22);
       box-shadow:
-        inset 0 1.5px 0 rgba(255, 255, 255, 0.24),
+        inset 0 1.5px 0 rgba(196, 226, 248, 0.24),
         inset 0 -1px 0 rgba(0, 0, 0, 0.55),
         0 22px 48px rgba(0, 0, 0, 0.55),
         0 2px 8px rgba(0, 0, 0, 0.35);
@@ -10032,9 +10034,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.19.4';
+    const APP_VERSION = 'v3.19.5';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Darkened the Coach Gina Home hero into a deep smoked Obsidian Liquid Glass card with crisp white text, Volt briefing accent, and frosted dark glass search';
+    const APP_RELEASE_NOTES = 'Infused the Coach Gina Home hero with richer midnight steel-blue Liquid Glass tones and luminous Ice Blue highlights';
 
     function reloadLatestAppVersion() {
       try {
