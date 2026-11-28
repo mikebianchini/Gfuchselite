@@ -4536,6 +4536,66 @@
       });
     }
 
+    function buildCoachTodaySummary(todaySessions, next7DaysWithSessions) {
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const strong = (v) => `<strong class="font-extrabold text-[var(--text-main)]">${v}</strong>`;
+      const activeToday = (todaySessions || []).filter(s => s.status !== 'Canceled');
+      const sessionWho = (s) => {
+        if (s?.athletes && s.athletes.length === 1) return s.athletes[0];
+        if (s?.athletes && s.athletes.length > 1) return s.lessonTitle || `${s.athletes[0]} + ${s.athletes.length - 1} more`;
+        return s?.lessonTitle || s?.focus || 'an open slot';
+      };
+
+      if (activeToday.length === 0) {
+        const upcomingDays = (next7DaysWithSessions || []).slice(1);
+        let nextDay = null;
+        let nextOffset = -1;
+        for (let i = 0; i < upcomingDays.length; i++) {
+          const active = (upcomingDays[i].sessions || []).filter(s => s.status !== 'Canceled');
+          if (active.length) {
+            nextDay = { ...upcomingDays[i], active };
+            nextOffset = i + 1;
+            break;
+          }
+        }
+        if (nextDay) {
+          const dayWord = nextOffset === 1
+            ? 'tomorrow'
+            : `on ${new Date(nextDay.iso + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' })}`;
+          const countWord = `${nextDay.active.length} session${nextDay.active.length === 1 ? '' : 's'}`;
+          return `Your cage is ${strong('open today')}. Next up: ${strong(`${countWord} ${dayWord}`)} starting at ${strong(esc(nextDay.active[0].time || 'TBD'))}.`;
+        }
+        return `Your cage is ${strong('open today')} with no sessions scheduled over the next 7 days.`;
+      }
+
+      if (activeToday.length === 1) {
+        const s = activeToday[0];
+        const loc = s.location ? ` at ${esc(s.location)}` : '';
+        const logged = s.athleteId ? hasStartedSessionNote(s.athleteId, s.id) : false;
+        return `You have ${strong('1 session today')} with ${strong(esc(sessionWho(s)))} at ${strong(esc(s.time || 'TBD'))}${loc}.${logged ? ' Session notes are started.' : ''}`;
+      }
+
+      const first = activeToday[0];
+      const last = activeToday[activeToday.length - 1];
+      const groupCount = activeToday.filter(s => /group|clinic|team/i.test(String(s.type || '')) || (s.athletes && s.athletes.length > 1)).length;
+      const privateCount = activeToday.length - groupCount;
+      const breakdown = (groupCount > 0 && privateCount > 0)
+        ? ` (${privateCount} private, ${groupCount} group)`
+        : (groupCount === activeToday.length ? ' (group)' : '');
+      const timeSpan = first.time && last.time && first.time !== last.time
+        ? ` from ${strong(esc(first.time))} to ${strong(esc(last.time))}`
+        : (first.time ? ` starting at ${strong(esc(first.time))}` : '');
+      const trackable = activeToday.filter(s => s.athleteId);
+      const openNotes = trackable.filter(s => !hasStartedSessionNote(s.athleteId, s.id)).length;
+      const notesTail = trackable.length
+        ? (openNotes === 0
+            ? ' All session notes are caught up.'
+            : ` ${openNotes} session note${openNotes === 1 ? '' : 's'} still open.`)
+        : '';
+
+      return `You have ${strong(`${activeToday.length} sessions today`)}${breakdown}${timeSpan}, kicking off with ${strong(esc(sessionWho(first)))}.${notesTail}`;
+    }
+
     function renderCoachToday() {
       const days = getRolling7Days();
       const today = days[0];
@@ -4699,21 +4759,20 @@
         `;
       }).filter(Boolean).join('');
 
+      const todaySummaryHtml = buildCoachTodaySummary(todaySessions, next7DaysWithSessions);
+
       return `
-        <!-- Coach Home Header + Quick Actions + 1-Tap Athlete Jump -->
+        <!-- Coach Home Header + Daily Briefing + 1-Tap Athlete Jump -->
         <div class="card-mist rounded-[28px] p-4 sm:p-6 space-y-3.5">
-          <div class="flex items-start justify-between gap-3">
-            <div class="flex items-center gap-2.5 min-w-0">
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
               <span class="lg:hidden w-10 h-10 rounded-2xl surface-soft flex items-center justify-center shrink-0 p-1.5 text-[#010101] dark:text-white">
                 <svg class="w-full h-full" viewBox="14 42 168 168" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <polygon fill="currentColor" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
                   <polygon fill="currentColor" points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
                 </svg>
               </span>
-              <div class="min-w-0">
-                <h1 class="text-2xl sm:text-3xl font-extrabold">Coach Gina</h1>
-                <p class="text-[13px] font-medium text-[var(--text-muted)] mt-0.5">${todayFullLabel} · Pittsburgh Eastern Time</p>
-              </div>
+              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight truncate">Coach Gina</h1>
             </div>
             <button onclick="toggleHomeReorderMode()" title="Reorder Home sections" aria-label="Reorder Home sections" class="px-3 py-2 rounded-2xl text-[13px] font-bold cursor-pointer shrink-0 inline-flex items-center gap-1 ${isReordering ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'card-white text-[var(--text-muted)] hover:text-[var(--text-main)] hover:border-[#010101]'}">
               <span>⇅</span>
@@ -4721,16 +4780,7 @@
             </button>
           </div>
 
-          <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
-            <button onclick="openAddSessionModal()" class="py-2.5 px-4 rounded-2xl bg-[#D5FF5F] text-[#010101] text-[13px] font-extrabold cursor-pointer shadow-sm hover:brightness-95 inline-flex items-center justify-center gap-1.5">
-              ${uiIcon('calendar', 'w-4 h-4')}
-              <span>Add Session</span>
-            </button>
-            <button onclick="openAddAthleteModal(null)" class="py-2.5 px-4 rounded-2xl bg-[#010101] text-[#D5FF5F] text-[13px] font-extrabold cursor-pointer shadow-sm hover:opacity-90 inline-flex items-center justify-center gap-1.5">
-              ${uiIcon('user', 'w-4 h-4')}
-              <span>Add Athlete</span>
-            </button>
-          </div>
+          <p class="text-[15px] leading-relaxed text-[var(--text-muted)]">${todaySummaryHtml}</p>
 
           ${activeAthletesCount > 0 ? `
             <div class="relative">
@@ -9596,9 +9646,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.17.1';
+    const APP_VERSION = 'v3.17.2';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Improved visual scanning with larger 18–19px bold section headers, cleaner subtitle hierarchy, larger 36px icon badges, and upgraded saved recap headings';
+    const APP_RELEASE_NOTES = 'Streamlined Coach Gina Home header by removing date/time and quick-add buttons and adding a natural-language daily briefing of today’s schedule';
 
     function reloadLatestAppVersion() {
       try {
