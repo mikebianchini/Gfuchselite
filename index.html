@@ -636,11 +636,6 @@
         0 22px 48px rgba(0, 0, 0, 0.55),
         0 2px 8px rgba(0, 0, 0, 0.35);
     }
-    .coach-briefing-inset {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
-    }
     .coach-briefing-inset strong {
       color: #FFFFFF !important;
     }
@@ -4900,52 +4895,50 @@
 
       return `
         <div class="space-y-7 sm:space-y-8">
-          <!-- Coach Home Header + Smoked Obsidian Liquid Glass Daily Briefing -->
-          <div class="coach-hero-glass rounded-[30px] p-5 sm:p-6 space-y-4">
-            <div class="flex items-center justify-between gap-3">
+          <!-- Coach Home Header + Midnight Blue Liquid Glass Today's Briefing + Quick Find -->
+          <div class="space-y-4">
+            <div class="flex items-center justify-between gap-3 px-0.5">
               <div class="flex items-center gap-3 min-w-0">
-                <span class="lg:hidden w-11 h-11 rounded-2xl bg-white/95 dark:bg-white/12 border border-white/80 dark:border-white/20 shadow-sm flex items-center justify-center shrink-0 p-2 text-[#010101] dark:text-white">
+                <span class="lg:hidden w-11 h-11 rounded-2xl card-white flex items-center justify-center shrink-0 p-2 text-[#010101] dark:text-white">
                   <svg class="w-full h-full" viewBox="14 42 168 168" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <polygon fill="currentColor" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
                     <polygon fill="currentColor" points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
                   </svg>
                 </span>
-                <div class="min-w-0">
-                  <h1 class="text-[26px] sm:text-3xl font-extrabold tracking-tight leading-none text-white truncate">Coach Gina</h1>
-                </div>
+                <h1 class="text-[28px] sm:text-3xl font-extrabold tracking-tight leading-none text-[var(--text-main)] truncate">Coach Gina</h1>
               </div>
-              <button onclick="toggleHomeReorderMode()" title="Reorder Home sections" aria-label="Reorder Home sections" class="px-3 py-2 rounded-2xl text-[13px] font-bold cursor-pointer shrink-0 inline-flex items-center gap-1 ${isReordering ? 'bg-[#D5FF5F] text-[#010101] shadow-sm' : 'bg-white/12 border border-white/20 text-white/85 hover:text-white hover:bg-white/20'}">
+              <button onclick="toggleHomeReorderMode()" title="Reorder Home sections" aria-label="Reorder Home sections" class="px-3 py-2 rounded-2xl text-[13px] font-bold cursor-pointer shrink-0 inline-flex items-center gap-1 ${isReordering ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'card-white text-[var(--text-muted)] hover:text-[var(--text-main)] hover:border-[#010101]'}">
                 <span>⇅</span>
                 <span class="${isReordering ? '' : 'hidden sm:inline'}">${isReordering ? 'Done' : 'Reorder'}</span>
               </button>
             </div>
 
-            <div class="coach-briefing-inset rounded-2xl px-4 py-3.5 space-y-1.5">
+            <div class="coach-hero-glass coach-briefing-inset rounded-[26px] px-5 py-4 space-y-1.5">
               <div class="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#D5FF5F]">
                 <span class="w-2 h-2 rounded-full bg-[#D5FF5F] shrink-0"></span>
                 <span>Today’s Briefing</span>
               </div>
-              <p class="text-[15px] leading-relaxed text-white/80">${todaySummaryHtml}</p>
+              <p class="text-[15px] leading-relaxed text-white/85">${todaySummaryHtml}</p>
             </div>
 
             ${activeAthletesCount > 0 ? `
               <div class="relative">
-                <svg class="w-4 h-4 text-white/60 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M20 20l-3.5-3.5"/></svg>
+                <svg class="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M20 20l-3.5-3.5"/></svg>
                 <input
                   type="search"
                   value="${(state.homeQuickSearch || '').replace(/"/g, '&quot;')}"
                   oninput="updateHomeQuickSearch(this.value)"
                   placeholder="Quick find any of ${activeAthletesCount} athletes &amp; notes…"
-                  class="w-full pl-10 pr-4 py-3 rounded-2xl bg-white/10 border border-white/18 text-white placeholder:text-white/55 shadow-sm text-[16px] sm:text-sm font-medium"
+                  class="w-full pl-10 pr-4 py-3 rounded-2xl card-white text-[16px] sm:text-sm font-medium"
                 />
-                <div id="home-quick-search-results" class="${(state.homeQuickSearch || '').trim() ? '' : 'hidden'} mt-2 space-y-1.5 text-[var(--text-main)]">${renderHomeQuickSearchResults()}</div>
+                <div id="home-quick-search-results" class="${(state.homeQuickSearch || '').trim() ? '' : 'hidden'} mt-2 space-y-1.5">${renderHomeQuickSearchResults()}</div>
               </div>
             ` : ''}
 
             ${isReordering ? `
-              <div class="rounded-2xl p-3 bg-white/10 border border-white/15 flex flex-wrap items-center justify-between gap-2 text-[13px]">
-                <span class="font-bold text-white/85">Drag sections or tap <strong class="text-white">↑ / ↓</strong> to customize Home — syncs across devices.</span>
-                <button type="button" onclick="resetHomeSectionOrder()" class="px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[13px] font-extrabold cursor-pointer">Reset Default</button>
+              <div class="card-white rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2 text-[13px]">
+                <span class="font-bold text-[var(--text-muted)]">Drag sections or tap <strong>↑ / ↓</strong> to customize Home — syncs across devices.</span>
+                <button type="button" onclick="resetHomeSectionOrder()" class="px-3 py-1.5 rounded-xl surface-soft text-[13px] font-extrabold cursor-pointer hover:border-[#010101]">Reset Default</button>
               </div>
             ` : ''}
           </div>
@@ -10034,9 +10027,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.19.5';
+    const APP_VERSION = 'v3.19.6';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Infused the Coach Gina Home hero with richer midnight steel-blue Liquid Glass tones and luminous Ice Blue highlights';
+    const APP_RELEASE_NOTES = 'Removed the outer card background from Coach Gina Home header and applied the midnight steel-blue Liquid Glass surface directly to Today’s Briefing';
 
     function reloadLatestAppVersion() {
       try {
