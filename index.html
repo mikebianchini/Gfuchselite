@@ -605,6 +605,45 @@
       box-shadow: var(--glass-specular), var(--glass-shadow);
     }
 
+    .coach-hero-glass {
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(120% 95% at 100% 0%, rgba(213, 255, 95, 0.34) 0%, rgba(213, 255, 95, 0) 56%),
+        radial-gradient(110% 90% at 0% 100%, rgba(154, 192, 214, 0.42) 0%, rgba(154, 192, 214, 0) 60%),
+        linear-gradient(160deg, rgba(255, 255, 255, 0.84) 0%, rgba(236, 244, 248, 0.68) 55%, rgba(226, 238, 244, 0.76) 100%);
+      backdrop-filter: blur(36px) saturate(215%);
+      -webkit-backdrop-filter: blur(36px) saturate(215%);
+      border: 1px solid rgba(255, 255, 255, 0.88);
+      box-shadow:
+        inset 0 1.5px 0 rgba(255, 255, 255, 0.96),
+        inset 0 -1px 0 rgba(15, 23, 42, 0.05),
+        0 18px 42px rgba(15, 23, 42, 0.10),
+        0 2px 8px rgba(15, 23, 42, 0.05);
+    }
+    html.dark .coach-hero-glass {
+      background:
+        radial-gradient(115% 90% at 100% 0%, rgba(213, 255, 95, 0.16) 0%, rgba(213, 255, 95, 0) 54%),
+        radial-gradient(110% 90% at 0% 100%, rgba(154, 192, 214, 0.18) 0%, rgba(154, 192, 214, 0) 58%),
+        linear-gradient(160deg, rgba(28, 36, 48, 0.78) 0%, rgba(16, 21, 30, 0.72) 55%, rgba(12, 16, 24, 0.82) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow:
+        inset 0 1.5px 0 rgba(255, 255, 255, 0.22),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.45),
+        0 20px 46px rgba(0, 0, 0, 0.45),
+        0 2px 8px rgba(0, 0, 0, 0.28);
+    }
+    .coach-briefing-inset {
+      background: rgba(255, 255, 255, 0.56);
+      border: 1px solid rgba(255, 255, 255, 0.82);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+    html.dark .coach-briefing-inset {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    }
+
     .surface-soft {
       background: var(--glass-soft);
       backdrop-filter: blur(18px) saturate(170%);
@@ -4860,25 +4899,33 @@
 
       return `
         <div class="space-y-7 sm:space-y-8">
-          <!-- Coach Home Header + Daily Briefing + 1-Tap Athlete Jump -->
-          <div class="card-mist rounded-[28px] p-4 sm:p-6 space-y-3.5">
+          <!-- Coach Home Header + Liquid Glass Daily Briefing + 1-Tap Athlete Jump -->
+          <div class="coach-hero-glass rounded-[30px] p-5 sm:p-6 space-y-4">
             <div class="flex items-center justify-between gap-3">
               <div class="flex items-center gap-3 min-w-0">
-                <span class="lg:hidden w-10 h-10 rounded-2xl surface-soft flex items-center justify-center shrink-0 p-1.5 text-[#010101] dark:text-white">
+                <span class="lg:hidden w-11 h-11 rounded-2xl bg-white/75 dark:bg-white/10 border border-white/85 dark:border-white/15 shadow-sm flex items-center justify-center shrink-0 p-2 text-[#010101] dark:text-white">
                   <svg class="w-full h-full" viewBox="14 42 168 168" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <polygon fill="currentColor" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
                     <polygon fill="currentColor" points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
                   </svg>
                 </span>
-                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight truncate">Coach Gina</h1>
+                <div class="min-w-0">
+                  <h1 class="text-[26px] sm:text-3xl font-extrabold tracking-tight leading-none truncate">Coach Gina</h1>
+                </div>
               </div>
-              <button onclick="toggleHomeReorderMode()" title="Reorder Home sections" aria-label="Reorder Home sections" class="px-3 py-2 rounded-2xl text-[13px] font-bold cursor-pointer shrink-0 inline-flex items-center gap-1 ${isReordering ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'card-white text-[var(--text-muted)] hover:text-[var(--text-main)] hover:border-[#010101]'}">
+              <button onclick="toggleHomeReorderMode()" title="Reorder Home sections" aria-label="Reorder Home sections" class="px-3 py-2 rounded-2xl text-[13px] font-bold cursor-pointer shrink-0 inline-flex items-center gap-1 ${isReordering ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'bg-white/75 dark:bg-white/10 border border-white/80 dark:border-white/15 text-[var(--text-muted)] hover:text-[var(--text-main)]'}">
                 <span>⇅</span>
                 <span class="${isReordering ? '' : 'hidden sm:inline'}">${isReordering ? 'Done' : 'Reorder'}</span>
               </button>
             </div>
 
-            <p class="text-[15px] leading-relaxed text-[var(--text-muted)]">${todaySummaryHtml}</p>
+            <div class="coach-briefing-inset rounded-2xl px-4 py-3.5 space-y-1.5">
+              <div class="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#4E6075] dark:text-[#D5FF5F]">
+                <span class="w-2 h-2 rounded-full bg-[#9ED11E] shrink-0"></span>
+                <span>Today’s Briefing</span>
+              </div>
+              <p class="text-[15px] leading-relaxed text-[var(--text-muted)]">${todaySummaryHtml}</p>
+            </div>
 
             ${activeAthletesCount > 0 ? `
               <div class="relative">
@@ -4888,7 +4935,7 @@
                   value="${(state.homeQuickSearch || '').replace(/"/g, '&quot;')}"
                   oninput="updateHomeQuickSearch(this.value)"
                   placeholder="Quick find any of ${activeAthletesCount} athletes &amp; notes…"
-                  class="w-full pl-10 pr-4 py-2.5 rounded-2xl card-white text-[16px] sm:text-sm font-medium"
+                  class="w-full pl-10 pr-4 py-3 rounded-2xl bg-white/80 dark:bg-white/[0.08] border border-white/85 dark:border-white/15 shadow-sm text-[16px] sm:text-sm font-medium"
                 />
                 <div id="home-quick-search-results" class="${(state.homeQuickSearch || '').trim() ? '' : 'hidden'} mt-2 space-y-1.5">${renderHomeQuickSearchResults()}</div>
               </div>
@@ -9986,9 +10033,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.19.2';
+    const APP_VERSION = 'v3.19.3';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Removed Dictate buttons from Session Notes Studio for a cleaner, full-width header and drill-pill layout';
+    const APP_RELEASE_NOTES = 'Elevated the Coach Gina Home hero with luminous Volt + Ice Mist Liquid Glass styling, a frosted Today’s Briefing inset, and a glassy quick-find search bar';
 
     function reloadLatestAppVersion() {
       try {
