@@ -4646,14 +4646,18 @@
     }
 
     function renderCoachSessionRow(s, showDate = false) {
-      const lessonLabel = s.lessonTitle || s.focus;
+      const lessonLabel = s.lessonTitle || s.focus || 'Training Session';
       const customFocus = s.lessonTitle && s.focus && s.focus !== s.lessonTitle ? s.focus : '';
-      const athDisplay = (s.athletes && s.athletes.length)
+      const hasAthletes = Boolean(s.athletes && s.athletes.length);
+      const athDisplay = hasAthletes
         ? s.athletes.join(', ')
         : `Open Session (0/${s.spotsMax || 1} spots)`;
       const isCanceled = s.status === 'Canceled';
       const isAttendanceFlag = s.status === 'No-Show' || s.status === 'Late Cancel';
       const primaryAth = s.athleteId ? state.athletes.find(a => a.id === s.athleteId) : null;
+      const initials = primaryAth?.initials || (hasAthletes
+        ? String(s.athletes[0]).trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
+        : '');
       const lastInfo = primaryAth ? getAthleteLastSeenInfo(primaryAth.id) : null;
       const unpaidInfo = primaryAth ? getAthleteUnpaidInfo(primaryAth.id) : { count: 0, total: 0 };
       const briefCue = primaryAth?.currentFocus || lastInfo?.lastFocus || '';
@@ -4661,53 +4665,97 @@
       const noteStarted = s.athleteId ? hasStartedSessionNote(s.athleteId, s.id) : false;
       const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+      const payText = String(s.payment || 'Scheduled');
+      const isPaid = /^paid/i.test(payText);
+      const isPending = /pending|unpaid|due/i.test(payText);
+      const payBadgeCls = isPaid
+        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+        : isPending
+          ? 'bg-amber-400/20 text-amber-900 dark:text-amber-300'
+          : 'surface-soft text-[var(--text-muted)]';
+
+      const metaBits = [
+        s.duration ? String(s.duration).toLowerCase() : '',
+        s.type ? String(s.type).replace(/1-on-1 Private/i, '1-on-1') : ''
+      ].filter(Boolean).join(' • ');
+
       const cardClick = s.athleteId && !isCanceled
         ? `onclick="openSessionRecapModal('${s.athleteId}', '${s.id}')"`
         : '';
 
       return `
-        <div class="swipe-row relative overflow-hidden rounded-[24px]" data-swipe-type="session" data-swipe-id="${s.id}" data-athlete-id="${s.athleteId || ''}" data-canceled="${isCanceled ? '1' : '0'}">
+        <div class="swipe-row relative overflow-hidden rounded-[26px]" data-swipe-type="session" data-swipe-id="${s.id}" data-athlete-id="${s.athleteId || ''}" data-canceled="${isCanceled ? '1' : '0'}">
           <div class="lg:hidden absolute inset-0 flex items-center justify-between px-5 pointer-events-none select-none" aria-hidden="true">
             <span class="swipe-rail-left inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D5FF5F] text-[#010101] text-[13px] font-extrabold opacity-0 transition-opacity">${s.athleteId && !isCanceled ? `${uiIcon('note')} Session Notes →` : `${uiIcon('edit')} Edit Session →`}</span>
             <span class="swipe-rail-right inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#010101] text-[#D5FF5F] text-[13px] font-extrabold opacity-0 transition-opacity">← ${isCanceled ? 'Restore / Delete' : 'Edit / Cancel'}</span>
           </div>
-          <div ${cardClick} class="swipe-card card-interactive relative card-white rounded-[24px] p-4 space-y-3 ${isCanceled ? 'opacity-65' : (s.athleteId ? 'cursor-pointer' : '')}" style="touch-action: pan-y;">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex items-center gap-3.5 min-w-0">
-                <img src="${s.img || 'assets/images/fastpitch-hitter.jpg'}" class="w-14 h-14 rounded-2xl object-cover shrink-0 ${isCanceled ? 'grayscale' : ''}" alt="Fastpitch softball training" loading="lazy" decoding="async" />
-                <div class="min-w-0">
-                  <div class="flex flex-wrap items-center gap-1.5 text-[13px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6]">
-                    <span class="inline-flex items-center gap-1">${uiIcon('clock', 'w-3 h-3')} ${showDate && s.day ? `${s.day} • ` : ''}${s.time} • ${s.duration} • ${s.type}</span>
-                    ${s.recurrenceGroupId ? `<span title="Recurring standing slot" class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full surface-soft text-xs font-bold">${uiIcon('repeat', 'w-2.5 h-2.5')}</span>` : ''}
-                    ${unpaidInfo.total > 0 && !isCanceled ? `<button type="button" onclick="event.stopPropagation(); state.paymentFilterUnpaid=true; setTab('payments');" class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-800 dark:text-amber-300 text-xs font-extrabold cursor-pointer">${uiIcon('dollar', 'w-2.5 h-2.5')}${unpaidInfo.total} due</button>` : ''}
-                    ${isAttendanceFlag ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-800 dark:text-amber-300 text-xs font-extrabold">${uiIcon('alertTriangle', 'w-2.5 h-2.5')} ${s.status}</span>` : ''}
-                  </div>
-                  <div class="font-extrabold text-sm truncate ${isCanceled ? 'line-through' : ''}">${lessonLabel}${customFocus ? ` — ${customFocus}` : ''}</div>
-                  <div class="text-[13px] text-[var(--text-muted)] truncate">${athDisplay} • ${s.payment || 'Scheduled'}</div>
-                  ${briefCue && !isCanceled ? `<div class="inline-flex items-center gap-1 text-[13px] text-[#4E6075] dark:text-[#9AC0D6] font-semibold truncate max-w-full mt-0.5">${uiIcon('target', 'w-3 h-3 shrink-0')}<span class="truncate">${primaryAth?.currentFocus ? 'Focus:' : 'Last:'} ${esc(briefCue)}</span></div>` : ''}
+          <div ${cardClick} class="swipe-card card-interactive relative card-white rounded-[26px] p-4 sm:p-5 space-y-3.5 ${isCanceled ? 'opacity-65' : (s.athleteId ? 'cursor-pointer' : '')}" style="touch-action: pan-y;">
+            <!-- Top Row: Time Pill + Meta + Payment Status + Edit -->
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex flex-wrap items-center gap-1.5 min-w-0">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#010101] text-[#D5FF5F] text-[13px] font-extrabold tabular-nums shrink-0">
+                  ${uiIcon('clock', 'w-3.5 h-3.5 shrink-0')}
+                  <span>${showDate && s.day ? `${s.day} · ` : ''}${s.time}</span>
+                </span>
+                ${metaBits ? `<span class="text-[13px] font-bold text-[var(--text-muted)] truncate">${esc(metaBits)}</span>` : ''}
+                ${s.recurrenceGroupId ? `<span title="Recurring standing slot" class="inline-flex items-center justify-center w-6 h-6 rounded-full surface-soft text-[var(--text-muted)]">${uiIcon('repeat', 'w-3 h-3')}</span>` : ''}
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                ${!isCanceled ? (unpaidInfo.total > 0
+                  ? `<button type="button" onclick="event.stopPropagation(); state.paymentFilterUnpaid=true; setTab('payments');" class="inline-flex items-center gap-0.5 px-2.5 py-1 rounded-full bg-amber-400/25 text-amber-900 dark:text-amber-300 text-xs font-extrabold cursor-pointer">${uiIcon('dollar', 'w-3 h-3')}${unpaidInfo.total} due</button>`
+                  : `<span class="px-2.5 py-1 rounded-full text-xs font-extrabold ${payBadgeCls}">${esc(payText)}</span>`
+                ) : ''}
+                <button type="button" onclick="event.stopPropagation(); openManageSessionModal('${s.id}')" title="Edit session" aria-label="Edit session" class="w-9 h-9 rounded-xl surface-soft flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] shrink-0 cursor-pointer">${uiIcon('edit', 'w-4 h-4')}</button>
+              </div>
+            </div>
+
+            <!-- Main Row: Athlete-First Identity + Lesson Subtitle -->
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-11 h-11 rounded-2xl ${hasAthletes ? 'bg-[#010101] text-[#D5FF5F]' : 'surface-soft text-[var(--text-muted)]'} font-extrabold text-sm flex items-center justify-center shrink-0 shadow-sm ${isCanceled ? 'grayscale' : ''}">
+                ${initials ? esc(initials) : uiIcon('softball', 'w-5 h-5')}
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="text-[18px] font-extrabold tracking-tight leading-snug text-[var(--text-main)] truncate ${isCanceled ? 'line-through' : ''}">${esc(athDisplay)}</div>
+                <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[14px] font-medium text-[var(--text-muted)]">
+                  <span class="truncate">${esc(lessonLabel)}${customFocus ? ` — ${esc(customFocus)}` : ''}</span>
+                  ${s.location ? `<span class="inline-flex items-center gap-1 text-[13px] shrink-0">${uiIcon('pin', 'w-3.5 h-3.5')} ${esc(s.location)}</span>` : ''}
                 </div>
               </div>
-              <button type="button" onclick="event.stopPropagation(); openManageSessionModal('${s.id}')" title="Edit session" aria-label="Edit session" class="w-9 h-9 rounded-xl surface-soft flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] shrink-0 cursor-pointer">${uiIcon('edit', 'w-4 h-4')}</button>
+              ${isAttendanceFlag ? `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-400/20 text-amber-800 dark:text-amber-300 text-xs font-extrabold shrink-0">${uiIcon('alertTriangle', 'w-3 h-3')} ${esc(s.status)}</span>` : ''}
             </div>
+
+            <!-- Coaching Cue Inset (Full Width, Up to 2 Readable Lines) -->
+            ${briefCue && !isCanceled ? `
+              <div class="rounded-2xl bg-[#0B121B]/[0.04] dark:bg-white/[0.06] border border-[#0B121B]/[0.06] dark:border-white/[0.08] px-3.5 py-2.5 flex items-start gap-2.5">
+                <span class="mt-0.5 text-[#2E4A66] dark:text-[#D5FF5F] shrink-0">${uiIcon('target', 'w-4 h-4')}</span>
+                <p class="text-[14px] leading-snug text-[var(--text-muted)] line-clamp-2 min-w-0">
+                  <span class="font-extrabold text-[var(--text-main)]">${primaryAth?.currentFocus ? 'Focus:' : 'Last:'}</span> ${esc(briefCue)}
+                </p>
+              </div>
+            ` : ''}
 
             ${plan && !isCanceled ? `
               <button type="button" onclick="event.stopPropagation(); openSessionPlanModal('${s.id}')" class="w-full text-left surface-soft rounded-2xl px-3.5 py-2.5 space-y-0.5 cursor-pointer hover:border-[#010101] transition">
                 <div class="flex items-center justify-between gap-2">
-                  <span class="inline-flex items-center gap-1 text-[13px] font-extrabold text-[#4E6075] dark:text-[#D5FF5F]">${uiIcon('clipboard', 'w-3 h-3')} Session Plan</span>
+                  <span class="inline-flex items-center gap-1 text-[13px] font-extrabold text-[#4E6075] dark:text-[#D5FF5F]">${uiIcon('clipboard', 'w-3.5 h-3.5')} Session Plan</span>
                   <span class="text-xs font-bold text-[var(--text-muted)]">Edit</span>
                 </div>
-                ${plan.goal ? `<div class="text-[13px] font-extrabold truncate">${esc(plan.goal)}</div>` : ''}
+                ${plan.goal ? `<div class="text-[14px] font-extrabold truncate">${esc(plan.goal)}</div>` : ''}
                 ${plan.drills ? `<div class="text-[13px] text-[var(--text-muted)] truncate">${esc(plan.drills.replace(/\n/g, ' • '))}</div>` : ''}
               </button>
             ` : ''}
 
+            <!-- Balanced Footer -->
             ${!isCanceled ? (s.athleteId ? `
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <button type="button" onclick="event.stopPropagation(); openPreviousSessionsModal('${s.athleteId}', '${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-[13px] font-bold cursor-pointer hover:border-[#010101] inline-flex items-center gap-1.5">${uiIcon('history')} Last Session</button>
-                <span class="inline-flex items-center gap-1 text-[13px] font-bold text-[#4E6075] dark:text-[#9AC0D6]">Session Notes ${uiIcon('chevronRight', 'w-3.5 h-3.5')}</span>
+              <div class="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">
+                <button type="button" onclick="event.stopPropagation(); openPreviousSessionsModal('${s.athleteId}', '${s.id}')" class="min-h-[38px] px-3.5 py-1.5 rounded-xl surface-soft text-[13px] font-bold cursor-pointer hover:border-[#010101] inline-flex items-center gap-1.5">${uiIcon('history', 'w-3.5 h-3.5')} Last Session</button>
+                <span class="inline-flex items-center gap-1.5 text-[14px] font-extrabold text-[#0B121B] dark:text-[#D5FF5F]">
+                  ${noteStarted ? '<span class="w-2 h-2 rounded-full bg-[#9ED11E] shrink-0"></span><span>Notes Started</span>' : '<span>Session Notes</span>'}
+                  ${uiIcon('chevronRight', 'w-4 h-4')}
+                </span>
               </div>
             ` : '') : `
-              <div class="flex items-center justify-between gap-2">
+              <div class="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">
                 <span class="px-2.5 py-1.5 rounded-xl bg-red-500/15 text-red-600 dark:text-red-400 text-xs font-extrabold">Canceled</span>
                 <button type="button" onclick="event.stopPropagation(); openManageSessionModal('${s.id}')" class="px-3 py-2 rounded-xl surface-soft text-[13px] font-extrabold cursor-pointer">Restore / Delete</button>
               </div>
@@ -10114,9 +10162,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.20.2';
+    const APP_VERSION = 'v3.21.0';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Updated Home greeting to Hey Coach Gina! and styled the GF emblem badge with an Obsidian black background and Volt mark';
+    const APP_RELEASE_NOTES = 'Redesigned Coach session cards with athlete-first hierarchy, Obsidian/Volt time pills, color-coded payment pills, a full-width 2-line coaching cue inset, and a balanced footer with live Notes Started status';
 
     function reloadLatestAppVersion() {
       try {
