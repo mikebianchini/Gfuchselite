@@ -4437,57 +4437,6 @@
       }));
       const totalNext7Count = next7DaysWithSessions.reduce((sum, d) => sum + d.sessions.length, 0);
 
-      // Build dynamic Important Actions Needed list
-      const pendingCash = state.payments.filter(p => p.status === 'Pending Cash');
-      const pendingCashTotal = pendingCash.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-      const draftRecaps = state.sessionRecaps.filter(r => r.isDraft);
-      const unreadCount = state.threads.reduce((sum, t) => sum + (Number(t.unread) || 0), 0);
-
-      const actionItems = [];
-      if (pendingCash.length > 0) {
-        actionItems.push({
-          badge: `$${pendingCashTotal.toLocaleString()}`,
-          badgeCls: 'bg-amber-400/20 text-amber-800 dark:text-amber-300',
-          title: `${pendingCash.length} Pending Cash Payment${pendingCash.length === 1 ? '' : 's'}`,
-          sub: 'Collect cash at lesson or mark as paid in Payments.',
-          btnLabel: 'Review Payments',
-          onClick: `setTab('payments')`
-        });
-      }
-      if (draftRecaps.length > 0) {
-        const latestDraft = draftRecaps[0];
-        actionItems.push({
-          badge: `${draftRecaps.length} Draft${draftRecaps.length === 1 ? '' : 's'}`,
-          badgeCls: 'bg-[#D5FF5F] text-[#010101]',
-          title: `${draftRecaps.length} Auto-Saved Session Note Draft${draftRecaps.length === 1 ? '' : 's'}`,
-          sub: 'Finish & share with parent when ready.',
-          btnLabel: 'Continue Note',
-          onClick: latestDraft.athleteId
-            ? `openSessionRecapModal('${latestDraft.athleteId}', '${latestDraft.sessionId || ''}', '${latestDraft.id}')`
-            : `state.rosterFilter='drafts'; state.rosterView='list'; setTab('athletes');`
-        });
-      }
-      if (unreadCount > 0) {
-        actionItems.push({
-          badge: `${unreadCount} New`,
-          badgeCls: 'bg-[#010101] text-[#D5FF5F]',
-          title: `${unreadCount} Unread Parent Message${unreadCount === 1 ? '' : 's'}`,
-          sub: 'Reply in Coach Messages.',
-          btnLabel: 'Open Messages',
-          onClick: `setTab('messaging')`
-        });
-      }
-      if (state.waitlist.length > 0) {
-        actionItems.push({
-          badge: `${state.waitlist.length}`,
-          badgeCls: 'bg-[#D6DFE2] text-[#010101]',
-          title: `${state.waitlist.length} Athlete${state.waitlist.length === 1 ? '' : 's'} on Waitlist`,
-          sub: 'Offer open cage slots via 1-tap text.',
-          btnLabel: 'Offer Slot',
-          onClick: `notifyWaitlist('${state.waitlist[0].id}')`
-        });
-      }
-
       const activeDayFilter = state.homeDayFilter || 'all7';
       const filtered7Days = activeDayFilter === 'all7'
         ? next7DaysWithSessions.filter(d => d.sessions.length > 0)
@@ -4497,7 +4446,6 @@
       const sectionOrder = getHomeSectionOrder();
       const sectionMeta = {
         metrics: { label: 'At-a-Glance Metrics', sub: 'Today, Next 7 Days & Athletes counters' },
-        actions: { label: 'Important Actions Needed', sub: actionItems.length ? `${actionItems.length} pending item${actionItems.length === 1 ? '' : 's'}` : 'Auto-hides when all caught up' },
         today: { label: 'Today’s Schedule', sub: `${todaySessions.length} session${todaySessions.length === 1 ? '' : 's'} today` },
         next7: { label: 'Next 7 Days', sub: `${totalNext7Count} scheduled this week` }
       };
@@ -4523,41 +4471,6 @@
             </button>
           </div>
         `,
-        actions: actionItems.length ? `
-          <div class="card-white rounded-[28px] p-5 sm:p-6 space-y-3.5">
-            <div class="flex items-center justify-between">
-              <div>
-                <h2 class="text-base font-extrabold tracking-tight">Important Actions Needed</h2>
-                <p class="text-sm text-[var(--text-muted)]">Pending payments, draft notes &amp; unread messages</p>
-              </div>
-              <span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-[#010101] text-[#D5FF5F]">
-                ${actionItems.length} Action${actionItems.length === 1 ? '' : 's'}
-              </span>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              ${actionItems.map(item => `
-                <div class="surface-soft rounded-2xl p-4 flex items-center justify-between gap-3">
-                  <div class="min-w-0">
-                    <div class="flex items-center gap-2">
-                      <span class="px-2 py-0.5 rounded-full text-xs font-extrabold ${item.badgeCls}">${item.badge}</span>
-                      <span class="font-extrabold text-sm truncate">${item.title}</span>
-                    </div>
-                    <div class="text-[13px] text-[var(--text-muted)] mt-1 truncate">${item.sub}</div>
-                  </div>
-                  <button onclick="${item.onClick}" class="px-3 py-2 rounded-xl bg-[#010101] text-[#D5FF5F] text-[13px] font-extrabold shrink-0 cursor-pointer hover:opacity-90 transition">
-                    ${item.btnLabel}
-                  </button>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        ` : (isReordering ? `
-          <div class="card-white rounded-[24px] p-4 text-[13px] text-[var(--text-muted)] flex items-center justify-between gap-2">
-            <span class="font-bold">Important Actions Needed</span>
-            <span class="px-2.5 py-1 rounded-full surface-soft text-xs font-extrabold">Auto-hides when empty</span>
-          </div>
-        ` : ''),
         today: `
           <div class="space-y-2.5">
             <div class="flex items-center justify-between">
@@ -4751,7 +4664,7 @@
       }
     }
 
-    const HOME_SECTION_DEFAULTS = ['today', 'next7', 'metrics', 'actions'];
+    const HOME_SECTION_DEFAULTS = ['today', 'next7', 'metrics'];
     let _draggedHomeSectionId = null;
 
     function getHomeSectionOrder() {
@@ -9536,7 +9449,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.15.2';
+    const APP_VERSION = 'v3.15.3';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Mobile UX & Typography Upgrade: improved sunlight contrast, rebalanced weight hierarchy, tabular numbers, auto-growing session note textareas, sticky Back/Send bar, wider phone reading layout, and 44px touch targets';
 
