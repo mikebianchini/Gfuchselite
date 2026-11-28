@@ -375,6 +375,7 @@
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior-y: contain;
+        padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
         padding-bottom: 16px;
       }
       #mobile-bottom-dock-wrap {
@@ -669,29 +670,6 @@
         </button>
       </div>
     </aside>
-
-    <!-- Floating Mobile Liquid Glass Header Capsule (iOS Safe-Area Aware) -->
-    <div class="lg:hidden mobile-header-wrap">
-      <header class="glass-dock rounded-[26px] px-3 py-2 flex items-center justify-between gap-2.5">
-        <button type="button" onclick="setTab(state.role === 'coach' ? 'today' : 'home')" aria-label="Go to Home" class="flex items-center gap-2.5 min-w-0 text-left cursor-pointer">
-          <span class="w-9 h-9 rounded-2xl surface-soft flex items-center justify-center shrink-0 p-1.5 text-[#010101] dark:text-white">
-            <svg class="w-full h-full" viewBox="14 42 168 168" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <polygon fill="#D5FF5F" stroke="currentColor" stroke-width="4" stroke-linejoin="round" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
-              <polygon fill="currentColor" points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
-            </svg>
-          </span>
-          <div class="leading-tight min-w-0">
-            <div class="font-extrabold text-sm tracking-tight truncate">ELITE FASTPITCH</div>
-            <div class="text-xs text-[var(--text-muted)] font-semibold truncate">Gina Fuchs Training</div>
-          </div>
-        </button>
-
-        <button onclick="openMobileDrawer()" aria-label="Profile, Role &amp; Settings" class="flex items-center gap-2 pl-2.5 pr-1 py-1 rounded-full surface-soft shrink-0 cursor-pointer hover:border-[#010101] transition">
-          <span id="mob-role-pill-label" class="text-xs font-extrabold">Coach</span>
-          <span class="w-8 h-8 rounded-full bg-[#010101] text-[#D5FF5F] font-extrabold text-xs flex items-center justify-center shrink-0" id="mob-avatar">GF</span>
-        </button>
-      </header>
-    </div>
 
     <!-- Mobile Full-Menu Slide-Over Drawer (Slides Smoothly from Right) -->
     <div id="mobile-drawer" onclick="if (event.target === this) closeMobileDrawer();" class="lg:hidden fixed inset-0 z-50 hidden flex justify-end modal-backdrop">
@@ -4655,9 +4633,17 @@
         <!-- Coach Home Header + Quick Actions + 1-Tap Athlete Jump -->
         <div class="card-mist rounded-[28px] p-4 sm:p-6 space-y-3.5">
           <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <h1 class="text-2xl sm:text-3xl font-extrabold">Coach Gina</h1>
-              <p class="text-[13px] font-medium text-[var(--text-muted)] mt-0.5">${todayFullLabel} · Pittsburgh Eastern Time</p>
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="lg:hidden w-10 h-10 rounded-2xl surface-soft flex items-center justify-center shrink-0 p-1.5 text-[#010101] dark:text-white">
+                <svg class="w-full h-full" viewBox="14 42 168 168" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <polygon fill="#D5FF5F" stroke="currentColor" stroke-width="4" stroke-linejoin="round" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
+                  <polygon fill="currentColor" points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
+                </svg>
+              </span>
+              <div class="min-w-0">
+                <h1 class="text-2xl sm:text-3xl font-extrabold">Coach Gina</h1>
+                <p class="text-[13px] font-medium text-[var(--text-muted)] mt-0.5">${todayFullLabel} · Pittsburgh Eastern Time</p>
+              </div>
             </div>
             <button onclick="toggleHomeReorderMode()" title="Reorder Home sections" aria-label="Reorder Home sections" class="px-3 py-2 rounded-2xl text-[13px] font-bold cursor-pointer shrink-0 inline-flex items-center gap-1 ${isReordering ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'card-white text-[var(--text-muted)] hover:text-[var(--text-main)] hover:border-[#010101]'}">
               <span>⇅</span>
@@ -9518,9 +9504,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.16.1';
+    const APP_VERSION = 'v3.16.2';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Switched mobile to a native 100dvh flex App Shell so the bottom toolbar is a real flex footer below the scroll container and never detaches or sticks mid-screen on iOS';
+    const APP_RELEASE_NOTES = 'Removed global mobile header to reclaim full vertical screen space on every page, with the Black/Volt & White/Volt GF emblem inside Home';
 
     function reloadLatestAppVersion() {
       try {
