@@ -827,14 +827,8 @@
     function uiIcon(name, cls = 'w-3.5 h-3.5') {
       return `<svg class="${cls} inline-block shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">${UI_SVGS[name] || ''}</svg>`;
     }
-    function sectionBadge(iconName, tone = 'slate') {
-      const tones = {
-        obsidian: 'bg-[#010101] text-[#D5FF5F] shadow-sm',
-        volt: 'bg-[#D5FF5F]/45 text-[#010101] dark:bg-[#D5FF5F]/20 dark:text-[#D5FF5F]',
-        slate: 'bg-[#4E6075]/12 text-[#4E6075] dark:bg-[#9AC0D6]/15 dark:text-[#9AC0D6]',
-        amber: 'bg-amber-400/20 text-amber-800 dark:text-amber-300'
-      };
-      return `<span class="w-9 h-9 rounded-xl inline-flex items-center justify-center shrink-0 ${tones[tone] || tones.slate}" aria-hidden="true">${uiIcon(iconName, 'w-[18px] h-[18px]')}</span>`;
+    function sectionBadge(iconName) {
+      return `<span class="w-9 h-9 rounded-xl inline-flex items-center justify-center shrink-0 bg-[#010101] text-[#D5FF5F] shadow-sm ring-1 ring-black/10 dark:ring-[#D5FF5F]/25" aria-hidden="true">${uiIcon(iconName, 'w-[18px] h-[18px]')}</span>`;
     }
 
     function syncThemeChrome(isDark) {
@@ -4643,10 +4637,10 @@
           </div>
         `,
         today: `
-          <div class="space-y-2.5">
+          <div class="space-y-3.5">
             <div class="flex items-center justify-between gap-2">
-              <div class="flex items-center gap-2.5 min-w-0">
-                ${sectionBadge('calendar', 'obsidian')}
+              <div class="flex items-center gap-3 min-w-0">
+                ${sectionBadge('calendar')}
                 <div class="min-w-0">
                   <h2 class="text-lg font-extrabold tracking-tight leading-tight">Today’s Schedule</h2>
                   <p class="section-sub">${todayFullLabel}</p>
@@ -4671,10 +4665,10 @@
           </div>
         `,
         next7: `
-          <div class="space-y-3">
+          <div class="space-y-3.5">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <div class="flex items-center gap-2.5 min-w-0">
-                ${sectionBadge('clock', 'slate')}
+              <div class="flex items-center gap-3 min-w-0">
+                ${sectionBadge('clock')}
                 <div class="min-w-0">
                   <h2 class="text-lg font-extrabold tracking-tight leading-tight">Next 7 Days</h2>
                   <p class="section-sub">${days[0].shortLabel} – ${days[6].shortLabel}</p>
@@ -4762,49 +4756,51 @@
       const todaySummaryHtml = buildCoachTodaySummary(todaySessions, next7DaysWithSessions);
 
       return `
-        <!-- Coach Home Header + Daily Briefing + 1-Tap Athlete Jump -->
-        <div class="card-mist rounded-[28px] p-4 sm:p-6 space-y-3.5">
-          <div class="flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3 min-w-0">
-              <span class="lg:hidden w-10 h-10 rounded-2xl surface-soft flex items-center justify-center shrink-0 p-1.5 text-[#010101] dark:text-white">
-                <svg class="w-full h-full" viewBox="14 42 168 168" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <polygon fill="currentColor" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
-                  <polygon fill="currentColor" points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
-                </svg>
-              </span>
-              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight truncate">Coach Gina</h1>
+        <div class="space-y-7 sm:space-y-8">
+          <!-- Coach Home Header + Daily Briefing + 1-Tap Athlete Jump -->
+          <div class="card-mist rounded-[28px] p-4 sm:p-6 space-y-3.5">
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="lg:hidden w-10 h-10 rounded-2xl surface-soft flex items-center justify-center shrink-0 p-1.5 text-[#010101] dark:text-white">
+                  <svg class="w-full h-full" viewBox="14 42 168 168" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <polygon fill="currentColor" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
+                    <polygon fill="currentColor" points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
+                  </svg>
+                </span>
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight truncate">Coach Gina</h1>
+              </div>
+              <button onclick="toggleHomeReorderMode()" title="Reorder Home sections" aria-label="Reorder Home sections" class="px-3 py-2 rounded-2xl text-[13px] font-bold cursor-pointer shrink-0 inline-flex items-center gap-1 ${isReordering ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'card-white text-[var(--text-muted)] hover:text-[var(--text-main)] hover:border-[#010101]'}">
+                <span>⇅</span>
+                <span class="${isReordering ? '' : 'hidden sm:inline'}">${isReordering ? 'Done' : 'Reorder'}</span>
+              </button>
             </div>
-            <button onclick="toggleHomeReorderMode()" title="Reorder Home sections" aria-label="Reorder Home sections" class="px-3 py-2 rounded-2xl text-[13px] font-bold cursor-pointer shrink-0 inline-flex items-center gap-1 ${isReordering ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'card-white text-[var(--text-muted)] hover:text-[var(--text-main)] hover:border-[#010101]'}">
-              <span>⇅</span>
-              <span class="${isReordering ? '' : 'hidden sm:inline'}">${isReordering ? 'Done' : 'Reorder'}</span>
-            </button>
+
+            <p class="text-[15px] leading-relaxed text-[var(--text-muted)]">${todaySummaryHtml}</p>
+
+            ${activeAthletesCount > 0 ? `
+              <div class="relative">
+                <svg class="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M20 20l-3.5-3.5"/></svg>
+                <input
+                  type="search"
+                  value="${(state.homeQuickSearch || '').replace(/"/g, '&quot;')}"
+                  oninput="updateHomeQuickSearch(this.value)"
+                  placeholder="Quick find any of ${activeAthletesCount} athletes &amp; notes…"
+                  class="w-full pl-10 pr-4 py-2.5 rounded-2xl card-white text-[16px] sm:text-sm font-medium"
+                />
+                <div id="home-quick-search-results" class="${(state.homeQuickSearch || '').trim() ? '' : 'hidden'} mt-2 space-y-1.5">${renderHomeQuickSearchResults()}</div>
+              </div>
+            ` : ''}
+
+            ${isReordering ? `
+              <div class="card-white rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2 text-[13px]">
+                <span class="font-bold text-[var(--text-muted)]">Drag sections or tap <strong>↑ / ↓</strong> to customize Home — syncs across devices.</span>
+                <button type="button" onclick="resetHomeSectionOrder()" class="px-3 py-1.5 rounded-xl surface-soft text-[13px] font-extrabold cursor-pointer hover:border-[#010101]">Reset Default</button>
+              </div>
+            ` : ''}
           </div>
 
-          <p class="text-[15px] leading-relaxed text-[var(--text-muted)]">${todaySummaryHtml}</p>
-
-          ${activeAthletesCount > 0 ? `
-            <div class="relative">
-              <svg class="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M20 20l-3.5-3.5"/></svg>
-              <input
-                type="search"
-                value="${(state.homeQuickSearch || '').replace(/"/g, '&quot;')}"
-                oninput="updateHomeQuickSearch(this.value)"
-                placeholder="Quick find any of ${activeAthletesCount} athletes &amp; notes…"
-                class="w-full pl-10 pr-4 py-2.5 rounded-2xl card-white text-[16px] sm:text-sm font-medium"
-              />
-              <div id="home-quick-search-results" class="${(state.homeQuickSearch || '').trim() ? '' : 'hidden'} mt-2 space-y-1.5">${renderHomeQuickSearchResults()}</div>
-            </div>
-          ` : ''}
-
-          ${isReordering ? `
-            <div class="card-white rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2 text-[13px]">
-              <span class="font-bold text-[var(--text-muted)]">Drag sections or tap <strong>↑ / ↓</strong> to customize Home — syncs across devices.</span>
-              <button type="button" onclick="resetHomeSectionOrder()" class="px-3 py-1.5 rounded-xl surface-soft text-[13px] font-extrabold cursor-pointer hover:border-[#010101]">Reset Default</button>
-            </div>
-          ` : ''}
+          ${renderedSections}
         </div>
-
-        ${renderedSections}
       `;
     }
 
@@ -9646,9 +9642,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.17.2';
+    const APP_VERSION = 'v3.17.3';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Streamlined Coach Gina Home header by removing date/time and quick-add buttons and adding a natural-language daily briefing of today’s schedule';
+    const APP_RELEASE_NOTES = 'Unified all section header icon badges to Obsidian black with Volt lines and increased vertical spacing between Coach Home sections for a cleaner, less crowded layout';
 
     function reloadLatestAppVersion() {
       try {
