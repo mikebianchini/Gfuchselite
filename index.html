@@ -382,11 +382,41 @@
         flex-shrink: 0;
         position: relative;
         z-index: 40;
-        padding: 6px 12px calc(env(safe-area-inset-bottom, 0px) + 10px);
-        background: linear-gradient(0deg, var(--bg-page) 0%, rgba(221, 230, 234, 0.92) 72%, rgba(221, 230, 234, 0) 100%);
+        padding: 4px 16px calc(env(safe-area-inset-bottom, 0px) + 10px);
+        background: transparent;
       }
-      html.dark #mobile-bottom-dock-wrap {
-        background: linear-gradient(0deg, var(--bg-page) 0%, rgba(11, 15, 20, 0.94) 72%, rgba(11, 15, 20, 0) 100%);
+      #mobile-bottom-nav {
+        position: relative;
+        border-radius: 9999px !important;
+        padding: 5px 6px !important;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.44) 52%, rgba(242, 248, 252, 0.56) 100%) !important;
+        backdrop-filter: blur(42px) saturate(220%) brightness(1.04) !important;
+        -webkit-backdrop-filter: blur(42px) saturate(220%) brightness(1.04) !important;
+        border: 1px solid rgba(255, 255, 255, 0.85) !important;
+        box-shadow:
+          inset 0 1.5px 0 rgba(255, 255, 255, 0.96),
+          inset 0 -1px 1px rgba(15, 23, 42, 0.08),
+          0 14px 36px rgba(15, 23, 42, 0.14),
+          0 2px 8px rgba(15, 23, 42, 0.06) !important;
+      }
+      html.dark #mobile-bottom-nav {
+        background: linear-gradient(180deg, rgba(44, 54, 70, 0.66) 0%, rgba(22, 28, 38, 0.54) 55%, rgba(16, 20, 28, 0.64) 100%) !important;
+        backdrop-filter: blur(42px) saturate(210%) !important;
+        -webkit-backdrop-filter: blur(42px) saturate(210%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.20) !important;
+        box-shadow:
+          inset 0 1.5px 0 rgba(255, 255, 255, 0.28),
+          inset 0 -1px 1px rgba(0, 0, 0, 0.45),
+          0 16px 40px rgba(0, 0, 0, 0.52),
+          0 2px 8px rgba(0, 0, 0, 0.30) !important;
+      }
+      #mobile-bottom-nav .dock-tab-active {
+        background: rgba(1, 1, 1, 0.08);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+      }
+      html.dark #mobile-bottom-nav .dock-tab-active {
+        background: rgba(255, 255, 255, 0.12);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
       }
       #mobile-bottom-dock-wrap.dock-keyboard-hidden {
         display: none !important;
@@ -635,7 +665,7 @@
               <path d="M346.07,203.16c-0.94,0-1.62-0.16-2.03-0.49c-0.41-0.32-0.62-0.83-0.62-1.53c0-0.31,0.06-0.75,0.17-1.31l3.9-18.4h4.7l-1.01,4.74h4.1l-0.77,3.69h-4.1l-1.85,8.7c-0.05,0.22-0.07,0.37-0.07,0.44c0,0.31,0.25,0.47,0.74,0.47h3.09l-0.77,3.69H346.07z"/>
               <path d="M357.48,203.16c-0.94,0-1.62-0.16-2.03-0.49c-0.41-0.32-0.62-0.83-0.62-1.53c0-0.31,0.06-0.75,0.17-1.31l2.18-10.34c0.25-1.14,0.65-1.98,1.23-2.52c0.57-0.54,1.46-0.81,2.67-0.81h11.99l-0.87,4.13h-9.57c-0.38,0-0.64,0.06-0.77,0.17c-0.13,0.11-0.25,0.36-0.34,0.74l-1.44,6.78c-0.02,0.09-0.04,0.17-0.05,0.24c-0.01,0.07-0.02,0.13-0.02,0.2c0,0.34,0.26,0.5,0.77,0.5h9.57l-0.87,4.23H357.48z"/>
               <path d="M386.26,203.16l2.52-11.99c0.04-0.22,0.07-0.36,0.07-0.4c0-0.36-0.28-0.54-0.84-0.54h-7.02c-0.34,0-0.58,0.06-0.74,0.18c-0.16,0.12-0.28,0.38-0.37,0.76l-2.52,11.99h-4.7l5.1-24.11h4.7l-1.91,8.97c0.45-0.65,0.93-1.12,1.46-1.41c0.53-0.29,1.15-0.44,1.86-0.44h7.46c0.92,0,1.58,0.16,2,0.47c0.41,0.31,0.62,0.84,0.62,1.58c0,0.43-0.05,0.85-0.13,1.28l-2.89,13.67H386.26z"/>
-              <polygon fill="#D5FF5F" stroke="currentColor" stroke-width="3" stroke-linejoin="round" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
+              <polygon points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
               <polygon points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
             </g>
           </svg>
@@ -1590,23 +1620,23 @@
         ? navItems.filter(item => ['today', 'schedule', 'athletes'].includes(item.id))
         : navItems.slice(0, 3);
       const menuBtnMarkup = `
-        <button onclick="openMobileDrawer()" aria-label="Open full menu" class="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-h-[48px] rounded-2xl transition cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)]">
-          <span class="relative p-1.5 rounded-xl transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
-            ${isCoach && unread > 0 ? `<span id="mob-menu-badge" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold flex items-center justify-center shadow">${unread}</span>` : ''}
+        <button onclick="openMobileDrawer()" aria-label="Open full menu" class="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 min-h-[48px] rounded-full transition cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)]">
+          <span class="relative inline-flex items-center justify-center">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
+            ${isCoach && unread > 0 ? `<span id="mob-menu-badge" class="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold flex items-center justify-center shadow">${unread}</span>` : ''}
           </span>
-          <span class="text-[11px] font-bold leading-tight">Menu</span>
+          <span class="text-[11px] font-semibold leading-tight">Menu</span>
         </button>
       `;
       document.getElementById('mobile-bottom-nav').innerHTML = mobileDockItems.map(item => {
         const active = item.id === activeTab;
         return `
-          <button onclick="setTab('${item.id}')" ${active ? 'aria-current="page"' : ''} class="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-h-[48px] rounded-2xl transition cursor-pointer ${active ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}">
-            <span class="relative p-1.5 rounded-xl transition ${active ? 'bg-[#D5FF5F] text-[#010101] shadow-sm dock-active-pill' : ''}">
+          <button onclick="setTab('${item.id}')" ${active ? 'aria-current="page"' : ''} class="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 min-h-[48px] rounded-full transition cursor-pointer ${active ? 'dock-tab-active text-[#010101] dark:text-[#D5FF5F]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}">
+            <span class="relative inline-flex items-center justify-center">
               ${item.icon}
-              ${item.badge ? `<span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold flex items-center justify-center">${item.badge}</span>` : ''}
+              ${item.badge ? `<span class="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[10px] font-extrabold flex items-center justify-center">${item.badge}</span>` : ''}
             </span>
-            <span class="text-[11px] font-bold leading-tight">${item.label}</span>
+            <span class="text-[11px] ${active ? 'font-extrabold' : 'font-semibold'} leading-tight">${item.label}</span>
           </button>
         `;
       }).join('') + menuBtnMarkup;
@@ -4636,7 +4666,7 @@
             <div class="flex items-center gap-2.5 min-w-0">
               <span class="lg:hidden w-10 h-10 rounded-2xl surface-soft flex items-center justify-center shrink-0 p-1.5 text-[#010101] dark:text-white">
                 <svg class="w-full h-full" viewBox="14 42 168 168" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <polygon fill="#D5FF5F" stroke="currentColor" stroke-width="4" stroke-linejoin="round" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
+                  <polygon fill="currentColor" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
                   <polygon fill="currentColor" points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
                 </svg>
               </span>
@@ -9504,9 +9534,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.16.2';
+    const APP_VERSION = 'v3.16.3';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Removed global mobile header to reclaim full vertical screen space on every page, with the Black/Volt & White/Volt GF emblem inside Home';
+    const APP_RELEASE_NOTES = 'Monochrome GF logo (all black in light mode, all white in dark mode) and Apple Liquid Glass floating pill mobile bottom toolbar';
 
     function reloadLatestAppVersion() {
       try {
