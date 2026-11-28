@@ -370,6 +370,50 @@
       color: #010101;
       border-color: #D5FF5F;
     }
+    .drill-pill.drill-pill-active {
+      background: #010101 !important;
+      color: #D5FF5F !important;
+      border-color: #010101 !important;
+      box-shadow: 0 2px 8px rgba(1, 1, 1, 0.16);
+    }
+    .dark .drill-pill.drill-pill-active {
+      background: #D5FF5F !important;
+      color: #010101 !important;
+      border-color: #D5FF5F !important;
+      box-shadow: 0 2px 10px rgba(213, 255, 95, 0.22);
+    }
+    @keyframes dictateRing {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
+      70% { box-shadow: 0 0 0 9px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    .dictate-listening {
+      background: #010101 !important;
+      color: #D5FF5F !important;
+      border-color: #ef4444 !important;
+      animation: dictateRing 1.35s ease-out infinite;
+    }
+    .recap-jump-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      min-height: 32px;
+      padding: 0.3rem 0.75rem;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--text-muted);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      font-size: 13px !important;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .dark .recap-jump-pill {
+      background: rgba(22, 28, 38, 0.78);
+      border-color: rgba(255, 255, 255, 0.10);
+    }
+    .recap-jump-pill:active { transform: scale(0.96); }
 
     /* Accessible Focus Rings & Calibrated Tactile Tap Feedback */
     button, a[href], input, select, textarea, [tabindex] {
@@ -7235,13 +7279,49 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       }
     }
 
+    function normalizeDrillToken(line) {
+      return String(line || '').replace(/^[\s•\-*✓]+/, '').trim().toLowerCase();
+    }
+
+    function isDrillPresentInValue(val, drill) {
+      const target = normalizeDrillToken(drill);
+      if (!target) return false;
+      return String(val || '').split('\n').some(line => {
+        const clean = normalizeDrillToken(line);
+        return clean === target || clean.startsWith(target + ' ') || clean.startsWith(target + ' -') || clean.startsWith(target + ':');
+      });
+    }
+
+    function syncDrillPillStates() {
+      document.querySelectorAll('.drill-pill[data-target][data-drill]').forEach(btn => {
+        const el = document.getElementById(btn.dataset.target);
+        const drill = btn.dataset.drill || '';
+        const active = el ? isDrillPresentInValue(el.value, drill) : false;
+        btn.classList.toggle('drill-pill-active', active);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        const prefix = btn.querySelector('.drill-pill-prefix');
+        if (prefix) prefix.textContent = active ? '✓' : '+';
+      });
+    }
+
     function appendQuickDrill(inputId, text) {
       const el = document.getElementById(inputId);
       if (!el) return;
-      const cur = el.value.trim();
-      el.value = cur ? `${cur}\n• ${text}` : `• ${text}`;
+      const target = normalizeDrillToken(text);
+      const lines = String(el.value || '').split('\n');
+      const idx = lines.findIndex(line => normalizeDrillToken(line) === target);
+      if (idx !== -1) {
+        lines.splice(idx, 1);
+        el.value = lines.join('\n').replace(/^\n+|\n+$/g, '');
+      } else {
+        const cur = el.value.trim();
+        el.value = cur ? `${cur}\n• ${text}` : `• ${text}`;
+      }
       el.dispatchEvent(new Event('input', { bubbles: true }));
-      el.focus();
+      syncDrillPillStates();
+      if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+        el.focus();
+      }
     }
 
     function normalizeRecapForDisplay(r) {
@@ -7874,6 +7954,94 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
+    const _recapCollapsedSections = {};
+    let _activeDictationRec = null;
+    let _activeDictationBtn = null;
+
+    function syncRecapJumpStrip() {
+      const hasVal = (id) => Boolean(document.getElementById(id)?.value?.trim());
+      const hasDrills = hasVal('recap-tee-input') || hasVal('recap-ft-input') || hasVal('recap-machine-input') || _recapDraftClips.length > 0;
+      const map = {
+        warmup: hasVal('recap-warmup-input'),
+        focus: hasVal('recap-focus-input'),
+        drills: hasDrills,
+        homework: hasVal('recap-homework-input'),
+        notes: hasVal('recap-session-notes-input'),
+        private: hasVal('recap-private-note-input')
+      };
+      Object.entries(map).forEach(([key, filled]) => {
+        const dot = document.getElementById(`recap-jump-dot-${key}`);
+        if (dot) dot.classList.toggle('hidden', !filled);
+        const badge = document.getElementById(`recap-done-badge-${key}`);
+        if (badge) badge.classList.toggle('hidden', !filled);
+        const preview = document.getElementById(`recap-preview-${key}`);
+        if (preview) {
+          const srcId = key === 'warmup' ? 'recap-warmup-input'
+            : key === 'focus' ? 'recap-focus-input'
+            : key === 'homework' ? 'recap-homework-input'
+            : key === 'notes' ? 'recap-session-notes-input'
+            : key === 'private' ? 'recap-private-note-input' : null;
+          if (srcId) {
+            const firstLine = (document.getElementById(srcId)?.value || '').split('\n').map(l => l.trim()).find(Boolean) || 'Tap to add…';
+            preview.textContent = firstLine;
+          }
+        }
+      });
+    }
+
+    function jumpToRecapSection(secId, secKey) {
+      if (secKey && _recapCollapsedSections[secKey]) {
+        toggleRecapSectionCollapse(secKey, false);
+      }
+      const target = document.getElementById(secId);
+      if (!target) return;
+      const scroller = window.innerWidth < 1024 ? document.getElementById('app-main-scroll') : null;
+      if (scroller) {
+        const topOffset = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - 108;
+        scroller.scrollTo({ top: Math.max(0, topOffset), behavior: 'smooth' });
+      } else {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function toggleRecapSectionCollapse(secKey, forceState) {
+      const next = typeof forceState === 'boolean' ? forceState : !Boolean(_recapCollapsedSections[secKey]);
+      _recapCollapsedSections[secKey] = next;
+      const body = document.getElementById(`recap-body-${secKey}`);
+      const preview = document.getElementById(`recap-collapsed-bar-${secKey}`);
+      const chev = document.getElementById(`recap-chev-${secKey}`);
+      if (body) body.classList.toggle('hidden', next);
+      if (preview) preview.classList.toggle('hidden', !next);
+      if (chev) chev.style.transform = next ? 'rotate(-90deg)' : 'rotate(0deg)';
+      if (!next) {
+        requestAnimationFrame(() => autoGrowAllRecapTextareas());
+      }
+    }
+
+    function getNextTodaySession(currentSessionId, currentAthId) {
+      try {
+        const days = getRolling7Days();
+        const today = days[0];
+        const activeToday = sortSessionsByTimeAsc(
+          (state.sessions || []).filter(s => sessionMatchesDay(s, today) && s.status !== 'Canceled' && s.athleteId)
+        );
+        if (!activeToday.length) return null;
+        let idx = currentSessionId ? activeToday.findIndex(s => s.id === currentSessionId) : -1;
+        if (idx === -1 && currentAthId) idx = activeToday.findIndex(s => s.athleteId === currentAthId);
+        if (idx >= 0 && idx + 1 < activeToday.length) return activeToday[idx + 1];
+        if (idx === -1) return activeToday.find(s => s.athleteId !== currentAthId) || null;
+        return null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function openNextTodayRecap(athId, sesId) {
+      if (!athId) return;
+      try { autoSaveRecapDraft(true); } catch (_) {}
+      openSessionRecapModal(athId, sesId || null);
+    }
+
     function updateStationDots() {
       ['tee', 'ft', 'machine'].forEach(st => {
         const dot = document.getElementById(`recap-dot-${st}`);
@@ -7881,9 +8049,19 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         const hasClip = _recapDraftClips.some(c => c.station === st);
         if (dot) dot.classList.toggle('hidden', !(val || hasClip));
       });
+      syncDrillPillStates();
+      syncRecapJumpStrip();
     }
 
     function startRecapDictation(targetId, btnEl) {
+      // Tap again while listening to stop cleanly
+      if (_activeDictationRec && _activeDictationBtn === btnEl) {
+        try { _activeDictationRec.stop(); } catch (_) {}
+        return;
+      }
+      if (_activeDictationRec) {
+        try { _activeDictationRec.stop(); } catch (_) {}
+      }
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SR) {
         showToast('Use your iPhone keyboard mic to dictate!');
@@ -7894,7 +8072,10 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       rec.lang = 'en-US';
       rec.interimResults = false;
       const orig = btnEl.innerHTML;
-      btnEl.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Listening…`;
+      _activeDictationRec = rec;
+      _activeDictationBtn = btnEl;
+      btnEl.classList.add('dictate-listening');
+      btnEl.innerHTML = `<span class="inline-block w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span><span>Listening…</span>`;
       rec.onresult = (ev) => {
         const spoken = ev.results?.[0]?.[0]?.transcript?.trim();
         if (spoken) {
@@ -7907,7 +8088,14 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         }
       };
       rec.onerror = () => showToast('Mic unavailable — use keyboard dictation.');
-      rec.onend = () => { btnEl.innerHTML = orig; };
+      rec.onend = () => {
+        btnEl.classList.remove('dictate-listening');
+        btnEl.innerHTML = orig;
+        if (_activeDictationRec === rec) {
+          _activeDictationRec = null;
+          _activeDictationBtn = null;
+        }
+      };
       rec.start();
     }
 
@@ -8018,14 +8206,41 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         ? (/^auto-created$/i.test(saved.savedAt) ? 'Auto-created' : `Auto-saved ${saved.savedAt}`)
         : 'Auto-save on';
 
+      const collapseInitKey = `${ath.id}:${ses ? ses.id : ''}`;
+      if (_recapCollapsedSections._key !== collapseInitKey) {
+        Object.keys(_recapCollapsedSections).forEach(k => delete _recapCollapsedSections[k]);
+        _recapCollapsedSections._key = collapseInitKey;
+        if ((d.warmup || '').trim()) _recapCollapsedSections.warmup = true;
+      }
+
+      const nextTodaySes = getNextTodaySession(ses ? ses.id : null, ath.id);
+      const nextTodayAth = nextTodaySes ? state.athletes.find(a => a.id === nextTodaySes.athleteId) : null;
+      const escHtml = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      const renderDrillBtn = (inputId, q) => {
+        const val = inputId === 'recap-warmup-input' ? d.warmup
+          : inputId === 'recap-tee-input' ? d.tee
+          : inputId === 'recap-ft-input' ? d.ft
+          : inputId === 'recap-machine-input' ? d.machine
+          : d.homework;
+        const active = isDrillPresentInValue(val, q);
+        return `<button type="button" data-target="${inputId}" data-drill="${escHtml(q)}" aria-pressed="${active ? 'true' : 'false'}" onclick="appendQuickDrill('${inputId}','${escAttr(q)}')" class="drill-pill ${active ? 'drill-pill-active' : ''}"><span class="drill-pill-prefix">${active ? '✓' : '+'}</span><span>${escHtml(q)}</span></button>`;
+      };
+      const firstNonEmptyLine = (txt) => (String(txt || '').split('\n').map(l => l.trim()).find(Boolean) || 'Tap to add…');
+      const warmupCollapsed = Boolean(_recapCollapsedSections.warmup);
+      const homeworkCollapsed = Boolean(_recapCollapsedSections.homework);
+      const notesCollapsed = Boolean(_recapCollapsedSections.notes);
+      const privateCollapsed = Boolean(_recapCollapsedSections.private);
+
       requestAnimationFrame(() => {
         if (typeof autoGrowAllRecapTextareas === 'function') autoGrowAllRecapTextareas();
+        if (typeof syncDrillPillStates === 'function') syncDrillPillStates();
+        if (typeof syncRecapJumpStrip === 'function') syncRecapJumpStrip();
       });
 
       return `
         <form oninput="autoSaveRecapDraft(); updateStationDots(); autoGrowAllRecapTextareas();" onchange="autoSaveRecapDraft(true); updateStationDots(); autoGrowAllRecapTextareas();" onsubmit="submitSessionRecap(event, '${ath.id}', '${ses ? ses.id : ''}')" class="max-w-2xl mx-auto space-y-6 sm:space-y-7">
-          <!-- Sticky Top Navigation & Quick-Send Bar -->
-          <div class="recap-sticky-bar">
+          <!-- Sticky Top Navigation + Quick-Jump Section Strip -->
+          <div class="recap-sticky-bar space-y-2">
             <div class="glass-dock rounded-full px-2 py-1.5 flex items-center justify-between gap-1.5 shadow-sm">
               <button type="button" onclick="closeRecapComposer()" class="inline-flex items-center gap-1 px-3.5 py-2 min-h-[42px] rounded-full card-white text-[14px] font-extrabold cursor-pointer shrink-0">
                 ← Back
@@ -8038,6 +8253,34 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                 <button type="submit" class="px-4 py-2 min-h-[42px] rounded-full bg-[#010101] text-[#D5FF5F] text-[14px] font-extrabold cursor-pointer shadow-sm hover:opacity-90 transition">Send</button>
               </div>
             </div>
+
+            <!-- 1-Tap Quick-Jump Section Strip -->
+            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 px-0.5">
+              <button type="button" onclick="jumpToRecapSection('recap-sec-warmup', 'warmup')" class="recap-jump-pill">
+                <span id="recap-jump-dot-warmup" class="w-1.5 h-1.5 rounded-full bg-[#9ED11E] ${(d.warmup || '').trim() ? '' : 'hidden'}"></span>
+                <span>Warm Up</span>
+              </button>
+              <button type="button" onclick="jumpToRecapSection('recap-sec-focus')" class="recap-jump-pill">
+                <span id="recap-jump-dot-focus" class="w-1.5 h-1.5 rounded-full bg-[#9ED11E] ${(d.focus || '').trim() ? '' : 'hidden'}"></span>
+                <span>Focus</span>
+              </button>
+              <button type="button" onclick="jumpToRecapSection('recap-sec-drills')" class="recap-jump-pill">
+                <span id="recap-jump-dot-drills" class="w-1.5 h-1.5 rounded-full bg-[#9ED11E] ${((d.tee || '').trim() || (d.ft || '').trim() || (d.machine || '').trim() || _recapDraftClips.length) ? '' : 'hidden'}"></span>
+                <span>Drills</span>
+              </button>
+              <button type="button" onclick="jumpToRecapSection('recap-sec-homework', 'homework')" class="recap-jump-pill">
+                <span id="recap-jump-dot-homework" class="w-1.5 h-1.5 rounded-full bg-[#9ED11E] ${(d.homework || '').trim() ? '' : 'hidden'}"></span>
+                <span>Homework</span>
+              </button>
+              <button type="button" onclick="jumpToRecapSection('recap-sec-notes', 'notes')" class="recap-jump-pill">
+                <span id="recap-jump-dot-notes" class="w-1.5 h-1.5 rounded-full bg-[#9ED11E] ${(d.sessionNotes || '').trim() ? '' : 'hidden'}"></span>
+                <span>Notes</span>
+              </button>
+              <button type="button" onclick="jumpToRecapSection('recap-sec-private', 'private')" class="recap-jump-pill">
+                <span id="recap-jump-dot-private" class="w-1.5 h-1.5 rounded-full bg-amber-500 ${(d.privateCoachNote || '').trim() ? '' : 'hidden'}"></span>
+                <span>Private</span>
+              </button>
+            </div>
           </div>
 
           <!-- Athlete & Session Studio Header -->
@@ -8049,6 +8292,13 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                 <h1 class="text-[22px] sm:text-2xl font-extrabold tracking-tight truncate">${ath.name} ${ath.ageGroup ? `<span class="text-[15px] font-bold text-[var(--text-muted)]">(${ath.ageGroup})</span>` : ''}</h1>
               </div>
             </div>
+
+            ${nextTodayAth && nextTodaySes ? `
+              <button type="button" onclick="openNextTodayRecap('${nextTodayAth.id}', '${nextTodaySes.id}')" class="w-full px-4 py-2.5 min-h-[44px] rounded-2xl bg-[#010101] text-[#D5FF5F] text-[14px] font-extrabold flex items-center justify-between gap-2 cursor-pointer shadow-sm hover:opacity-95 transition">
+                <span class="truncate">Next Today: ${escHtml(nextTodayAth.name)}${nextTodaySes.time ? ` (${escHtml(nextTodaySes.time)})` : ''}</span>
+                <span class="shrink-0">→</span>
+              </button>
+            ` : ''}
 
             ${ses ? `
               <div class="rounded-2xl card-white px-4 py-3.5 space-y-2">
@@ -8105,24 +8355,38 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             ` : ''}
           </div>
 
-          <!-- 1. Warm Up Routine -->
-          <div class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
+          <!-- 1. Warm Up Routine (Collapsible when prefilled) -->
+          <div id="recap-sec-warmup" class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
             <div class="flex items-center justify-between gap-2">
-              <div class="flex items-center gap-3 min-w-0">
+              <button type="button" onclick="toggleRecapSectionCollapse('warmup')" class="flex items-center gap-3 min-w-0 flex-1 text-left cursor-pointer">
                 ${sectionBadge('flame')}
-                <label for="recap-warmup-input" class="section-heading">Warm Up Routine</label>
+                <div class="min-w-0 flex items-center gap-2">
+                  <span class="section-heading truncate">Warm Up Routine</span>
+                  <span id="recap-done-badge-warmup" class="px-2 py-0.5 rounded-full bg-[#D5FF5F]/50 text-[#010101] dark:bg-[#D5FF5F]/20 dark:text-[#D5FF5F] text-xs font-extrabold shrink-0 ${(d.warmup || '').trim() ? '' : 'hidden'}">✓</span>
+                </div>
+              </button>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button type="button" onclick="startRecapDictation('recap-warmup-input', this)" class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-full surface-soft text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
+                <button type="button" onclick="toggleRecapSectionCollapse('warmup')" aria-label="Toggle Warm Up Routine" class="w-9 h-9 rounded-full surface-soft flex items-center justify-center text-[var(--text-muted)] cursor-pointer shrink-0">
+                  <span id="recap-chev-warmup" class="inline-block transition-transform duration-200" style="transform: ${warmupCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}">▾</span>
+                </button>
               </div>
-              <button type="button" onclick="startRecapDictation('recap-warmup-input', this)" class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-full surface-soft text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
             </div>
-            <div class="flex flex-wrap gap-2">
-              ${warmupQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-warmup-input','${escAttr(q)}')" class="drill-pill">+ ${q}</button>`).join('')}
-              <button type="button" onclick="addCustomCuePrompt('warmup')" class="min-h-[38px] px-3.5 py-2 rounded-full border border-dashed border-[var(--border-subtle)] text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ New Drill</button>
+            <button id="recap-collapsed-bar-warmup" type="button" onclick="toggleRecapSectionCollapse('warmup', false)" class="${warmupCollapsed ? '' : 'hidden'} w-full text-left px-3.5 py-2.5 rounded-2xl surface-soft text-[14px] text-[var(--text-muted)] flex items-center justify-between gap-2 cursor-pointer">
+              <span id="recap-preview-warmup" class="truncate font-medium">${escHtml(firstNonEmptyLine(d.warmup))}</span>
+              <span class="text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] shrink-0">Edit</span>
+            </button>
+            <div id="recap-body-warmup" class="space-y-3.5 ${warmupCollapsed ? 'hidden' : ''}">
+              <div class="flex flex-wrap gap-2">
+                ${warmupQuick.map(q => renderDrillBtn('recap-warmup-input', q)).join('')}
+                <button type="button" onclick="addCustomCuePrompt('warmup')" class="min-h-[38px] px-3.5 py-2 rounded-full border border-dashed border-[var(--border-subtle)] text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ New Drill</button>
+              </div>
+              <textarea id="recap-warmup-input" name="warmup" rows="3" class="w-full px-4 py-3.5 rounded-2xl surface-soft text-[16px] leading-relaxed resize-none" placeholder="Tap drills above or type warm-up routine…">${d.warmup || ''}</textarea>
             </div>
-            <textarea id="recap-warmup-input" name="warmup" rows="3" class="w-full px-4 py-3.5 rounded-2xl surface-soft text-[16px] leading-relaxed resize-none" placeholder="Tap drills above or type warm-up routine…">${d.warmup || ''}</textarea>
           </div>
 
           <!-- 2. Player Notes and Focus -->
-          <div class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
+          <div id="recap-sec-focus" class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-3 min-w-0">
                 ${sectionBadge('target')}
@@ -8137,7 +8401,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           </div>
 
           <!-- 3. What We Worked On: Tee | Front Toss | Machine -->
-          <div class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
+          <div id="recap-sec-drills" class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-3 min-w-0">
                 ${sectionBadge('softball')}
@@ -8171,10 +8435,10 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             <div id="recap-panel-tee" class="space-y-3.5 ${_recapActiveStation === 'tee' ? '' : 'hidden'}">
               <div class="flex items-start justify-between gap-2">
                 <div class="flex flex-wrap gap-2">
-                  ${teeQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-tee-input','${escAttr(q)}')" class="drill-pill">+ ${q}</button>`).join('')}
+                  ${teeQuick.map(q => renderDrillBtn('recap-tee-input', q)).join('')}
                   <button type="button" onclick="addCustomCuePrompt('tee')" class="min-h-[38px] px-3.5 py-2 rounded-full border border-dashed border-[var(--border-subtle)] text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ New Drill</button>
                 </div>
-                <button type="button" onclick="startRecapDictation('recap-tee-input', this)" class="inline-flex items-center justify-center w-10 h-10 rounded-full surface-soft text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0" aria-label="Dictate Tee notes">${micSvg}</button>
+                <button type="button" onclick="startRecapDictation('recap-tee-input', this)" class="inline-flex items-center justify-center gap-1 px-3 min-h-[40px] rounded-full surface-soft text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0" aria-label="Dictate Tee notes">${micSvg}</button>
               </div>
               <textarea id="recap-tee-input" name="tee" rows="3" class="w-full px-4 py-3.5 rounded-2xl surface-soft text-[16px] leading-relaxed resize-none" placeholder="• Extensions 3/3/3&#10;• Swing 3/3/3">${d.tee || ''}</textarea>
               ${renderStationVideoBar('tee', 'Tee')}
@@ -8184,10 +8448,10 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             <div id="recap-panel-ft" class="space-y-3.5 ${_recapActiveStation === 'ft' ? '' : 'hidden'}">
               <div class="flex items-start justify-between gap-2">
                 <div class="flex flex-wrap gap-2">
-                  ${ftQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-ft-input','${escAttr(q)}')" class="drill-pill">+ ${q}</button>`).join('')}
+                  ${ftQuick.map(q => renderDrillBtn('recap-ft-input', q)).join('')}
                   <button type="button" onclick="addCustomCuePrompt('ft')" class="min-h-[38px] px-3.5 py-2 rounded-full border border-dashed border-[var(--border-subtle)] text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ New Drill</button>
                 </div>
-                <button type="button" onclick="startRecapDictation('recap-ft-input', this)" class="inline-flex items-center justify-center w-10 h-10 rounded-full surface-soft text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0" aria-label="Dictate Front Toss notes">${micSvg}</button>
+                <button type="button" onclick="startRecapDictation('recap-ft-input', this)" class="inline-flex items-center justify-center gap-1 px-3 min-h-[40px] rounded-full surface-soft text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0" aria-label="Dictate Front Toss notes">${micSvg}</button>
               </div>
               <textarea id="recap-ft-input" name="ft" rows="3" class="w-full px-4 py-3.5 rounded-2xl surface-soft text-[16px] leading-relaxed resize-none" placeholder="• Shorty baseballs&#10;• Worked on at bats & attacking pitches you are hunting!!">${d.ft || ''}</textarea>
               ${renderStationVideoBar('ft', 'Front Toss')}
@@ -8197,65 +8461,103 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             <div id="recap-panel-machine" class="space-y-3.5 ${_recapActiveStation === 'machine' ? '' : 'hidden'}">
               <div class="flex items-start justify-between gap-2">
                 <div class="flex flex-wrap gap-2">
-                  ${machQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-machine-input','${escAttr(q)}')" class="drill-pill">+ ${q}</button>`).join('')}
+                  ${machQuick.map(q => renderDrillBtn('recap-machine-input', q)).join('')}
                   <button type="button" onclick="addCustomCuePrompt('machine')" class="min-h-[38px] px-3.5 py-2 rounded-full border border-dashed border-[var(--border-subtle)] text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ New Drill</button>
                 </div>
-                <button type="button" onclick="startRecapDictation('recap-machine-input', this)" class="inline-flex items-center justify-center w-10 h-10 rounded-full surface-soft text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0" aria-label="Dictate Machine notes">${micSvg}</button>
+                <button type="button" onclick="startRecapDictation('recap-machine-input', this)" class="inline-flex items-center justify-center gap-1 px-3 min-h-[40px] rounded-full surface-soft text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0" aria-label="Dictate Machine notes">${micSvg}</button>
               </div>
               <textarea id="recap-machine-input" name="machine" rows="3" class="w-full px-4 py-3.5 rounded-2xl surface-soft text-[16px] leading-relaxed resize-none" placeholder="• Fastball timing reps (optional)">${d.machine || ''}</textarea>
               ${renderStationVideoBar('machine', 'Machine')}
             </div>
           </div>
 
-          <!-- 4. Homework Card -->
-          <div class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
+          <!-- 4. Homework Card (Collapsible) -->
+          <div id="recap-sec-homework" class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
             <div class="flex items-center justify-between gap-2">
-              <div class="flex items-center gap-3 min-w-0">
+              <button type="button" onclick="toggleRecapSectionCollapse('homework')" class="flex items-center gap-3 min-w-0 flex-1 text-left cursor-pointer">
                 ${sectionBadge('clipboard')}
-                <label for="recap-homework-input" class="section-heading">Homework</label>
+                <div class="min-w-0 flex items-center gap-2">
+                  <span class="section-heading truncate">Homework</span>
+                  <span id="recap-done-badge-homework" class="px-2 py-0.5 rounded-full bg-[#D5FF5F]/50 text-[#010101] dark:bg-[#D5FF5F]/20 dark:text-[#D5FF5F] text-xs font-extrabold shrink-0 ${(d.homework || '').trim() ? '' : 'hidden'}">✓</span>
+                </div>
+              </button>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button type="button" onclick="addCustomCuePrompt('homework')" class="px-3 py-1.5 min-h-[38px] rounded-full border border-dashed border-[var(--border-subtle)] text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0">+ New Drill</button>
+                <button type="button" onclick="toggleRecapSectionCollapse('homework')" aria-label="Toggle Homework" class="w-9 h-9 rounded-full surface-soft flex items-center justify-center text-[var(--text-muted)] cursor-pointer shrink-0">
+                  <span id="recap-chev-homework" class="inline-block transition-transform duration-200" style="transform: ${homeworkCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}">▾</span>
+                </button>
               </div>
-              <button type="button" onclick="addCustomCuePrompt('homework')" class="px-3 py-1.5 min-h-[38px] rounded-full border border-dashed border-[var(--border-subtle)] text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0">+ New Drill</button>
             </div>
-            <div class="flex flex-wrap gap-2">
-              ${hwQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-homework-input','${escAttr(q)}')" class="drill-pill">+ ${q}</button>`).join('')}
+            <button id="recap-collapsed-bar-homework" type="button" onclick="toggleRecapSectionCollapse('homework', false)" class="${homeworkCollapsed ? '' : 'hidden'} w-full text-left px-3.5 py-2.5 rounded-2xl surface-soft text-[14px] text-[var(--text-muted)] flex items-center justify-between gap-2 cursor-pointer">
+              <span id="recap-preview-homework" class="truncate font-medium">${escHtml(firstNonEmptyLine(d.homework))}</span>
+              <span class="text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] shrink-0">Edit</span>
+            </button>
+            <div id="recap-body-homework" class="space-y-3.5 ${homeworkCollapsed ? 'hidden' : ''}">
+              <div class="flex flex-wrap gap-2">
+                ${hwQuick.map(q => renderDrillBtn('recap-homework-input', q)).join('')}
+              </div>
+              <textarea id="recap-homework-input" name="homework" rows="3" class="w-full px-4 py-3.5 rounded-2xl surface-soft text-[16px] leading-relaxed font-medium resize-none">${d.homework || ''}</textarea>
             </div>
-            <textarea id="recap-homework-input" name="homework" rows="3" class="w-full px-4 py-3.5 rounded-2xl surface-soft text-[16px] leading-relaxed font-medium resize-none">${d.homework || ''}</textarea>
           </div>
 
-          <!-- 5. Session Notes (Player-Viewable) -->
-          <div class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
+          <!-- 5. Session Notes (Player-Viewable, Collapsible) -->
+          <div id="recap-sec-notes" class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
             <div class="flex items-center justify-between gap-2">
-              <div class="flex items-center gap-3 min-w-0">
+              <button type="button" onclick="toggleRecapSectionCollapse('notes')" class="flex items-center gap-3 min-w-0 flex-1 text-left cursor-pointer">
                 ${sectionBadge('note')}
                 <div class="min-w-0">
                   <div class="flex flex-wrap items-center gap-2">
-                    <label for="recap-session-notes-input" class="section-heading">Session Notes</label>
+                    <span class="section-heading">Session Notes</span>
                     <span class="px-2.5 py-0.5 rounded-full bg-[#D5FF5F]/45 text-[#010101] dark:text-[#D5FF5F] dark:bg-[#D5FF5F]/15 text-xs font-extrabold">Viewable to Player</span>
+                    <span id="recap-done-badge-notes" class="px-2 py-0.5 rounded-full bg-[#D5FF5F]/50 text-[#010101] dark:bg-[#D5FF5F]/20 dark:text-[#D5FF5F] text-xs font-extrabold ${(d.sessionNotes || '').trim() ? '' : 'hidden'}">✓</span>
                   </div>
                   <p class="section-sub">Included in the recap shared with the athlete &amp; parent</p>
                 </div>
+              </button>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button type="button" onclick="startRecapDictation('recap-session-notes-input', this)" class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-full surface-soft text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
+                <button type="button" onclick="toggleRecapSectionCollapse('notes')" aria-label="Toggle Session Notes" class="w-9 h-9 rounded-full surface-soft flex items-center justify-center text-[var(--text-muted)] cursor-pointer shrink-0">
+                  <span id="recap-chev-notes" class="inline-block transition-transform duration-200" style="transform: ${notesCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}">▾</span>
+                </button>
               </div>
-              <button type="button" onclick="startRecapDictation('recap-session-notes-input', this)" class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-full surface-soft text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
             </div>
-            <textarea id="recap-session-notes-input" name="sessionNotes" rows="3" class="w-full px-4 py-3.5 rounded-2xl surface-soft text-[16px] leading-relaxed resize-none" placeholder="Great energy today! Keep focusing on staying through the middle…">${d.sessionNotes || ''}</textarea>
+            <button id="recap-collapsed-bar-notes" type="button" onclick="toggleRecapSectionCollapse('notes', false)" class="${notesCollapsed ? '' : 'hidden'} w-full text-left px-3.5 py-2.5 rounded-2xl surface-soft text-[14px] text-[var(--text-muted)] flex items-center justify-between gap-2 cursor-pointer">
+              <span id="recap-preview-notes" class="truncate font-medium">${escHtml(firstNonEmptyLine(d.sessionNotes))}</span>
+              <span class="text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] shrink-0">Edit</span>
+            </button>
+            <div id="recap-body-notes" class="${notesCollapsed ? 'hidden' : ''}">
+              <textarea id="recap-session-notes-input" name="sessionNotes" rows="3" class="w-full px-4 py-3.5 rounded-2xl surface-soft text-[16px] leading-relaxed resize-none" placeholder="Great energy today! Keep focusing on staying through the middle…">${d.sessionNotes || ''}</textarea>
+            </div>
           </div>
 
-          <!-- 6. Private Coach Note (Coach Only — Separate Container for Privacy Clarity) -->
-          <div class="rounded-[28px] p-5 sm:p-6 space-y-4 bg-amber-50/75 dark:bg-amber-400/[0.06] border border-amber-300/60 dark:border-amber-400/20 shadow-sm">
+          <!-- 6. Private Coach Note (Coach Only — Separate Container, Collapsible) -->
+          <div id="recap-sec-private" class="rounded-[28px] p-5 sm:p-6 space-y-4 bg-amber-50/75 dark:bg-amber-400/[0.06] border border-amber-300/60 dark:border-amber-400/20 shadow-sm">
             <div class="flex items-center justify-between gap-2">
-              <div class="flex items-center gap-3 min-w-0">
+              <button type="button" onclick="toggleRecapSectionCollapse('private')" class="flex items-center gap-3 min-w-0 flex-1 text-left cursor-pointer">
                 ${sectionBadge('lock')}
                 <div class="min-w-0">
                   <div class="flex flex-wrap items-center gap-2">
-                    <label for="recap-private-note-input" class="section-heading">Private Coach Note</label>
+                    <span class="section-heading">Private Coach Note</span>
                     <span class="px-2.5 py-0.5 rounded-full bg-amber-400/30 text-amber-950 dark:text-amber-300 text-xs font-extrabold">Coach Only • Private</span>
+                    <span id="recap-done-badge-private" class="px-2 py-0.5 rounded-full bg-amber-400/35 text-amber-950 dark:text-amber-300 text-xs font-extrabold ${(d.privateCoachNote || '').trim() ? '' : 'hidden'}">✓</span>
                   </div>
                   <p class="section-sub">Only viewable by Coach — never sent to athlete or parent</p>
                 </div>
+              </button>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button type="button" onclick="startRecapDictation('recap-private-note-input', this)" class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-full bg-white/80 dark:bg-white/10 text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
+                <button type="button" onclick="toggleRecapSectionCollapse('private')" aria-label="Toggle Private Coach Note" class="w-9 h-9 rounded-full bg-white/80 dark:bg-white/10 flex items-center justify-center text-[var(--text-muted)] cursor-pointer shrink-0">
+                  <span id="recap-chev-private" class="inline-block transition-transform duration-200" style="transform: ${privateCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}">▾</span>
+                </button>
               </div>
-              <button type="button" onclick="startRecapDictation('recap-private-note-input', this)" class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-full bg-white/80 dark:bg-white/10 text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
             </div>
-            <textarea id="recap-private-note-input" name="privateCoachNote" rows="3" class="w-full px-4 py-3.5 rounded-2xl bg-white/90 dark:bg-[#131820]/80 border border-amber-300/60 dark:border-amber-400/25 text-[16px] leading-relaxed resize-none" placeholder="Private reminders for next lesson (not visible to player)…">${d.privateCoachNote || ''}</textarea>
+            <button id="recap-collapsed-bar-private" type="button" onclick="toggleRecapSectionCollapse('private', false)" class="${privateCollapsed ? '' : 'hidden'} w-full text-left px-3.5 py-2.5 rounded-2xl bg-white/80 dark:bg-[#131820]/70 text-[14px] text-[var(--text-muted)] flex items-center justify-between gap-2 cursor-pointer">
+              <span id="recap-preview-private" class="truncate font-medium">${escHtml(firstNonEmptyLine(d.privateCoachNote))}</span>
+              <span class="text-xs font-extrabold text-[#4E6075] dark:text-[#9AC0D6] shrink-0">Edit</span>
+            </button>
+            <div id="recap-body-private" class="${privateCollapsed ? 'hidden' : ''}">
+              <textarea id="recap-private-note-input" name="privateCoachNote" rows="3" class="w-full px-4 py-3.5 rounded-2xl bg-white/90 dark:bg-[#131820]/80 border border-amber-300/60 dark:border-amber-400/25 text-[16px] leading-relaxed resize-none" placeholder="Private reminders for next lesson (not visible to player)…">${d.privateCoachNote || ''}</textarea>
+            </div>
           </div>
 
           <!-- 7. Send & Save Action Card -->
@@ -8273,6 +8575,11 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               ${uiIcon('send', 'w-4 h-4')}
               <span>${groupAthletes.length > 1 ? `Send Group Recap (${groupAthletes.length} Athletes)` : `Send Recap to ${ath.name.split(' ')[0]} & ${(ath.parentName || 'Parent').split(' ')[0]}`}</span>
             </button>
+            ${nextTodayAth && nextTodaySes ? `
+              <button type="button" onclick="openNextTodayRecap('${nextTodayAth.id}', '${nextTodaySes.id}')" class="w-full py-3.5 min-h-[48px] rounded-2xl card-white text-[15px] font-extrabold text-[var(--text-main)] cursor-pointer hover:border-[#010101] transition inline-flex items-center justify-center gap-2">
+                <span>Save Draft &amp; Jump to Next: ${escHtml(nextTodayAth.name)}${nextTodaySes.time ? ` (${escHtml(nextTodaySes.time)})` : ''} →</span>
+              </button>
+            ` : ''}
           </div>
         </form>
       `;
@@ -9675,9 +9982,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.18.0';
+    const APP_VERSION = 'v3.19.0';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Upgraded Session Notes Studio for mobile: larger readable typography, wider section spacing, darker prefilled drill pills, 44px station tabs, and a separate Private Coach Note card';
+    const APP_RELEASE_NOTES = 'Fixed iOS keyboard viewport shift when tapping text fields, plus added active ✓ toggle drill pills, sticky Quick-Jump section strip, collapsible completed sections, 1-tap Next Athlete Today switcher, and tactile pulsing dictation';
 
     function reloadLatestAppVersion() {
       try {
@@ -11900,14 +12207,16 @@ create policy "Allow media delete" on storage.objects
       const scroller = document.getElementById('app-main-scroll');
       if (!dockWrap) return;
 
+      const origScrollTo = typeof window.scrollTo === 'function' ? window.scrollTo.bind(window) : () => {};
+
       // Ensure tab switches that call window.scrollTo({ top: 0 }) also scroll #app-main-scroll on mobile
       if (scroller && typeof window.scrollTo === 'function') {
-        const origScrollTo = window.scrollTo.bind(window);
         window.scrollTo = function(arg1, arg2) {
           try {
             if (window.innerWidth < 1024 && scroller) {
               if (typeof arg1 === 'object' && arg1 !== null) scroller.scrollTo?.(arg1);
               else if (typeof arg1 === 'number') scroller.scrollTop = arg2 || 0;
+              return origScrollTo(0, 0);
             }
           } catch (_) {}
           return origScrollTo(arg1, arg2);
@@ -11929,19 +12238,42 @@ create policy "Allow media delete" on storage.objects
         dockWrap.classList.toggle('dock-keyboard-hidden', hidden);
       };
 
+      const scrollFocusedFieldIntoView = (el) => {
+        if (!el || !scroller || window.innerWidth >= 1024) return;
+        try {
+          const sRect = scroller.getBoundingClientRect();
+          const eRect = el.getBoundingClientRect();
+          const topPad = 112;
+          const botPad = 28;
+          if (eRect.top < sRect.top + topPad || eRect.bottom > sRect.bottom - botPad) {
+            const targetTop = scroller.scrollTop + (eRect.top - sRect.top) - Math.max(topPad, (sRect.height - eRect.height) * 0.35);
+            scroller.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+          }
+        } catch (_) {}
+      };
+
       const syncDockForViewport = () => {
         if (typeof window === 'undefined' || window.innerWidth >= 1024) {
           setKeyboardHidden(false);
-          if (shell) shell.style.height = '';
+          if (shell) {
+            shell.style.height = '';
+            shell.style.transform = '';
+          }
           return;
+        }
+        // Prevent iOS Safari from pushing #app-shell above the visual viewport when the keyboard opens
+        if (window.scrollY !== 0 || window.pageYOffset !== 0) {
+          try { origScrollTo(0, 0); } catch (_) {}
         }
         const vv = window.visualViewport;
         if (shell && vv && vv.height > 200) {
           shell.style.height = `${Math.round(vv.height)}px`;
+          const offsetY = Math.round(vv.offsetTop || 0);
+          shell.style.transform = offsetY > 0 ? `translate3d(0, ${offsetY}px, 0)` : '';
         }
         const activeIsInput = isTextField(document.activeElement);
         const keyboardOpen = vv
-          ? (vv.height < window.innerHeight * 0.78 && activeIsInput)
+          ? (vv.height < window.innerHeight * 0.82 && activeIsInput)
           : activeIsInput;
         setKeyboardHidden(keyboardOpen);
       };
@@ -11949,15 +12281,27 @@ create policy "Allow media delete" on storage.objects
       document.addEventListener('focusin', (e) => {
         if (isTextField(e.target) && window.innerWidth < 1024) {
           setKeyboardHidden(true);
+          setTimeout(() => {
+            syncDockForViewport();
+            scrollFocusedFieldIntoView(e.target);
+          }, 80);
+          setTimeout(() => {
+            syncDockForViewport();
+            scrollFocusedFieldIntoView(e.target);
+          }, 300);
         }
       }, { passive: true });
 
       document.addEventListener('focusout', () => {
-        setTimeout(syncDockForViewport, 120);
+        setTimeout(() => {
+          try { origScrollTo(0, 0); } catch (_) {}
+          syncDockForViewport();
+        }, 150);
       }, { passive: true });
 
       if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
         window.visualViewport.addEventListener('resize', syncDockForViewport, { passive: true });
+        window.visualViewport.addEventListener('scroll', syncDockForViewport, { passive: true });
       }
       window.addEventListener('orientationchange', () => setTimeout(syncDockForViewport, 200), { passive: true });
       syncDockForViewport();
