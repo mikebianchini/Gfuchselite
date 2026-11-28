@@ -249,7 +249,7 @@
     /* Enhanced Mobile Typography Readability & Ergonomics */
     @media (max-width: 767px) {
       html {
-        font-size: 17.5px;
+        font-size: 18px;
         -webkit-text-size-adjust: 100%;
       }
       /* Reclaim horizontal reading space on narrow phones */
@@ -272,35 +272,37 @@
         padding-top: 8px;
         padding-bottom: 8px;
       }
-      #app-root .text-\[10px\]:not(input):not(textarea):not(select),
-      #modal-root .text-\[10px\]:not(input):not(textarea):not(select) {
-        font-size: 12.5px !important;
-        line-height: 1.35 !important;
-      }
-      #app-root .text-\[11px\]:not(input):not(textarea):not(select),
-      #modal-root .text-\[11px\]:not(input):not(textarea):not(select) {
+      /* Comfortable mobile font floor across all pages, headers, drawers & modals */
+      body .text-\[9px\]:not(input):not(textarea):not(select),
+      body .text-\[10px\]:not(input):not(textarea):not(select),
+      body .text-\[10\.5px\]:not(input):not(textarea):not(select) {
         font-size: 13.5px !important;
         line-height: 1.4 !important;
       }
-      #app-root .text-\[12px\]:not(input):not(textarea):not(select),
-      #modal-root .text-\[12px\]:not(input):not(textarea):not(select),
-      #app-root .text-xs:not(input):not(textarea):not(select),
-      #modal-root .text-xs:not(input):not(textarea):not(select) {
+      body .text-\[11px\]:not(input):not(textarea):not(select) {
         font-size: 14.5px !important;
-        line-height: 1.45 !important;
+        line-height: 1.42 !important;
       }
-      #app-root .text-\[13px\]:not(input):not(textarea):not(select),
-      #modal-root .text-\[13px\]:not(input):not(textarea):not(select) {
-        font-size: 15px !important;
-        line-height: 1.45 !important;
+      body .text-\[12px\]:not(input):not(textarea):not(select),
+      body .text-xs:not(input):not(textarea):not(select) {
+        font-size: 15.5px !important;
+        line-height: 1.48 !important;
       }
-      #app-root .text-sm:not(input):not(textarea):not(select),
-      #modal-root .text-sm:not(input):not(textarea):not(select) {
+      body .text-\[13px\]:not(input):not(textarea):not(select),
+      body .text-\[13\.5px\]:not(input):not(textarea):not(select) {
         font-size: 16px !important;
         line-height: 1.5 !important;
       }
-      #mobile-bottom-nav {
-        font-size: 11px;
+      body .text-sm:not(input):not(textarea):not(select) {
+        font-size: 16.5px !important;
+        line-height: 1.5 !important;
+      }
+      /* Keep 5-tab mobile bottom dock crisp on 1 row */
+      #mobile-bottom-nav,
+      #mobile-bottom-nav span,
+      #mobile-bottom-nav button {
+        font-size: 11.5px !important;
+        line-height: 1.2 !important;
       }
     }
 
@@ -309,12 +311,9 @@
       input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
       textarea,
       select,
-      #app-root input[class]:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
-      #app-root textarea[class],
-      #app-root select[class],
-      #modal-root input[class]:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
-      #modal-root textarea[class],
-      #modal-root select[class] {
+      body input[class]:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+      body textarea[class],
+      body select[class] {
         font-size: 16px !important;
       }
     }
@@ -9531,7 +9530,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.15.0';
+    const APP_VERSION = 'v3.15.1';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Mobile UX & Typography Upgrade: improved sunlight contrast, rebalanced weight hierarchy, tabular numbers, auto-growing session note textareas, sticky Back/Send bar, wider phone reading layout, and 44px touch targets';
 
