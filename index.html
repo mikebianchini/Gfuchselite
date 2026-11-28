@@ -483,7 +483,7 @@
         align-items: center;
         gap: 10px;
         pointer-events: none;
-        padding: 18px 20px calc(env(safe-area-inset-bottom, 0px) + 14px);
+        padding: 18px 24px calc(env(safe-area-inset-bottom, 0px) + 14px);
         background: linear-gradient(0deg, rgba(221, 230, 234, 0.62) 0%, rgba(221, 230, 234, 0.22) 55%, rgba(221, 230, 234, 0) 100%);
       }
       html.dark #mobile-bottom-dock-wrap {
@@ -985,7 +985,7 @@
 
     <!-- Main Workspace (Internal Scroll Container on Mobile App Shell) -->
     <main id="app-main-scroll" class="flex-1 lg:pl-80 mobile-main-safe lg:pb-10 overflow-x-clip">
-      <div id="app-root" class="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8 pt-3 pb-12 sm:py-7 space-y-4 sm:space-y-5"></div>
+      <div id="app-root" class="max-w-5xl mx-auto px-6 sm:px-7 lg:px-8 pt-3 pb-12 sm:py-7 space-y-4 sm:space-y-5"></div>
     </main>
 
     <!-- Mobile Bottom Toolbar (Split Apple Liquid Glass Pills — Tabs + Separate Menu Orb) -->
@@ -10222,7 +10222,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.21.4';
+    const APP_VERSION = 'v3.21.5';
     const APP_BUILD_DATE = 'Nov 28, 2026';
     const APP_RELEASE_NOTES = 'Displayed full start–end time slots (e.g. 4:00–4:30 PM) on Coach session cards';
 
