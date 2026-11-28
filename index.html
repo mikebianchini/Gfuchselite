@@ -635,18 +635,12 @@
       </div>
     </aside>
 
-    <!-- Floating Mobile Liquid Glass Header Capsule (iOS Safe-Area Aware, 3-Element Layout) -->
+    <!-- Floating Mobile Liquid Glass Header Capsule (iOS Safe-Area Aware) -->
     <div class="lg:hidden mobile-header-wrap">
-      <header class="glass-dock rounded-[26px] px-3 py-2 flex items-center justify-between gap-2.5">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <button onclick="openMobileDrawer()" aria-label="Open full menu" class="relative w-10 h-10 rounded-full surface-soft flex items-center justify-center shrink-0 cursor-pointer hover:border-[#010101] transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
-            <span id="mob-menu-badge" class="hidden absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#D5FF5F] text-[#010101] text-[11px] font-extrabold items-center justify-center shadow"></span>
-          </button>
-          <div class="leading-tight min-w-0">
-            <div class="font-extrabold text-sm tracking-tight truncate">ELITE FASTPITCH</div>
-            <div class="text-xs text-[var(--text-muted)] font-semibold truncate">Gina Fuchs Training</div>
-          </div>
+      <header class="glass-dock rounded-[26px] px-4 py-2 flex items-center justify-between gap-2.5">
+        <div class="leading-tight min-w-0">
+          <div class="font-extrabold text-sm tracking-tight truncate">ELITE FASTPITCH</div>
+          <div class="text-xs text-[var(--text-muted)] font-semibold truncate">Gina Fuchs Training</div>
         </div>
 
         <button onclick="openMobileDrawer()" aria-label="Profile, Role &amp; Settings" class="flex items-center gap-2 pl-2.5 pr-1 py-1 rounded-full surface-soft shrink-0 cursor-pointer hover:border-[#010101] transition">
@@ -1549,8 +1543,19 @@
       const drawerNav = document.getElementById('mobile-drawer-nav');
       if (drawerNav) drawerNav.innerHTML = fullNavMarkup;
 
-      // Mobile bottom dock: 5 core daily tabs (Messages & Settings live in the ☰ drawer for generous touch targets)
-      const mobileDockItems = isCoach ? navItems.slice(0, 5) : navItems;
+      // Mobile bottom dock: Home, Schedule, Athletes + Menu (☰) drawer button
+      const mobileDockItems = isCoach
+        ? navItems.filter(item => ['today', 'schedule', 'athletes'].includes(item.id))
+        : navItems.slice(0, 3);
+      const menuBtnMarkup = `
+        <button onclick="openMobileDrawer()" aria-label="Open full menu" class="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-h-[48px] rounded-2xl transition cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)]">
+          <span class="relative p-1.5 rounded-xl transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
+            ${isCoach && unread > 0 ? `<span id="mob-menu-badge" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#010101] text-[#D5FF5F] text-[11px] font-extrabold flex items-center justify-center shadow">${unread}</span>` : ''}
+          </span>
+          <span class="text-[11px] font-bold leading-tight">Menu</span>
+        </button>
+      `;
       document.getElementById('mobile-bottom-nav').innerHTML = mobileDockItems.map(item => {
         const active = item.id === activeTab;
         return `
@@ -1562,7 +1567,7 @@
             <span class="text-[11px] font-bold leading-tight">${item.label}</span>
           </button>
         `;
-      }).join('');
+      }).join('') + menuBtnMarkup;
     }
 
     // =========================================================================
@@ -9449,7 +9454,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.15.3';
+    const APP_VERSION = 'v3.15.4';
     const APP_BUILD_DATE = 'Nov 27, 2026';
     const APP_RELEASE_NOTES = 'Mobile UX & Typography Upgrade: improved sunlight contrast, rebalanced weight hierarchy, tabular numbers, auto-growing session note textareas, sticky Back/Send bar, wider phone reading layout, and 44px touch targets';
 
