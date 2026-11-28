@@ -684,6 +684,18 @@
         inset 0 -1px 0 rgba(0, 0, 0, 0.35),
         0 12px 30px rgba(0, 0, 0, 0.30);
     }
+    .section-divider {
+      border: 0;
+      height: 1px;
+      width: 100%;
+      margin: 0.25rem 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(15, 23, 42, 0.13) 14%, rgba(15, 23, 42, 0.13) 86%, transparent 100%);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
+    }
+    html.dark .section-divider {
+      background: linear-gradient(90deg, transparent 0%, rgba(176, 214, 242, 0.20) 14%, rgba(176, 214, 242, 0.20) 86%, transparent 100%);
+      box-shadow: none;
+    }
 
     .surface-soft {
       background: var(--glass-soft);
@@ -4879,8 +4891,8 @@
 
             <!-- 7-Day Agenda List -->
             ${filtered7Days.some(d => d.sessions.length > 0) ? `
-              <div class="space-y-4">
-                ${filtered7Days.map(d => d.sessions.length ? `
+              <div class="space-y-5">
+                ${filtered7Days.filter(d => d.sessions.length).map(d => `
                   <div class="space-y-2.5">
                     <div class="flex items-center justify-between px-1">
                       <span class="text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${d.isToday ? `Today • ${d.shortLabel}` : d.shortLabel}</span>
@@ -4888,7 +4900,7 @@
                     </div>
                     ${d.sessions.map(s => renderCoachSessionRow(s, false)).join('')}
                   </div>
-                ` : '').join('')}
+                `).join('<hr class="section-divider opacity-70" aria-hidden="true" />')}
               </div>
             ` : `
               <div class="card-white rounded-[22px] p-4 flex items-center justify-between gap-3">
@@ -4934,12 +4946,12 @@
             ${content}
           </div>
         `;
-      }).filter(Boolean).join('');
+      }).filter(Boolean).join(isReordering ? '' : '<hr class="section-divider" aria-hidden="true" />');
 
       const todaySummaryHtml = buildCoachTodaySummary(todaySessions, next7DaysWithSessions);
 
       return `
-        <div class="space-y-9 sm:space-y-10 pt-1">
+        <div class="space-y-8 sm:space-y-9 pt-1">
           <!-- Coach Home Header + Midnight Blue Liquid Glass Today's Briefing + Quick Find -->
           <div class="coach-section-frame rounded-[32px] p-4 sm:p-5 space-y-4">
             <div class="flex items-center justify-between gap-3 px-0.5">
@@ -4987,6 +4999,8 @@
               </div>
             ` : ''}
           </div>
+
+          ${!isReordering ? '<hr class="section-divider" aria-hidden="true" />' : ''}
 
           ${renderedSections}
         </div>
@@ -8623,6 +8637,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             </div>
           </div>
 
+          <hr class="section-divider" aria-hidden="true" />
+
           <!-- 6. Private Coach Note (Coach Only — Separate Container, Collapsible) -->
           <div id="recap-sec-private" class="rounded-[28px] p-5 sm:p-6 space-y-4 bg-amber-50/75 dark:bg-amber-400/[0.06] border border-amber-300/60 dark:border-amber-400/20 shadow-sm">
             <div class="flex items-center justify-between gap-2">
@@ -8649,6 +8665,8 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
               <textarea id="recap-private-note-input" name="privateCoachNote" rows="3" class="w-full px-4 py-3.5 rounded-2xl bg-white/90 dark:bg-[#131820]/80 border border-amber-300/60 dark:border-amber-400/25 text-[16px] leading-relaxed resize-none" placeholder="Private reminders for next lesson (not visible to player)…">${d.privateCoachNote || ''}</textarea>
             </div>
           </div>
+
+          <hr class="section-divider" aria-hidden="true" />
 
           <!-- 7. Send & Save Action Card -->
           <div class="card-mist rounded-[28px] p-5 sm:p-6 space-y-4">
@@ -10072,9 +10090,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.19.9';
+    const APP_VERSION = 'v3.20.0';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Increased mobile edge padding across the entire app to 20px and framed the Coach Gina section with a sheer Liquid Glass border';
+    const APP_RELEASE_NOTES = 'Added subtle edge-fading horizontal section dividers and balanced spacing across Coach Home, Next 7 Days agenda days, and Session Notes Studio chapters';
 
     function reloadLatestAppVersion() {
       try {
