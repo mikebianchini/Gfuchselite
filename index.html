@@ -4980,13 +4980,13 @@
           <div class="coach-section-frame rounded-[32px] p-4 sm:p-5 space-y-4">
             <div class="flex items-center justify-between gap-3 px-0.5">
               <div class="flex items-center gap-3 min-w-0">
-                <span class="lg:hidden w-11 h-11 rounded-2xl card-white flex items-center justify-center shrink-0 p-2 text-[#010101] dark:text-white">
+                <span class="lg:hidden w-11 h-11 rounded-2xl bg-[#010101] text-[#D5FF5F] ring-1 ring-black/10 dark:ring-[#D5FF5F]/25 shadow-sm flex items-center justify-center shrink-0 p-2">
                   <svg class="w-full h-full" viewBox="14 42 168 168" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <polygon fill="currentColor" points="97.05,203.16 174.92,125.35 174.92,105.71 76.48,105.71 76.48,125.35 131.27,125.35 101.27,155.35 76.48,155.35 76.48,182.78"/>
                     <polygon fill="currentColor" points="49.65,155.35 50.04,78.28 174.46,78.28 174.46,47.55 19.18,47.55 19.51,125.29"/>
                   </svg>
                 </span>
-                <h1 class="text-[28px] sm:text-3xl font-extrabold tracking-tight leading-none text-[var(--text-main)] truncate">Coach Gina</h1>
+                <h1 class="text-[24px] sm:text-3xl font-extrabold tracking-tight leading-none text-[var(--text-main)] truncate">Hey Coach Gina!</h1>
               </div>
               <button onclick="toggleHomeReorderMode()" title="Reorder Home sections" aria-label="Reorder Home sections" class="px-3 py-2 rounded-2xl text-[13px] font-bold cursor-pointer shrink-0 inline-flex items-center gap-1 ${isReordering ? 'bg-[#010101] text-[#D5FF5F] shadow-sm' : 'card-white text-[var(--text-muted)] hover:text-[var(--text-main)] hover:border-[#010101]'}">
                 <span>⇅</span>
@@ -10114,9 +10114,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.20.1';
+    const APP_VERSION = 'v3.20.2';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Redesigned the Home dashboard row into 3 separate ice-blue Liquid Glass bento tiles with Obsidian/Volt icon badges, larger tabular numbers, and an At a Glance header';
+    const APP_RELEASE_NOTES = 'Updated Home greeting to Hey Coach Gina! and styled the GF emblem badge with an Obsidian black background and Volt mark';
 
     function reloadLatestAppVersion() {
       try {
