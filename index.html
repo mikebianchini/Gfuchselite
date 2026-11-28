@@ -805,10 +805,20 @@
       sliders: '<path stroke-linecap="round" d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/>',
       dollar: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 2v20M17 6.5c0-1.93-2.24-3.5-5-3.5s-5 1.57-5 3.5S9.24 10 12 10s5 1.57 5 3.5S14.76 17 12 17s-5-1.57-5-3.5"/>',
       clipboard: '<rect x="5" y="4" width="14" height="17" rx="2"/><path stroke-linecap="round" d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1M9 10h6M9 14h4"/>',
-      history: '<path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 103-6.7L3 8m0-5v5h5M12 7v5l3 2"/>'
+      history: '<path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 103-6.7L3 8m0-5v5h5M12 7v5l3 2"/>',
+      lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path stroke-linecap="round" d="M8 11V7a4 4 0 018 0v4"/>'
     };
     function uiIcon(name, cls = 'w-3.5 h-3.5') {
       return `<svg class="${cls} inline-block shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">${UI_SVGS[name] || ''}</svg>`;
+    }
+    function sectionBadge(iconName, tone = 'slate') {
+      const tones = {
+        obsidian: 'bg-[#010101] text-[#D5FF5F] shadow-sm',
+        volt: 'bg-[#D5FF5F]/45 text-[#010101] dark:bg-[#D5FF5F]/20 dark:text-[#D5FF5F]',
+        slate: 'bg-[#4E6075]/12 text-[#4E6075] dark:bg-[#9AC0D6]/15 dark:text-[#9AC0D6]',
+        amber: 'bg-amber-400/20 text-amber-800 dark:text-amber-300'
+      };
+      return `<span class="w-8 h-8 rounded-xl inline-flex items-center justify-center shrink-0 ${tones[tone] || tones.slate}" aria-hidden="true">${uiIcon(iconName, 'w-4 h-4')}</span>`;
     }
 
     function syncThemeChrome(isDark) {
@@ -4558,12 +4568,15 @@
         `,
         today: `
           <div class="space-y-2.5">
-            <div class="flex items-center justify-between">
-              <div>
-                <h2 class="text-lg font-extrabold tracking-tight">Today’s Schedule</h2>
-                <p class="text-sm text-[var(--text-muted)]">${todayFullLabel}</p>
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2.5 min-w-0">
+                ${sectionBadge('calendar', 'obsidian')}
+                <div class="min-w-0">
+                  <h2 class="text-lg font-extrabold tracking-tight leading-tight">Today’s Schedule</h2>
+                  <p class="text-sm text-[var(--text-muted)]">${todayFullLabel}</p>
+                </div>
               </div>
-              ${todaySessions.length ? `<button onclick="openAddSessionModal('${today.iso}')" class="px-3 py-1.5 rounded-xl surface-soft text-[13px] font-extrabold cursor-pointer hover:border-[#010101] transition">+ Add Today</button>` : ''}
+              ${todaySessions.length ? `<button onclick="openAddSessionModal('${today.iso}')" class="px-3 py-1.5 rounded-xl surface-soft text-[13px] font-extrabold cursor-pointer hover:border-[#010101] transition shrink-0">+ Add Today</button>` : ''}
             </div>
 
             ${todaySessions.length ? `
@@ -4584,9 +4597,12 @@
         next7: `
           <div class="space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h2 class="text-lg font-extrabold tracking-tight">Next 7 Days</h2>
-                <p class="text-sm text-[var(--text-muted)]">${days[0].shortLabel} – ${days[6].shortLabel}</p>
+              <div class="flex items-center gap-2.5 min-w-0">
+                ${sectionBadge('clock', 'slate')}
+                <div class="min-w-0">
+                  <h2 class="text-lg font-extrabold tracking-tight leading-tight">Next 7 Days</h2>
+                  <p class="text-sm text-[var(--text-muted)]">${days[0].shortLabel} – ${days[6].shortLabel}</p>
+                </div>
               </div>
               <button onclick="state.homeDayFilter='all7'; render(false);" class="px-3.5 py-1.5 rounded-full text-[13px] font-extrabold cursor-pointer transition ${activeDayFilter === 'all7' ? 'bg-[#010101] text-[#D5FF5F]' : 'surface-soft text-[var(--text-muted)]'}">
                 All 7 Days (${totalNext7Count})
@@ -4691,10 +4707,12 @@
 
           <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
             <button onclick="openAddSessionModal()" class="py-2.5 px-4 rounded-2xl bg-[#D5FF5F] text-[#010101] text-[13px] font-extrabold cursor-pointer shadow-sm hover:brightness-95 inline-flex items-center justify-center gap-1.5">
-              + Add Session
+              ${uiIcon('calendar', 'w-4 h-4')}
+              <span>Add Session</span>
             </button>
             <button onclick="openAddAthleteModal(null)" class="py-2.5 px-4 rounded-2xl bg-[#010101] text-[#D5FF5F] text-[13px] font-extrabold cursor-pointer shadow-sm hover:opacity-90 inline-flex items-center justify-center gap-1.5">
-              + Add Athlete
+              ${uiIcon('user', 'w-4 h-4')}
+              <span>Add Athlete</span>
             </button>
           </div>
 
@@ -7166,21 +7184,21 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         <div class="space-y-3 text-sm">
           ${r.warmup ? `
             <div class="${boxCls} rounded-2xl p-3 space-y-1">
-              <div class="text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">• ${r.warmupTitle || 'Warm Up Routine'}</div>
+              <div class="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('flame', 'w-3.5 h-3.5')} ${r.warmupTitle || 'Warm Up Routine'}</div>
               <div class="text-sm leading-relaxed whitespace-pre-line text-[var(--text-muted)]">${r.warmup}</div>
             </div>
           ` : ''}
 
           ${r.focus ? `
             <div class="space-y-0.5">
-              <div class="text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">What’s New / Focus for Lesson</div>
+              <div class="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('target', 'w-3.5 h-3.5')} What’s New / Focus for Lesson</div>
               <p class="text-sm font-semibold leading-relaxed whitespace-pre-line">${r.focus}</p>
             </div>
           ` : ''}
 
           ${(r.tee || r.ft || r.machine) ? `
             <div class="space-y-1.5">
-              <div class="text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">What We Did Today</div>
+              <div class="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('softball', 'w-3.5 h-3.5')} What We Did Today</div>
               <div class="grid ${gridColsCls} gap-2">
                 ${r.tee ? `
                   <div class="${boxCls} rounded-2xl p-2.5 space-y-1">
@@ -7207,7 +7225,7 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           ${hwHead ? `
             <div class="rounded-2xl px-3 py-2.5 bg-[#D5FF5F]/25 dark:bg-[#D5FF5F]/15 border border-[#D5FF5F]/60 space-y-1">
               <div class="flex items-start gap-2 text-sm leading-snug">
-                ${uiIcon('softball', 'w-4 h-4 mt-0.5')}
+                ${uiIcon('clipboard', 'w-4 h-4 mt-0.5')}
                 <div><span class="font-extrabold">Homework:</span> ${hwHead}</div>
               </div>
               ${hwBullets.length ? `<ul class="pl-5 space-y-0.5 text-sm leading-snug">${formatBulletLines(hwBullets.join('\n'))}</ul>` : ''}
@@ -7216,14 +7234,14 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
           ${r.sessionNotes ? `
             <div class="${boxCls} rounded-2xl p-3 space-y-1">
-              <div class="text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">Session Notes</div>
+              <div class="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#4E6075] dark:text-[#9AC0D6]">${uiIcon('note', 'w-3.5 h-3.5')} Session Notes</div>
               <div class="text-sm leading-relaxed whitespace-pre-line">${String(r.sessionNotes).replace(/</g, '&lt;')}</div>
             </div>
           ` : ''}
 
           ${state.role === 'coach' && r.privateCoachNote ? `
             <div class="rounded-2xl p-3 space-y-1 bg-amber-400/15 dark:bg-amber-400/10 border border-amber-400/40">
-              <div class="text-xs font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300">Private Coach Note (Not Sent to Athlete)</div>
+              <div class="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300">${uiIcon('lock', 'w-3.5 h-3.5')} Private Coach Note (Not Sent to Athlete)</div>
               <div class="text-sm leading-relaxed whitespace-pre-line text-amber-950 dark:text-amber-100">${String(r.privateCoachNote).replace(/</g, '&lt;')}</div>
             </div>
           ` : ''}
@@ -7994,8 +8012,11 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           <!-- 1. Warm Up Routine -->
           <div class="card-white rounded-[28px] p-5 space-y-3">
             <div class="flex items-center justify-between gap-2">
-              <label for="recap-warmup-input" class="text-sm font-extrabold tracking-tight">Warm Up Routine</label>
-              <button type="button" onclick="startRecapDictation('recap-warmup-input', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full surface-soft text-[13px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition">${micSvg} Dictate</button>
+              <div class="flex items-center gap-2.5 min-w-0">
+                ${sectionBadge('flame', 'volt')}
+                <label for="recap-warmup-input" class="text-sm font-extrabold tracking-tight">Warm Up Routine</label>
+              </div>
+              <button type="button" onclick="startRecapDictation('recap-warmup-input', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full surface-soft text-[13px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
             </div>
             <div class="flex flex-wrap gap-1.5">
               ${warmupQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-warmup-input','${escAttr(q)}')" class="px-3 py-1.5 rounded-full surface-soft text-[13px] font-bold cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
@@ -8007,9 +8028,12 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           <!-- 2. Player Notes and Focus -->
           <div class="card-white rounded-[28px] p-5 space-y-2.5">
             <div class="flex items-center justify-between gap-2">
-              <div>
-                <label for="recap-focus-input" class="text-sm font-extrabold tracking-tight block">Player Notes and Focus *</label>
-                <p class="text-sm text-[var(--text-muted)]">What’s new with the player and what they want to work on</p>
+              <div class="flex items-center gap-2.5 min-w-0">
+                ${sectionBadge('target', 'slate')}
+                <div class="min-w-0">
+                  <label for="recap-focus-input" class="text-sm font-extrabold tracking-tight block">Player Notes and Focus *</label>
+                  <p class="text-sm text-[var(--text-muted)]">What’s new with the player and what they want to work on</p>
+                </div>
               </div>
               <button type="button" onclick="startRecapDictation('recap-focus-input', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full surface-soft text-[13px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
             </div>
@@ -8018,9 +8042,14 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
           <!-- 3. What We Worked On: Tee | Front Toss | Machine -->
           <div class="card-white rounded-[28px] p-5 space-y-3.5">
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-extrabold tracking-tight">What We Worked On</span>
-              <span class="text-[13px] font-semibold text-[var(--text-muted)]">Drills &amp; video per area</span>
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2.5 min-w-0">
+                ${sectionBadge('softball', 'obsidian')}
+                <div class="min-w-0">
+                  <span class="text-sm font-extrabold tracking-tight block">What We Worked On</span>
+                  <span class="text-xs font-semibold text-[var(--text-muted)]">Drills &amp; video per area</span>
+                </div>
+              </div>
             </div>
 
             <!-- 3-Tab Segmented Control -->
@@ -8085,8 +8114,11 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           <!-- 4. Homework Card -->
           <div class="card-white rounded-[28px] p-5 space-y-2.5">
             <div class="flex items-center justify-between gap-2">
-              <label for="recap-homework-input" class="text-sm font-extrabold tracking-tight">Homework</label>
-              <button type="button" onclick="addCustomCuePrompt('homework')" class="text-[13px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ New Drill</button>
+              <div class="flex items-center gap-2.5 min-w-0">
+                ${sectionBadge('clipboard', 'volt')}
+                <label for="recap-homework-input" class="text-sm font-extrabold tracking-tight">Homework</label>
+              </div>
+              <button type="button" onclick="addCustomCuePrompt('homework')" class="text-[13px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0">+ New Drill</button>
             </div>
             <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
               ${hwQuick.map(q => `<button type="button" onclick="appendQuickDrill('recap-homework-input','${escAttr(q)}')" class="px-3 py-1.5 rounded-full surface-soft text-[13px] font-bold whitespace-nowrap shrink-0 cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101]">+ ${q}</button>`).join('')}
@@ -8098,12 +8130,15 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
           <div class="card-white rounded-[28px] p-5 space-y-4">
             <div class="space-y-2">
               <div class="flex items-center justify-between gap-2">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <label for="recap-session-notes-input" class="text-sm font-extrabold tracking-tight">Session Notes</label>
-                    <span class="px-2 py-0.5 rounded-full bg-[#D5FF5F]/40 text-[#010101] dark:text-[#D5FF5F] dark:bg-[#D5FF5F]/15 text-xs font-extrabold">Viewable to Player</span>
+                <div class="flex items-center gap-2.5 min-w-0">
+                  ${sectionBadge('note', 'slate')}
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      <label for="recap-session-notes-input" class="text-sm font-extrabold tracking-tight">Session Notes</label>
+                      <span class="px-2 py-0.5 rounded-full bg-[#D5FF5F]/40 text-[#010101] dark:text-[#D5FF5F] dark:bg-[#D5FF5F]/15 text-xs font-extrabold">Viewable to Player</span>
+                    </div>
+                    <p class="text-sm text-[var(--text-muted)]">Included in the recap shared with the athlete &amp; parent</p>
                   </div>
-                  <p class="text-sm text-[var(--text-muted)]">Included in the recap shared with the athlete &amp; parent</p>
                 </div>
                 <button type="button" onclick="startRecapDictation('recap-session-notes-input', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full surface-soft text-[13px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
               </div>
@@ -8112,12 +8147,15 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
             <div class="pt-3 border-t border-[var(--border-subtle)] space-y-2">
               <div class="flex items-center justify-between gap-2">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <label for="recap-private-note-input" class="text-sm font-extrabold tracking-tight">Private Coach Note</label>
-                    <span class="px-2 py-0.5 rounded-full bg-amber-400/25 text-amber-900 dark:text-amber-300 text-xs font-extrabold">Coach Only • Private</span>
+                <div class="flex items-center gap-2.5 min-w-0">
+                  ${sectionBadge('lock', 'amber')}
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      <label for="recap-private-note-input" class="text-sm font-extrabold tracking-tight">Private Coach Note</label>
+                      <span class="px-2 py-0.5 rounded-full bg-amber-400/25 text-amber-900 dark:text-amber-300 text-xs font-extrabold">Coach Only • Private</span>
+                    </div>
+                    <p class="text-sm text-[var(--text-muted)]">Only viewable by Coach — never sent to athlete or parent</p>
                   </div>
-                  <p class="text-sm text-[var(--text-muted)]">Only viewable by Coach — never sent to athlete or parent</p>
                 </div>
                 <button type="button" onclick="startRecapDictation('recap-private-note-input', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full surface-soft text-[13px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
               </div>
@@ -9542,9 +9580,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.16.4';
+    const APP_VERSION = 'v3.17.0';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Monochrome GF logo (all black in light mode, all white in dark mode) and Apple Liquid Glass floating pill mobile bottom toolbar';
+    const APP_RELEASE_NOTES = 'Added crisp section icon badges across Coach Home, Session Notes Studio, and Saved Recaps for faster scanning and clearer section hierarchy';
 
     function reloadLatestAppVersion() {
       try {
