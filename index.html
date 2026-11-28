@@ -3812,6 +3812,39 @@
       return '16:00';
     }
 
+    function formatSessionTimeRange(startTimeStr, durationVal) {
+      const raw = String(startTimeStr || '').trim();
+      if (!raw) return '';
+      if (/[-–]/.test(raw)) return raw;
+      let mins = 0;
+      if (typeof durationVal === 'number' && Number.isFinite(durationVal)) {
+        mins = Math.round(durationVal);
+      } else {
+        const dStr = String(durationVal || '').trim().toLowerCase();
+        const hm = dStr.match(/(\d+(?:\.\d+)?)\s*h(?:r|our)?s?(?:\s*(\d+)\s*m)?/);
+        const mm = dStr.match(/(\d+)\s*m/);
+        const numOnly = dStr.match(/^(\d+)$/);
+        if (hm) mins = Math.round(Number(hm[1]) * 60 + (hm[2] ? Number(hm[2]) : 0));
+        else if (mm) mins = Number(mm[1]);
+        else if (numOnly) mins = Number(numOnly[1]);
+      }
+      if (!mins || mins <= 0) return raw;
+      const [sh24, sm] = parseTime12To24(raw).split(':').map(Number);
+      const startTotal = sh24 * 60 + sm;
+      const endTotal = (startTotal + mins) % 1440;
+      const eh24 = Math.floor(endTotal / 60);
+      const em = endTotal % 60;
+      const fmt = (h24, m) => ({
+        t: `${h24 % 12 === 0 ? 12 : h24 % 12}:${String(m).padStart(2, '0')}`,
+        mer: h24 >= 12 ? 'PM' : 'AM'
+      });
+      const st = fmt(sh24, sm);
+      const en = fmt(eh24, em);
+      return st.mer === en.mer
+        ? `${st.t}–${en.t} ${en.mer}`
+        : `${st.t} ${st.mer}–${en.t} ${en.mer}`;
+    }
+
     // =========================================================================
     // COACH GINA PERFORMANCE & CLIENT MANAGEMENT HELPERS (v3.3.0)
     // =========================================================================
@@ -4698,10 +4731,8 @@
           ? 'bg-amber-400/20 text-amber-900 dark:text-amber-300'
           : 'surface-soft text-[var(--text-muted)]';
 
-      const metaBits = [
-        s.duration ? String(s.duration).toLowerCase() : '',
-        s.type ? String(s.type).replace(/1-on-1 Private/i, '1-on-1') : ''
-      ].filter(Boolean).join(' • ');
+      const timeRangeLabel = formatSessionTimeRange(s.time, s.duration);
+      const metaBits = s.type ? String(s.type).replace(/1-on-1 Private/i, '1-on-1') : '';
 
       const cardClick = s.athleteId && !isCanceled
         ? `onclick="openSessionRecapModal('${s.athleteId}', '${s.id}')"`
@@ -4719,7 +4750,7 @@
               <div class="flex flex-wrap items-center gap-1.5 min-w-0">
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#010101] text-[#D5FF5F] text-[13px] font-extrabold tabular-nums shrink-0">
                   ${uiIcon('clock', 'w-3.5 h-3.5 shrink-0')}
-                  <span>${showDate && s.day ? `${s.day} · ` : ''}${s.time}</span>
+                  <span>${showDate && s.day ? `${s.day} · ` : ''}${esc(timeRangeLabel)}</span>
                 </span>
                 ${metaBits ? `<span class="text-[13px] font-bold text-[var(--text-muted)] truncate">${esc(metaBits)}</span>` : ''}
                 ${s.recurrenceGroupId ? `<span title="Recurring standing slot" class="inline-flex items-center justify-center w-6 h-6 rounded-full surface-soft text-[var(--text-muted)]">${uiIcon('repeat', 'w-3 h-3')}</span>` : ''}
@@ -10191,9 +10222,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.21.3';
+    const APP_VERSION = 'v3.21.4';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Added a Full Calendar › link in the Coach Home Next 7 Days header to jump straight to the monthly schedule view';
+    const APP_RELEASE_NOTES = 'Displayed full start–end time slots (e.g. 4:00–4:30 PM) on Coach session cards';
 
     function reloadLatestAppVersion() {
       try {
@@ -12452,10 +12483,10 @@ create policy "Allow media delete" on storage.objects
         try {
           const sRect = scroller.getBoundingClientRect();
           const eRect = el.getBoundingClientRect();
-          const topPad = 112;
+          const topPad = 210; // clear sticky header + quick-jump strip
           const botPad = 28;
-          if (eRect.top < sRect.top + topPad || eRect.bottom > sRect.bottom - botPad) {
-            const targetTop = scroller.scrollTop + (eRect.top - sRect.top) - Math.max(topPad, (sRect.height - eRect.height) * 0.35);
+          if (eRect.top < sRect.top + 150 || eRect.bottom > sRect.bottom - botPad) {
+            const targetTop = scroller.scrollTop + (eRect.top - sRect.top) - topPad;
             scroller.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
           }
         } catch (_) {}
