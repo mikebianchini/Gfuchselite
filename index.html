@@ -45,8 +45,8 @@
       --glass-shadow: 0 14px 36px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
       --border-subtle: rgba(78, 96, 117, 0.16);
       --text-main: #010101;
-      --text-muted: #4A5562;
-      --text-soft: #64707D;
+      --text-muted: #3E4B5B;
+      --text-soft: #526071;
       --bg-card: rgba(255, 255, 255, 0.78);
       --bg-elevated: rgba(255, 255, 255, 0.56);
       --bg-canvas: var(--bg-page);
@@ -225,13 +225,52 @@
       background-color: var(--bg-page);
       color: var(--text-main);
       overflow-x: clip;
+      font-variant-numeric: tabular-nums;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* Enhanced Mobile Typography Readability */
+    textarea {
+      line-height: 1.6;
+    }
+
+    .recap-sticky-bar {
+      position: sticky;
+      top: calc(env(safe-area-inset-top, 0px) + 74px);
+      z-index: 25;
+      padding: 6px 0;
+      margin: -6px 0;
+    }
+    @media (min-width: 1024px) {
+      .recap-sticky-bar {
+        top: 12px;
+      }
+    }
+
+    /* Enhanced Mobile Typography Readability & Ergonomics */
     @media (max-width: 767px) {
       html {
         font-size: 17.5px;
         -webkit-text-size-adjust: 100%;
+      }
+      /* Reclaim horizontal reading space on narrow phones */
+      #app-root .card-white.p-5,
+      #app-root .card-mist.p-5 {
+        padding: 16px !important;
+      }
+      /* Rebalance weight fatigue: soften muted metadata so headings & athlete names pop */
+      #app-root .text-\[var\(--text-muted\)\].font-bold {
+        font-weight: 500;
+      }
+      #app-root .text-\[var\(--text-muted\)\].font-extrabold {
+        font-weight: 600;
+      }
+      /* 44px touch targets on Session Notes quick-drill chips & action pills */
+      #app-root form button[onclick*="appendQuickCue"],
+      #app-root form button[onclick*="openAddCustomCueModal"],
+      #app-root form button[onclick*="toggleVoiceDictation"] {
+        min-height: 40px;
+        padding-top: 8px;
+        padding-bottom: 8px;
       }
       #app-root .text-\[10px\]:not(input):not(textarea):not(select),
       #modal-root .text-\[10px\]:not(input):not(textarea):not(select) {
@@ -655,7 +694,7 @@
 
     <!-- Main Workspace -->
     <main class="flex-1 lg:pl-80 mobile-main-safe lg:pb-10 overflow-x-clip">
-      <div id="app-root" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-28 sm:py-7 space-y-5"></div>
+      <div id="app-root" class="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 pt-2 pb-28 sm:py-7 space-y-4 sm:space-y-5"></div>
     </main>
   </div>
 
@@ -7691,6 +7730,23 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
             : 'flex-1 py-2.5 px-3 rounded-xl text-[13px] font-extrabold cursor-pointer transition text-[var(--text-muted)] hover:text-[var(--text-main)] flex items-center justify-center gap-1.5';
         }
       });
+      requestAnimationFrame(autoGrowAllRecapTextareas);
+    }
+
+    function autoGrowTextarea(el) {
+      if (!el || !el.style) return;
+      el.style.height = 'auto';
+      const sh = el.scrollHeight || 0;
+      if (sh > 0) el.style.height = `${Math.max(sh, 76)}px`;
+      el.style.overflowY = 'hidden';
+    }
+
+    function autoGrowAllRecapTextareas() {
+      const root = document.getElementById('app-root');
+      if (!root || typeof root.querySelectorAll !== 'function') return;
+      root.querySelectorAll('textarea').forEach(ta => {
+        if (ta.offsetParent !== null || ta.scrollHeight > 0) autoGrowTextarea(ta);
+      });
     }
 
     function updateStationDots() {
@@ -7837,18 +7893,25 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
         ? (/^auto-created$/i.test(saved.savedAt) ? 'Auto-created' : `Auto-saved ${saved.savedAt}`)
         : 'Auto-save on';
 
+      requestAnimationFrame(() => {
+        if (typeof autoGrowAllRecapTextareas === 'function') autoGrowAllRecapTextareas();
+      });
+
       return `
-        <form oninput="autoSaveRecapDraft(); updateStationDots();" onchange="autoSaveRecapDraft(true); updateStationDots();" onsubmit="submitSessionRecap(event, '${ath.id}', '${ses ? ses.id : ''}')" class="max-w-2xl mx-auto space-y-4">
-          <!-- Top Navigation Row -->
-          <div class="flex items-center justify-between gap-2">
-            <button type="button" onclick="closeRecapComposer()" class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-full card-white text-[13px] font-extrabold cursor-pointer">
-              ← Back
-            </button>
-            <div class="flex items-center gap-2">
-              <span id="recap-autosave-badge" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full card-white text-xs font-extrabold text-[#4E6075] dark:text-[#D5FF5F]">
-                <span class="w-2 h-2 rounded-full bg-[#9ED11E]"></span>${autoSaveBadgeText}
+        <form oninput="autoSaveRecapDraft(); updateStationDots(); autoGrowAllRecapTextareas();" onchange="autoSaveRecapDraft(true); updateStationDots(); autoGrowAllRecapTextareas();" onsubmit="submitSessionRecap(event, '${ath.id}', '${ses ? ses.id : ''}')" class="max-w-2xl mx-auto space-y-4">
+          <!-- Sticky Top Navigation & Quick-Send Bar -->
+          <div class="recap-sticky-bar">
+            <div class="glass-dock rounded-full px-2 py-1.5 flex items-center justify-between gap-1.5 shadow-sm">
+              <button type="button" onclick="closeRecapComposer()" class="inline-flex items-center gap-1 px-3 py-2 min-h-[40px] rounded-full card-white text-xs font-extrabold cursor-pointer shrink-0">
+                ← Back
+              </button>
+              <span id="recap-autosave-badge" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-semibold text-[#4E6075] dark:text-[#D5FF5F] truncate min-w-0">
+                <span class="w-2 h-2 rounded-full bg-[#9ED11E] shrink-0"></span><span class="truncate">${autoSaveBadgeText}</span>
               </span>
-              <button type="button" onclick="clearRecapDraft('${ath.id}','${ses ? ses.id : ''}')" class="px-3 py-2 min-h-[38px] rounded-full surface-soft text-[13px] font-extrabold text-[var(--text-muted)] cursor-pointer">Reset</button>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button type="button" onclick="clearRecapDraft('${ath.id}','${ses ? ses.id : ''}')" class="px-2.5 py-2 min-h-[40px] rounded-full surface-soft text-xs font-semibold text-[var(--text-muted)] cursor-pointer">Reset</button>
+                <button type="submit" class="px-3.5 py-2 min-h-[40px] rounded-full bg-[#010101] text-[#D5FF5F] text-xs font-extrabold cursor-pointer shadow-sm hover:opacity-90 transition">Send</button>
+              </div>
             </div>
           </div>
 
@@ -9468,9 +9531,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.14.6';
+    const APP_VERSION = 'v3.15.0';
     const APP_BUILD_DATE = 'Nov 27, 2026';
-    const APP_RELEASE_NOTES = 'Upgraded mobile typography scale for improved readability across recaps, schedules, messaging, roster, and booking';
+    const APP_RELEASE_NOTES = 'Mobile UX & Typography Upgrade: improved sunlight contrast, rebalanced weight hierarchy, tabular numbers, auto-growing session note textareas, sticky Back/Send bar, wider phone reading layout, and 44px touch targets';
 
     function reloadLatestAppVersion() {
       try {
