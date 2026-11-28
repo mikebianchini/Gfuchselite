@@ -555,7 +555,13 @@
     /* Smooth Right-Side Slide-Over Mobile Drawer */
     #mobile-drawer {
       opacity: 0;
+      background: rgba(10, 18, 30, 0.24) !important;
+      backdrop-filter: blur(6px) !important;
+      -webkit-backdrop-filter: blur(6px) !important;
       transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    html.dark #mobile-drawer {
+      background: rgba(0, 0, 0, 0.42) !important;
     }
     #mobile-drawer.drawer-open {
       opacity: 1;
@@ -564,6 +570,23 @@
       transform: translate3d(100%, 0, 0);
       transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
       will-change: transform;
+      background: linear-gradient(165deg, rgba(255, 255, 255, 0.62) 0%, rgba(242, 248, 253, 0.46) 52%, rgba(232, 243, 250, 0.56) 100%) !important;
+      backdrop-filter: blur(36px) saturate(220%) brightness(1.04) !important;
+      -webkit-backdrop-filter: blur(36px) saturate(220%) brightness(1.04) !important;
+      border-left: 1.5px solid rgba(255, 255, 255, 0.86) !important;
+      box-shadow:
+        inset 1.5px 0 0 rgba(255, 255, 255, 0.92),
+        inset 0 1px 0 rgba(255, 255, 255, 0.85),
+        -18px 0 48px rgba(15, 23, 42, 0.16) !important;
+    }
+    html.dark #mobile-drawer-panel {
+      background: linear-gradient(165deg, rgba(34, 44, 60, 0.58) 0%, rgba(18, 24, 34, 0.48) 52%, rgba(12, 16, 24, 0.58) 100%) !important;
+      backdrop-filter: blur(36px) saturate(210%) !important;
+      -webkit-backdrop-filter: blur(36px) saturate(210%) !important;
+      border-left: 1.5px solid rgba(176, 214, 242, 0.24) !important;
+      box-shadow:
+        inset 1.5px 0 0 rgba(210, 234, 252, 0.22),
+        -20px 0 52px rgba(0, 0, 0, 0.52) !important;
     }
     #mobile-drawer.drawer-open #mobile-drawer-panel {
       transform: translate3d(0, 0, 0);
@@ -10162,9 +10185,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.21.1';
+    const APP_VERSION = 'v3.21.2';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Started the Home Next 7 Days section on tomorrow so today’s sessions are no longer duplicated below Today’s Schedule';
+    const APP_RELEASE_NOTES = 'Styled the right-side slide-out mobile menu drawer with translucent Apple Liquid Glass blur and a specular glass edge';
 
     function reloadLatestAppVersion() {
       try {
