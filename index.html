@@ -8390,12 +8390,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                   <span id="recap-done-badge-warmup" class="px-2 py-0.5 rounded-full bg-[#D5FF5F]/50 text-[#010101] dark:bg-[#D5FF5F]/20 dark:text-[#D5FF5F] text-xs font-extrabold shrink-0 ${(d.warmup || '').trim() ? '' : 'hidden'}">✓</span>
                 </div>
               </button>
-              <div class="flex items-center gap-1.5 shrink-0">
-                <button type="button" onclick="startRecapDictation('recap-warmup-input', this)" class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-full surface-soft text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
-                <button type="button" onclick="toggleRecapSectionCollapse('warmup')" aria-label="Toggle Warm Up Routine" class="w-9 h-9 rounded-full surface-soft flex items-center justify-center text-[var(--text-muted)] cursor-pointer shrink-0">
-                  <span id="recap-chev-warmup" class="inline-block transition-transform duration-200" style="transform: ${warmupCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}">▾</span>
-                </button>
-              </div>
+              <button type="button" onclick="toggleRecapSectionCollapse('warmup')" aria-label="Toggle Warm Up Routine" class="w-9 h-9 rounded-full surface-soft flex items-center justify-center text-[var(--text-muted)] cursor-pointer shrink-0">
+                <span id="recap-chev-warmup" class="inline-block transition-transform duration-200" style="transform: ${warmupCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}">▾</span>
+              </button>
             </div>
             <button id="recap-collapsed-bar-warmup" type="button" onclick="toggleRecapSectionCollapse('warmup', false)" class="${warmupCollapsed ? '' : 'hidden'} w-full text-left px-3.5 py-2.5 rounded-2xl surface-soft text-[14px] text-[var(--text-muted)] flex items-center justify-between gap-2 cursor-pointer">
               <span id="recap-preview-warmup" class="truncate font-medium">${escHtml(firstNonEmptyLine(d.warmup))}</span>
@@ -8412,15 +8409,12 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
           <!-- 2. Player Notes and Focus -->
           <div id="recap-sec-focus" class="card-white rounded-[28px] p-5 sm:p-6 space-y-4">
-            <div class="flex items-center justify-between gap-2">
-              <div class="flex items-center gap-3 min-w-0">
-                ${sectionBadge('target')}
-                <div class="min-w-0">
-                  <label for="recap-focus-input" class="section-heading block">Player Notes and Focus *</label>
-                  <p class="section-sub">What’s new with the player and what they want to work on</p>
-                </div>
+            <div class="flex items-center gap-3 min-w-0">
+              ${sectionBadge('target')}
+              <div class="min-w-0">
+                <label for="recap-focus-input" class="section-heading block">Player Notes and Focus *</label>
+                <p class="section-sub">What’s new with the player and what they want to work on</p>
               </div>
-              <button type="button" onclick="startRecapDictation('recap-focus-input', this)" class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-full surface-soft text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
             </div>
             <textarea id="recap-focus-input" name="focus" rows="3" class="w-full px-4 py-3.5 rounded-2xl surface-soft text-[16px] leading-relaxed resize-none" placeholder="e.g., Playing in 14U tourney this weekend • Wants to work on inside pitch timing…" required>${d.focus || ''}</textarea>
           </div>
@@ -8458,12 +8452,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
             <!-- Tee Panel -->
             <div id="recap-panel-tee" class="space-y-3.5 ${_recapActiveStation === 'tee' ? '' : 'hidden'}">
-              <div class="flex items-start justify-between gap-2">
-                <div class="flex flex-wrap gap-2">
-                  ${teeQuick.map(q => renderDrillBtn('recap-tee-input', q)).join('')}
-                  <button type="button" onclick="addCustomCuePrompt('tee')" class="min-h-[38px] px-3.5 py-2 rounded-full border border-dashed border-[var(--border-subtle)] text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ New Drill</button>
-                </div>
-                <button type="button" onclick="startRecapDictation('recap-tee-input', this)" class="inline-flex items-center justify-center gap-1 px-3 min-h-[40px] rounded-full surface-soft text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0" aria-label="Dictate Tee notes">${micSvg}</button>
+              <div class="flex flex-wrap gap-2">
+                ${teeQuick.map(q => renderDrillBtn('recap-tee-input', q)).join('')}
+                <button type="button" onclick="addCustomCuePrompt('tee')" class="min-h-[38px] px-3.5 py-2 rounded-full border border-dashed border-[var(--border-subtle)] text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ New Drill</button>
               </div>
               <textarea id="recap-tee-input" name="tee" rows="3" class="w-full px-4 py-3.5 rounded-2xl surface-soft text-[16px] leading-relaxed resize-none" placeholder="• Extensions 3/3/3&#10;• Swing 3/3/3">${d.tee || ''}</textarea>
               ${renderStationVideoBar('tee', 'Tee')}
@@ -8471,12 +8462,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
             <!-- Front Toss Panel -->
             <div id="recap-panel-ft" class="space-y-3.5 ${_recapActiveStation === 'ft' ? '' : 'hidden'}">
-              <div class="flex items-start justify-between gap-2">
-                <div class="flex flex-wrap gap-2">
-                  ${ftQuick.map(q => renderDrillBtn('recap-ft-input', q)).join('')}
-                  <button type="button" onclick="addCustomCuePrompt('ft')" class="min-h-[38px] px-3.5 py-2 rounded-full border border-dashed border-[var(--border-subtle)] text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ New Drill</button>
-                </div>
-                <button type="button" onclick="startRecapDictation('recap-ft-input', this)" class="inline-flex items-center justify-center gap-1 px-3 min-h-[40px] rounded-full surface-soft text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0" aria-label="Dictate Front Toss notes">${micSvg}</button>
+              <div class="flex flex-wrap gap-2">
+                ${ftQuick.map(q => renderDrillBtn('recap-ft-input', q)).join('')}
+                <button type="button" onclick="addCustomCuePrompt('ft')" class="min-h-[38px] px-3.5 py-2 rounded-full border border-dashed border-[var(--border-subtle)] text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ New Drill</button>
               </div>
               <textarea id="recap-ft-input" name="ft" rows="3" class="w-full px-4 py-3.5 rounded-2xl surface-soft text-[16px] leading-relaxed resize-none" placeholder="• Shorty baseballs&#10;• Worked on at bats & attacking pitches you are hunting!!">${d.ft || ''}</textarea>
               ${renderStationVideoBar('ft', 'Front Toss')}
@@ -8484,12 +8472,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
 
             <!-- Machine Panel -->
             <div id="recap-panel-machine" class="space-y-3.5 ${_recapActiveStation === 'machine' ? '' : 'hidden'}">
-              <div class="flex items-start justify-between gap-2">
-                <div class="flex flex-wrap gap-2">
-                  ${machQuick.map(q => renderDrillBtn('recap-machine-input', q)).join('')}
-                  <button type="button" onclick="addCustomCuePrompt('machine')" class="min-h-[38px] px-3.5 py-2 rounded-full border border-dashed border-[var(--border-subtle)] text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ New Drill</button>
-                </div>
-                <button type="button" onclick="startRecapDictation('recap-machine-input', this)" class="inline-flex items-center justify-center gap-1 px-3 min-h-[40px] rounded-full surface-soft text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer shrink-0" aria-label="Dictate Machine notes">${micSvg}</button>
+              <div class="flex flex-wrap gap-2">
+                ${machQuick.map(q => renderDrillBtn('recap-machine-input', q)).join('')}
+                <button type="button" onclick="addCustomCuePrompt('machine')" class="min-h-[38px] px-3.5 py-2 rounded-full border border-dashed border-[var(--border-subtle)] text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer">+ New Drill</button>
               </div>
               <textarea id="recap-machine-input" name="machine" rows="3" class="w-full px-4 py-3.5 rounded-2xl surface-soft text-[16px] leading-relaxed resize-none" placeholder="• Fastball timing reps (optional)">${d.machine || ''}</textarea>
               ${renderStationVideoBar('machine', 'Machine')}
@@ -8539,12 +8524,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                   <p class="section-sub">Included in the recap shared with the athlete &amp; parent</p>
                 </div>
               </button>
-              <div class="flex items-center gap-1.5 shrink-0">
-                <button type="button" onclick="startRecapDictation('recap-session-notes-input', this)" class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-full surface-soft text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
-                <button type="button" onclick="toggleRecapSectionCollapse('notes')" aria-label="Toggle Session Notes" class="w-9 h-9 rounded-full surface-soft flex items-center justify-center text-[var(--text-muted)] cursor-pointer shrink-0">
-                  <span id="recap-chev-notes" class="inline-block transition-transform duration-200" style="transform: ${notesCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}">▾</span>
-                </button>
-              </div>
+              <button type="button" onclick="toggleRecapSectionCollapse('notes')" aria-label="Toggle Session Notes" class="w-9 h-9 rounded-full surface-soft flex items-center justify-center text-[var(--text-muted)] cursor-pointer shrink-0">
+                <span id="recap-chev-notes" class="inline-block transition-transform duration-200" style="transform: ${notesCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}">▾</span>
+              </button>
             </div>
             <button id="recap-collapsed-bar-notes" type="button" onclick="toggleRecapSectionCollapse('notes', false)" class="${notesCollapsed ? '' : 'hidden'} w-full text-left px-3.5 py-2.5 rounded-2xl surface-soft text-[14px] text-[var(--text-muted)] flex items-center justify-between gap-2 cursor-pointer">
               <span id="recap-preview-notes" class="truncate font-medium">${escHtml(firstNonEmptyLine(d.sessionNotes))}</span>
@@ -8569,12 +8551,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
                   <p class="section-sub">Only viewable by Coach — never sent to athlete or parent</p>
                 </div>
               </button>
-              <div class="flex items-center gap-1.5 shrink-0">
-                <button type="button" onclick="startRecapDictation('recap-private-note-input', this)" class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-full bg-white/80 dark:bg-white/10 text-[14px] font-extrabold text-[#4E6075] dark:text-[#9AC0D6] cursor-pointer hover:bg-[#D5FF5F] hover:text-[#010101] transition shrink-0">${micSvg} Dictate</button>
-                <button type="button" onclick="toggleRecapSectionCollapse('private')" aria-label="Toggle Private Coach Note" class="w-9 h-9 rounded-full bg-white/80 dark:bg-white/10 flex items-center justify-center text-[var(--text-muted)] cursor-pointer shrink-0">
-                  <span id="recap-chev-private" class="inline-block transition-transform duration-200" style="transform: ${privateCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}">▾</span>
-                </button>
-              </div>
+              <button type="button" onclick="toggleRecapSectionCollapse('private')" aria-label="Toggle Private Coach Note" class="w-9 h-9 rounded-full bg-white/80 dark:bg-white/10 flex items-center justify-center text-[var(--text-muted)] cursor-pointer shrink-0">
+                <span id="recap-chev-private" class="inline-block transition-transform duration-200" style="transform: ${privateCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}">▾</span>
+              </button>
             </div>
             <button id="recap-collapsed-bar-private" type="button" onclick="toggleRecapSectionCollapse('private', false)" class="${privateCollapsed ? '' : 'hidden'} w-full text-left px-3.5 py-2.5 rounded-2xl bg-white/80 dark:bg-[#131820]/70 text-[14px] text-[var(--text-muted)] flex items-center justify-between gap-2 cursor-pointer">
               <span id="recap-preview-private" class="truncate font-medium">${escHtml(firstNonEmptyLine(d.privateCoachNote))}</span>
@@ -10007,9 +9986,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.19.1';
+    const APP_VERSION = 'v3.19.2';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Split mobile bottom Liquid Glass toolbar into a primary tabs pill (Home, Schedule, Athletes) plus a separate floating circular Menu pill';
+    const APP_RELEASE_NOTES = 'Removed Dictate buttons from Session Notes Studio for a cleaner, full-width header and drill-pill layout';
 
     function reloadLatestAppVersion() {
       try {
