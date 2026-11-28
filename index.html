@@ -4964,9 +4964,15 @@
                   <p class="section-sub">${days[0].shortLabel} – ${days[6].shortLabel}</p>
                 </div>
               </div>
-              <button onclick="state.homeDayFilter='all7'; render(false);" class="px-3.5 py-1.5 rounded-full text-[13px] font-extrabold cursor-pointer transition ${activeDayFilter === 'all7' ? 'bg-[#010101] text-[#D5FF5F]' : 'surface-soft text-[var(--text-muted)]'}">
-                All 7 Days (${totalNext7Count})
-              </button>
+              <div class="flex items-center gap-2.5 shrink-0">
+                <button type="button" onclick="state.homeDayFilter='all7'; render(false);" class="px-3 py-1.5 rounded-full text-[13px] font-extrabold cursor-pointer transition ${activeDayFilter === 'all7' ? 'bg-[#010101] text-[#D5FF5F]' : 'surface-soft text-[var(--text-muted)]'}">
+                  All 7 (${totalNext7Count})
+                </button>
+                <button type="button" onclick="state.schedule.view='month'; setTab('schedule');" class="inline-flex items-center gap-1 text-[13px] font-extrabold text-[#234563] dark:text-[#D5FF5F] hover:opacity-80 transition cursor-pointer whitespace-nowrap">
+                  <span>Full Calendar</span>
+                  ${uiIcon('chevronRight', 'w-3.5 h-3.5 shrink-0')}
+                </button>
+              </div>
             </div>
 
             <!-- 7-Day Rolling Strip -->
@@ -10185,9 +10191,9 @@ $.NSString.alloc.initWithUTF8String(str).writeToFileAtomicallyEncodingError(path
       });
     }
 
-    const APP_VERSION = 'v3.21.2';
+    const APP_VERSION = 'v3.21.3';
     const APP_BUILD_DATE = 'Nov 28, 2026';
-    const APP_RELEASE_NOTES = 'Styled the right-side slide-out mobile menu drawer with translucent Apple Liquid Glass blur and a specular glass edge';
+    const APP_RELEASE_NOTES = 'Added a Full Calendar › link in the Coach Home Next 7 Days header to jump straight to the monthly schedule view';
 
     function reloadLatestAppVersion() {
       try {
